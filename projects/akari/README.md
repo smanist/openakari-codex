@@ -14,6 +14,12 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-24 (Codex/OpenAI migration assessment)
+
+Assessed whether openakari can redirect its execution interface toward local Codex first, with OpenAI API calls only when needed. The core finding is that this is feasible, but not as a config-only change: Codex already exists as a human-invoked runtime via `AGENTS.md` and `.agents/skills/`, while the scheduler and supervision layers remain partly Claude-shaped.
+
+Recorded the code-level assessment in `projects/akari/analysis/openai-interface-feasibility-2026-03-24.md` and a proposed migration sequence in `projects/akari/plans/2026-03-24-codex-openai-migration.md`. Added follow-up tasks covering a first-class Codex backend, de-Claude-ifying `spawnAgent()`, auditing deep-work/chat supervision, and rewriting docs to make the Codex/OpenAI path primary.
+
 ### 2026-03-24 (verification follow-up)
 
 Re-ran verification for the Codex skill-discovery patch after Node/npm and scheduler dependencies became available locally. Focused scheduler tests now pass for the patched area, while the scheduler-wide typecheck still fails on pre-existing errors outside `src/skills.ts`.
@@ -44,6 +50,8 @@ Created the public meta-project scaffold for openakari. Added a project README, 
 
 ## Open questions
 
+- Can local Codex be invoked with stable session interruption and message-injection semantics, or do deep-work/chat flows need an explicit OpenAI API fallback path?
+- Should `auto` remain backward-compatible (`claude -> cursor -> opencode`) while Codex is added as an explicit backend, or should Codex become the new default ordering once parity is proven?
 - Which self-improvement metrics are robust enough to compare across different forks or deployments of openakari?
 - What is the smallest useful amount of operational logging needed to support real self-study without overwhelming orient cost?
 - Which kinds of capability improvements transfer across projects, and which depend on the specific repo's history and conventions?
