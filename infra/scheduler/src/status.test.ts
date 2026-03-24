@@ -4,11 +4,13 @@ import { describe, it, expect } from "vitest";
 import {
   getUnifiedStatus,
   formatUnifiedStatus,
+  toStatusExperiment,
   type UnifiedStatus,
   type StatusSession,
   type StatusExperiment,
   type StatusJob,
 } from "./status.js";
+import type { ExperimentInfo } from "./experiments.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -216,5 +218,55 @@ describe("formatUnifiedStatus", () => {
     expect(output).toContain("sample-project/phase-a-full-scale");
     // Should not crash
     expect(output).toBeDefined();
+  });
+});
+
+describe("toStatusExperiment", () => {
+  it("derives timing fields from progress.started_at", () => {
+    const now = Date.parse("2026-03-24T12:10:00.000Z");
+    const info: ExperimentInfo = {
+      project: "sample-project",
+      id: "exp-1",
+      dir: "/tmp/exp-1",
+      mdStatus: "planned",
+      progress: {
+        status: "running",
+        started_at: "2026-03-24T12:00:00.000Z",
+        pct: 25,
+        message: "Processing",
+      },
+    };
+
+    const status = toStatusExperiment(info, now);
+
+    expect(status).toEqual({
+      project: "sample-project",
+      id: "exp-1",
+      status: "running",
+      startedAt: "2026-03-24T12:00:00.000Z",
+      elapsedMs: 600_000,
+      progress: 25,
+      message: "Processing",
+    });
+  });
+
+  it("falls back to the EXPERIMENT.md status when progress is absent", () => {
+    const info: ExperimentInfo = {
+      project: "sample-project",
+      id: "exp-2",
+      dir: "/tmp/exp-2",
+      mdStatus: "completed",
+      progress: null,
+    };
+
+    expect(toStatusExperiment(info, Date.now())).toEqual({
+      project: "sample-project",
+      id: "exp-2",
+      status: "completed",
+      startedAt: undefined,
+      elapsedMs: undefined,
+      progress: undefined,
+      message: undefined,
+    });
   });
 });

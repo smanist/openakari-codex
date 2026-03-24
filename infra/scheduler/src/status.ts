@@ -1,5 +1,7 @@
 /** Unified status dashboard — combines active sessions, running experiments, and jobs into a single view. */
 
+import type { ExperimentInfo } from "./experiments.js";
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface StatusSession {
@@ -58,6 +60,24 @@ export interface StatusSources {
   sessions: StatusSession[];
   experiments: StatusExperiment[];
   jobs: StatusJob[];
+}
+
+export function toStatusExperiment(
+  info: ExperimentInfo,
+  nowMs = Date.now(),
+): StatusExperiment {
+  const startedAt = info.progress?.started_at;
+  const startedAtMs = startedAt ? new Date(startedAt).getTime() : undefined;
+  const elapsedMs = startedAtMs !== undefined ? nowMs - startedAtMs : undefined;
+  return {
+    project: info.project,
+    id: info.id,
+    status: info.progress?.status ?? info.mdStatus ?? "unknown",
+    startedAt,
+    elapsedMs,
+    progress: info.progress?.pct,
+    message: info.progress?.message,
+  };
 }
 
 /** Combine sessions, experiments, and jobs into a unified status view.

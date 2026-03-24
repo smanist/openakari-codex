@@ -29,6 +29,12 @@ export type ApiServerOpts = {
   port?: number;
 };
 
+export type EnqueueRequestBody = {
+  sessionId: string;
+  cwd: string;
+  priority: "opus" | "fleet";
+};
+
 let server: http.Server | null = null;
 let listeningPort: number | null = null;
 
@@ -53,6 +59,15 @@ async function readJson(req: http.IncomingMessage): Promise<unknown> {
   return JSON.parse(raw);
 }
 
+export function parseEnqueueRequest(body: unknown): EnqueueRequestBody {
+  const b = body as { sessionId?: unknown; cwd?: unknown; priority?: unknown };
+  return {
+    sessionId: typeof b.sessionId === "string" ? b.sessionId : "",
+    cwd: typeof b.cwd === "string" ? b.cwd : "",
+    priority: b.priority === "opus" ? "opus" : "fleet",
+  };
+}
+
 export async function startApiServer(opts: ApiServerOpts): Promise<number> {
   if (server && listeningPort != null) return listeningPort;
 
@@ -72,10 +87,7 @@ export async function startApiServer(opts: ApiServerOpts): Promise<number> {
 
       if (method === "POST" && path === "/api/push/enqueue") {
         const body = await readJson(req);
-        const b = body as { sessionId?: unknown; cwd?: unknown; priority?: unknown };
-        const sessionId = typeof b.sessionId === "string" ? b.sessionId : "";
-        const cwd = typeof b.cwd === "string" ? b.cwd : "";
-        const priority = typeof b.priority === "number" ? b.priority : 0;
+        const { sessionId, cwd, priority } = parseEnqueueRequest(body);
 
         if (!sessionId || !cwd) {
           return sendJson(res, 400, { error: "sessionId and cwd required" });

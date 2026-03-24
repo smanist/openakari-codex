@@ -231,6 +231,31 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-03-24 — Restore openakari scheduler build compatibility after API drift
+
+Fixed the `npm run build` failure in `infra/scheduler` caused by interface drift between the openakari Slack stub and the scheduler callers, plus stale experiment-status and push-enqueue assumptions in the CLI/API layer.
+
+Changes:
+- Aligned `src/slack.ts` with the reference Slack function signatures used by `cli.ts` and `executor.ts`, while keeping the openakari implementation as no-op stubs.
+- Added `setPersistenceDir()` to the openakari Slack stub so scheduler startup can configure living-message persistence without importing the reference-only Slack implementation.
+- Added `toStatusExperiment()` in `src/status.ts` and switched both CLI status paths to derive timing from `progress.started_at` instead of the removed `startedAtMs` field.
+- Added `parseEnqueueRequest()` in `src/api/server.ts` so push queue priority is parsed as `"opus" | "fleet"` and defaults to `"fleet"` when absent.
+- Added regression coverage for the API enqueue parser, openakari Slack stub compatibility, and experiment status mapping.
+
+Verification: `cd infra/scheduler && npm test -- src/api/server.test.ts src/slack.test.ts src/status.test.ts`
+Output:
+- `Test Files  3 passed (3)`
+- `Tests  18 passed (18)`
+
+Verification: `cd infra/scheduler && npx tsc --noEmit`
+Output:
+- no output (exit 0)
+
+Verification: `cd infra/scheduler && npm run build`
+Output:
+- `> @akari/scheduler@0.1.0 build`
+- `> npx tsc`
+
 ### 2026-03-24 — Codex-first backend routing and compatibility migration
 
 Added first-class `codex` and `openai` backend names, changed `auto` from provider-fallback semantics to capability-aware routing, and moved Claude-specific prompt/tool defaults out of the shared spawn path and into the Claude adapter. Deep-work/chat supervision now checks backend capabilities instead of hardcoding `backend === "claude"`, while Slack/CLI/backend preference surfaces now present Codex/OpenAI-first naming.

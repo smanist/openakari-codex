@@ -82,7 +82,7 @@ import { runRecurringTasks } from "./recurring-tasks.js";
 import type { Schedule, JobCreate } from "./types.js";
 import { listExperiments } from "./experiments.js";
 import { wasFullOrient } from "./orient-tier.js";
-import { getUnifiedStatus, formatUnifiedStatus, type StatusSession, type StatusExperiment, type StatusJob } from "./status.js";
+import { getUnifiedStatus, formatUnifiedStatus, toStatusExperiment, type StatusSession, type StatusExperiment, type StatusJob } from "./status.js";
 import { getExecutableBursts, markBurstExecuted } from "./approval-burst.js";
 
 const HELP = `
@@ -240,7 +240,7 @@ async function cmdStart(): Promise<void> {
   acquireLock(lockfilePath);
 
   // Set up living message disk persistence directory
-  setPersistenceDir(persistBaseDir);
+  slack.setPersistenceDir(persistBaseDir);
 
   // Track HEAD before each job for verification
   const headBeforeMap = new Map<string, string | null>();
@@ -686,17 +686,7 @@ async function cmdStart(): Promise<void> {
       }));
 
       const experiments: StatusExperiment[] = (await listExperiments(repoDir)).map((e) => {
-        const startedAt = e.startedAtMs ? new Date(e.startedAtMs).toISOString() : null;
-        const elapsedMs = e.startedAtMs ? Date.now() - e.startedAtMs : null;
-        return {
-          project: e.project,
-          id: e.id,
-          status: e.progress?.status ?? e.mdStatus ?? "unknown",
-          startedAt,
-          elapsedMs,
-          progress: e.progress?.pct,
-          message: e.progress?.message,
-        };
+        return toStatusExperiment(e);
       });
 
       const jobs: StatusJob[] = store.list().map((j) => ({
@@ -901,20 +891,7 @@ async function cmdStatus(): Promise<void> {
 
   // Gather experiments from disk
   const allExperiments = await listExperiments(repoRoot);
-  const now = Date.now();
-  const experiments: StatusExperiment[] = allExperiments.map((e) => {
-    const startedAt = e.progress?.started_at;
-    const elapsedMs = startedAt ? now - new Date(startedAt).getTime() : undefined;
-    return {
-      project: e.project,
-      id: e.id,
-      status: e.progress?.status ?? e.mdStatus ?? "unknown",
-      startedAt,
-      elapsedMs,
-      progress: e.progress?.pct,
-      message: e.progress?.message,
-    };
-  });
+  const experiments: StatusExperiment[] = allExperiments.map((e) => toStatusExperiment(e));
 
   // Gather jobs
   const jobs: StatusJob[] = store.list().map((j) => ({

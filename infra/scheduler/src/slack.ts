@@ -7,6 +7,10 @@
  * See `infra/scheduler/reference-implementations/slack/`.
  */
 
+import type { ApprovalItem } from "./notify.js";
+import type { ExecutionResult } from "./executor.js";
+import type { Job } from "./types.js";
+
 export type AkariCommandInput = Record<string, unknown>;
 export type AkariCommandResult = {
   ok: boolean;
@@ -44,9 +48,8 @@ export async function dmThread(_threadTs: string, _text: string): Promise<void> 
   // no-op
 }
 
-export async function dmBlocks(_blocksText: string): Promise<string | undefined> {
+export async function dmBlocks(_blocks: unknown[], _fallbackText: string): Promise<void> {
   // no-op
-  return undefined;
 }
 
 export async function dmFiles(_files: unknown[], _text?: string): Promise<void> {
@@ -86,14 +89,28 @@ export async function handleBotChannelJoin(): Promise<void> {
   // no-op
 }
 
+export function setPersistenceDir(_dir: string | null): void {
+  // no-op
+}
+
 // ── Notifications (no-op) ────────────────────────────────────────────────────
 
 export async function notifyBotStarted(): Promise<void> {}
-export async function notifySessionStarted(): Promise<void> {}
-export async function notifySessionComplete(): Promise<void> {}
-export async function notifyPendingApprovals(): Promise<void> {}
-export async function notifyBudgetBlocked(): Promise<void> {}
-export async function notifyEvolution(): Promise<void> {}
+export async function notifySessionStarted(
+  _jobName: string,
+  _runId: string,
+): Promise<{ channel: string; threadTs: string } | null> {
+  return null;
+}
+export async function notifySessionComplete(
+  _job: Job,
+  _result: ExecutionResult,
+  _approvals: ApprovalItem[],
+  _threadTs?: string,
+): Promise<void> {}
+export async function notifyPendingApprovals(_dir: string): Promise<void> {}
+export async function notifyBudgetBlocked(_jobName: string, _reason: string): Promise<void> {}
+export async function notifyEvolution(_description: string): Promise<void> {}
 export async function notifyGracefulRestart(): Promise<void> {}
 
 export async function notifyFleetCompletion(): Promise<void> {}
