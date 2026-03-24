@@ -14,6 +14,32 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-24 (Task claim control API)
+
+Implemented task-claim endpoints in the scheduler control API so agents can coordinate via `POST /api/tasks/claim`, `POST /api/tasks/release`, and `GET /api/tasks/claims`. This resolves the mismatch where the SOP and API docs referenced task claiming but the server returned `{"error":"not found"}`.
+
+Verification: `cd infra/scheduler && npx vitest run src/api/server.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  6 passed (6)`
+
+### 2026-03-24 (Local self-improvement measurement plan)
+
+Added a repo-local self-improvement measurement protocol with concrete, mechanically recomputable metrics and explicit on-repo data sources (primarily `.scheduler/metrics/sessions.jsonl`, with fallbacks when metrics aren’t yet available). The plan is recorded in `projects/akari/plans/2026-03-24-self-improvement-measurement-local.md`.
+
+Noted a coordination mismatch: the SOP recommends claiming tasks via `POST /api/tasks/claim`, but a local claim attempt returned `{"error":"not found"}`. Added a follow-up task to either implement task-claiming in the scheduler control API or update the SOP to match the repo’s actual coordination mechanism.
+
+Session-type: autonomous
+Duration: 15
+Task-selected: Adapt the self-improvement measurement plan to your own repo
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 2
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-24 (Codex model alias normalization)
 
 Fixed a post-migration scheduler bug where the default `auto -> codex` path still emitted Claude model aliases (`opus`, `sonnet`, `haiku`) into Codex/OpenAI CLI invocations. Added `resolveModelForBackend()` in `infra/scheduler/src/backend.ts` so Codex-backed sessions normalize those aliases to `gpt-5.2` at emission time while leaving Claude and Cursor behavior unchanged.

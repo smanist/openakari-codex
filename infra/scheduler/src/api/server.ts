@@ -1,4 +1,5 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import { URL } from "node:url";
 
 import type { UnifiedStatus } from "../status.js";
@@ -35,6 +36,28 @@ export type EnqueueRequestBody = {
   priority: "opus" | "fleet";
 };
 
+export type TaskClaim = {
+  claimId: string;
+  taskId: string;
+  taskText: string;
+  project: string;
+  agentId: string;
+  claimedAt: number;
+  expiresAt: number;
+};
+
+export type ClaimTaskRequestBody = {
+  taskText: string;
+  project: string;
+  agentId: string;
+  ttlMs?: number;
+};
+
+export type ReleaseTaskRequestBody = {
+  claimId?: string;
+  agentId?: string;
+};
+
 let server: http.Server | null = null;
 let listeningPort: number | null = null;
 
@@ -68,6 +91,106 @@ export function parseEnqueueRequest(body: unknown): EnqueueRequestBody {
   };
 }
 
+function parseClaimTaskRequest(body: unknown): ClaimTaskRequestBody {
+  const b = body as { taskText?: unknown; project?: unknown; agentId?: unknown; ttlMs?: unknown };
+  return {
+    taskText: typeof b.taskText === "string" ? b.taskText : "",
+    project: typeof b.project === "string" ? b.project : "",
+    agentId: typeof b.agentId === "string" ? b.agentId : "",
+    ttlMs: typeof b.ttlMs === "number" && Number.isFinite(b.ttlMs) ? b.ttlMs : undefined,
+  };
+}
+
+function parseReleaseTaskRequest(body: unknown): ReleaseTaskRequestBody {
+  const b = body as { claimId?: unknown; agentId?: unknown };
+  return {
+    claimId: typeof b.claimId === "string" ? b.claimId : undefined,
+    agentId: typeof b.agentId === "string" ? b.agentId : undefined,
+  };
+}
+
+function createTaskId(project: string, taskText: string): string {
+  const hash = crypto.createHash("sha1").update(`${project}\n${taskText}`).digest("hex");
+  return hash.slice(0, 12);
+}
+
+function createClaimId(): string {
+  return crypto.randomBytes(8).toString("hex");
+}
+
+export class TaskClaimStore {
+  private claimsByTaskId = new Map<string, TaskClaim>();
+  private taskIdByClaimId = new Map<string, string>();
+
+  private pruneExpired(nowMs: number): void {
+    for (const [taskId, claim] of this.claimsByTaskId) {
+      if (claim.expiresAt <= nowMs) {
+        this.claimsByTaskId.delete(taskId);
+        this.taskIdByClaimId.delete(claim.claimId);
+      }
+    }
+  }
+
+  claim(req: ClaimTaskRequestBody, nowMs: number): { ok: true; claim: TaskClaim } | { ok: false; status: 409; claimedBy: string; expiresAt: number } {
+    this.pruneExpired(nowMs);
+    const ttlMs = req.ttlMs ?? 2_700_000;
+    const taskId = createTaskId(req.project, req.taskText);
+    const existing = this.claimsByTaskId.get(taskId);
+    if (existing) {
+      return { ok: false, status: 409, claimedBy: existing.agentId, expiresAt: existing.expiresAt };
+    }
+
+    const claim: TaskClaim = {
+      claimId: createClaimId(),
+      taskId,
+      taskText: req.taskText,
+      project: req.project,
+      agentId: req.agentId,
+      claimedAt: nowMs,
+      expiresAt: nowMs + ttlMs,
+    };
+
+    this.claimsByTaskId.set(taskId, claim);
+    this.taskIdByClaimId.set(claim.claimId, taskId);
+    return { ok: true, claim };
+  }
+
+  list(nowMs: number, project?: string): TaskClaim[] {
+    this.pruneExpired(nowMs);
+    const claims = Array.from(this.claimsByTaskId.values());
+    return project ? claims.filter((c) => c.project === project) : claims;
+  }
+
+  release(nowMs: number, body: ReleaseTaskRequestBody): { ok: true; released?: number } | { ok: false; status: 400 | 404; error: string } {
+    this.pruneExpired(nowMs);
+
+    if (body.claimId) {
+      const taskId = this.taskIdByClaimId.get(body.claimId);
+      if (!taskId) return { ok: false, status: 404, error: "claim not found" };
+      const claim = this.claimsByTaskId.get(taskId);
+      if (claim) this.claimsByTaskId.delete(taskId);
+      this.taskIdByClaimId.delete(body.claimId);
+      return { ok: true };
+    }
+
+    if (body.agentId) {
+      let released = 0;
+      for (const claim of this.claimsByTaskId.values()) {
+        if (claim.agentId === body.agentId) {
+          this.claimsByTaskId.delete(claim.taskId);
+          this.taskIdByClaimId.delete(claim.claimId);
+          released += 1;
+        }
+      }
+      return { ok: true, released };
+    }
+
+    return { ok: false, status: 400, error: "Provide claimId or agentId" };
+  }
+}
+
+const taskClaims = new TaskClaimStore();
+
 export async function startApiServer(opts: ApiServerOpts): Promise<number> {
   if (server && listeningPort != null) return listeningPort;
 
@@ -83,6 +206,50 @@ export async function startApiServer(opts: ApiServerOpts): Promise<number> {
       if (method === "GET" && path === "/api/status") {
         const status = await opts.getStatus();
         return sendJson(res, 200, status);
+      }
+
+      if (method === "POST" && path === "/api/tasks/claim") {
+        let body: unknown;
+        try {
+          body = await readJson(req);
+        } catch (err) {
+          return sendJson(res, 400, { ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+        const parsed = parseClaimTaskRequest(body);
+        if (!parsed.taskText || !parsed.project || !parsed.agentId) {
+          return sendJson(res, 400, { ok: false, error: "taskText, project, and agentId required" });
+        }
+
+        const result = taskClaims.claim(parsed, Date.now());
+        if (!result.ok) {
+          return sendJson(res, 409, {
+            ok: false,
+            error: "Task already claimed",
+            claimedBy: result.claimedBy,
+            expiresAt: result.expiresAt,
+          });
+        }
+        return sendJson(res, 200, { ok: true, claim: result.claim });
+      }
+
+      if (method === "POST" && path === "/api/tasks/release") {
+        let body: unknown;
+        try {
+          body = await readJson(req);
+        } catch (err) {
+          return sendJson(res, 400, { ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+        const parsed = parseReleaseTaskRequest(body);
+        const result = taskClaims.release(Date.now(), parsed);
+        if (!result.ok) return sendJson(res, result.status, { ok: false, error: result.error });
+        if (typeof result.released === "number") return sendJson(res, 200, { ok: true, released: result.released });
+        return sendJson(res, 200, { ok: true });
+      }
+
+      if (method === "GET" && path === "/api/tasks/claims") {
+        const project = url.searchParams.get("project") ?? undefined;
+        const claims = taskClaims.list(Date.now(), project);
+        return sendJson(res, 200, { claims });
       }
 
       if (method === "POST" && path === "/api/push/enqueue") {

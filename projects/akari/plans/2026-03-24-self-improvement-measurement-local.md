@@ -43,6 +43,7 @@ Variables:
 Method:
 1. Ensure session metrics exist.
    - Preferred: `.scheduler/metrics/sessions.jsonl` populated by the scheduler’s post-session metrics recorder.
+   - Observation: As of 2026-03-24 in this repo checkout, `.scheduler/metrics/` is not present (so JSONL-based metrics are not yet computable without enabling the recorder).
    - If missing, run at least one scheduler job to create it, then re-run this baseline.
 2. Compute the rolling-window metrics from JSONL:
    - `tail -n 50 .scheduler/metrics/sessions.jsonl | jq -s '.[-10:] | map(select(.isIdle|not))'`
@@ -71,4 +72,3 @@ Success criteria:
 
 - Chose session-metrics JSONL as the primary data source because it is explicitly designed for on-repo reporting (Decision 0015) and supports mechanical recomputation without a database.
 - Chose SOP compliance and knowledge output as primary outcomes because they are both (a) measurable and (b) prerequisites for meaningful self-improvement; efficiency metrics are secondary until cost accounting is consistent across backends.
-
