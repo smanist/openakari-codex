@@ -27,13 +27,13 @@ Every capability the agent group needs is placed at one of four layers, based on
 | L0: Code | Computation | Python in `infra/` | experiment pipeline, experiment validator |
 | L1: Schema | Structure | Templates in CLAUDE.md | Log entry, task, decision record, experiment design |
 | L2: Convention | Rules | Bullet lists in CLAUDE.md | Provenance rules, CI principles, inline logging |
-| L3: Skill | Judgment | `.claude/skills/<name>/SKILL.md` | orient, critique, design, diagnose |
+| L3: Skill | Judgment | `.agents/skills/<name>/SKILL.md` or `.claude/skills/<name>/SKILL.md` | orient, critique, design, diagnose |
 
 The placement rule: a capability belongs at the lowest layer that can fully express it. Judgment that can be reduced to a deterministic check belongs in code (L0). Structural patterns belong in schemas (L1). Unconditional rules belong in conventions (L2). Only the irreducibly judgmental — the reasoning that requires weighing competing considerations, generating hypotheses, or applying domain-specific heuristics — belongs in skills (L3).
 
 ### What a skill is
 
-A skill is a Markdown file at `.claude/skills/<name>/SKILL.md` with:
+A skill is a Markdown file at `.agents/skills/<name>/SKILL.md` or `.claude/skills/<name>/SKILL.md` with:
 
 - **YAML frontmatter**: description, tool permissions (`allowed-tools`), invocation mode (`disable-model-invocation: false` for auto-invocable, `true` for user-triggered), argument hint.
 - **Structured procedure**: step-by-step instructions that encode the judgment pattern — what to gather, what to analyze, what failure modes to check, how to structure the output.
@@ -45,7 +45,7 @@ Skills are not generic prompts. Each encodes a specific judgment pattern with sp
 ### The skill inventory
 
 <!-- staleness-signal: skill-inventory
-     source: .claude/skills/*/SKILL.md
+     source: .agents/skills/*/SKILL.md + .claude/skills/*/SKILL.md
      last-verified: 2026-02-25
      count: 21
      names: architecture, audit-references, compound, coordinator, critique, design, develop, diagnose, feedback, gravity, horizon-scan, lit-review, orient, postmortem, project, publish, refresh-skills, report, review, self-audit, simplify, slack-diagnosis, synthesize -->
@@ -205,7 +205,7 @@ A notable gap: **L4 (Evaluation)** is underrepresented. There is no systematic m
 ## References
 
 - Decision record: [decisions/0003-skills-architecture.md](../../../decisions/0003-skills-architecture.md)
-- Skill files: [.claude/skills/](../../../.claude/skills/) (21 skills)
+- Skill files: [.agents/skills/](../../../.agents/skills/) and [.claude/skills/](../../../.claude/skills/) (21 mirrored skills)
 - CI framework: [docs/creative-intelligence.md](../../../docs/creative-intelligence.md)
 - Tautological findings incident: See internal project log entries for examples.
 - Autonomous execution prototype: [projects/akari/README.md](../README.md) log entry 2026-02-15 (e)

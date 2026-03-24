@@ -106,6 +106,15 @@ The scheduler supports two agent backends, configurable per-job or globally:
 
 The Cursor backend has no native system prompt flag, so for chat queries the system prompt is prepended to the user message in `<system_instructions>` tags. Cursor sessions don't report API cost, and the `ask` supervision command (message injection) is not supported — use `stop` to interrupt instead.
 
+## Skill discovery
+
+Scheduler skill enumeration reads repo-local skill directories in this order:
+
+1. `.agents/skills/`
+2. `.claude/skills/`
+
+When the same skill exists in both places, the `.agents/skills/` copy wins. This allows Codex-adapted skill text to coexist with the Claude/Cursor mirror while preserving a single discovered skill set for prompts and chat routing.
+
 ## Slack integration (reference only)
 
 Openakari ships Slack integration as a **reference implementation**, not as an out-of-the-box supported integration.
@@ -216,6 +225,12 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-03-24 — Dual skill-root discovery for Codex compatibility
+
+Updated scheduler skill discovery to read both `.agents/skills/` and `.claude/skills/`, preferring the `.agents` copy when the same skill exists in both trees. Also broadened frontmatter parsing to handle unquoted descriptions and Codex-style `model-minimum` values like `gpt-5` and `fast-model`.
+
+Reason: the repo carries both Claude/Cursor and Codex skill mirrors, but the scheduler previously hardcoded `.claude/skills/` and silently ignored the Codex tree. This made local skill discovery inconsistent across runtimes.
 
 ### 2026-02-16 — Multi-backend support (Claude + Cursor)
 

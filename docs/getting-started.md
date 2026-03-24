@@ -175,7 +175,7 @@ Key monitoring points:
 
 ### Skills
 
-Skills (in `.claude/skills/`) are encoded judgment procedures — they tell the agent *how* to do specific research workflows. Key skills:
+Skills (mirrored in `.claude/skills/` and `.agents/skills/`) are encoded judgment procedures — they tell the agent *how* to do specific research workflows. Key skills:
 
 | Skill | When to use |
 |-------|-------------|

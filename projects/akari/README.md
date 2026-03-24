@@ -14,6 +14,18 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-24
+
+Improved repo-local skill discovery so Codex-facing `.agents/skills/` files are no longer ignored by scheduler-side enumeration. Added a completed plan at `projects/akari/plans/2026-03-24-codex-skill-discovery.md`, patched `infra/scheduler/src/skills.ts` to prefer `.agents/skills/` over `.claude/skills/`, and added regression tests/documentation for dual-root discovery and Codex-style frontmatter parsing.
+
+Verification attempt: `cd infra/scheduler && npm test -- src/skills.test.ts`
+Output: `zsh:1: command not found: npm`
+
+Verification attempt: `cd infra/scheduler && npx tsc --noEmit`
+Output: `zsh:1: command not found: npx`
+
+Follow-up verification gap: this environment does not have Node/npm/npx on PATH, so Vitest and `tsc` could not be executed locally in-session.
+
 ### 2026-03-08
 
 Created the public meta-project scaffold for openakari. Added a project README, task list, and three example artifacts adapted from the original akari repo: a self-improvement measurement plan, a human-intervention trend analysis, and a self-observation diagnosis. These examples show how the system studies its own behavior rather than only external tasks.

@@ -2,8 +2,8 @@ Reference classification of all skills by invocation context: which skills auton
 
 # Skill Classifications
 
-Last updated: 2026-02-25
-Source of truth: `.claude/skills/*/SKILL.md` frontmatter and skill descriptions.
+Last updated: 2026-03-24
+Source of truth: mirrored skill frontmatter and descriptions in `.agents/skills/*/SKILL.md` and `.claude/skills/*/SKILL.md`.
 
 ## How to use this document
 

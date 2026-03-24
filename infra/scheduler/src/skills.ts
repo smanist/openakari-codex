@@ -1,9 +1,12 @@
-/** Dynamic skill enumeration — reads .claude/skills/ at runtime to prevent
+/** Dynamic skill enumeration — reads repo-local skill directories at runtime to prevent
  *  stale hardcoded skill lists in prompts. See projects/akari/experiments/
  *  doc-code-discrepancy-analysis for the motivation (27% staleness gap). */
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+
+type SkillComplexity = "opus-only" | "high" | "medium" | "low";
+type SkillModelMinimum = "opus" | "sonnet" | "glm-5" | "gpt-5" | "fast-model";
 
 export interface SkillInfo {
   name: string;
@@ -13,18 +16,36 @@ export interface SkillInfo {
   /** Instructions for the chat agent's interview, extracted from ## Chat Interview in SKILL.md. */
   interviewPrompt?: string;
   /** Skill complexity level: opus-only, high, medium, low. */
-  complexity?: "opus-only" | "high" | "medium" | "low";
+  complexity?: SkillComplexity;
   /** Minimum model capability required. */
-  modelMinimum?: "opus" | "sonnet" | "glm-5";
+  modelMinimum?: SkillModelMinimum;
 }
 
-/** Path to the skills directory, resolved relative to the repo root.
- *  The scheduler always runs from the repo root. */
-function skillsDir(repoDir: string): string {
-  return join(repoDir, ".claude", "skills");
+/** Skill roots in precedence order.
+ *  `.agents/skills` contains Codex-adapted copies; `.claude/skills` remains the
+ *  fallback for existing repo tooling and mirrors. */
+function skillDirs(repoDir: string): string[] {
+  return [
+    join(repoDir, ".agents", "skills"),
+    join(repoDir, ".claude", "skills"),
+  ];
 }
 
 const MAX_SKILL_CONTENT_CHARS = 8000;
+const SKILL_COMPLEXITIES = new Set<SkillComplexity>(["opus-only", "high", "medium", "low"]);
+const SKILL_MODEL_MINIMA = new Set<SkillModelMinimum>([
+  "opus",
+  "sonnet",
+  "glm-5",
+  "gpt-5",
+  "fast-model",
+]);
+
+function parseFrontmatterField(content: string, field: string): string | undefined {
+  const match = content.match(new RegExp(`^${field}:\\s*(?:"([^"]+)"|([^\\n]+))\\s*$`, "m"));
+  const value = match?.[1] ?? match?.[2];
+  return value?.trim();
+}
 
 /** Read the SKILL.md content for a specific skill.
  *  Returns null if the skill doesn't exist or has no SKILL.md.
@@ -33,21 +54,25 @@ export async function readSkillContent(
   repoDir: string,
   skillName: string,
 ): Promise<string | null> {
-  const skillMdPath = join(skillsDir(repoDir), skillName, "SKILL.md");
-  try {
-    let content = await readFile(skillMdPath, "utf-8");
-    if (content.length > MAX_SKILL_CONTENT_CHARS) {
-      content = content.slice(0, MAX_SKILL_CONTENT_CHARS);
+  for (const dir of skillDirs(repoDir)) {
+    const skillMdPath = join(dir, skillName, "SKILL.md");
+    try {
+      let content = await readFile(skillMdPath, "utf-8");
+      if (content.length > MAX_SKILL_CONTENT_CHARS) {
+        content = content.slice(0, MAX_SKILL_CONTENT_CHARS);
+      }
+      return content;
+    } catch {
+      continue;
     }
-    return content;
-  } catch {
-    return null;
   }
+  return null;
 }
 
-/** Read all skills from .claude/skills/. Each subdirectory with a SKILL.md
- *  is a skill. The description is extracted from YAML frontmatter. Cached
- *  for 5 minutes to avoid excessive filesystem reads. */
+/** Read all skills from repo-local skill roots. Each subdirectory with a
+ *  SKILL.md is a skill. Earlier roots take precedence when mirrored copies
+ *  share the same skill name. Cached for 5 minutes to avoid excessive
+ *  filesystem reads. */
 let cachedSkills: SkillInfo[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -64,37 +89,46 @@ export async function listSkills(repoDir: string): Promise<SkillInfo[]> {
     return cachedSkills;
   }
 
-  const dir = skillsDir(repoDir);
-  const skills: SkillInfo[] = [];
+  const skillsByName = new Map<string, SkillInfo>();
 
-  try {
-    const entries = await readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      try {
-        const skillMd = await readFile(join(dir, entry.name, "SKILL.md"), "utf-8");
-        const descMatch = skillMd.match(/^description:\s*"([^"]+)"/m);
-        const interviewMatch = skillMd.match(/^interview:\s*true\s*$/m);
-        const interviewPrompt = interviewMatch ? extractInterviewSection(skillMd) : undefined;
-        const complexityMatch = skillMd.match(/^complexity:\s*(opus-only|high|medium|low)\s*$/m);
-        const modelMinimumMatch = skillMd.match(/^model-minimum:\s*(opus|sonnet|glm-5)\s*$/m);
-        skills.push({
-          name: entry.name,
-          description: descMatch?.[1] ?? "(no description)",
-          interview: !!interviewMatch,
-          interviewPrompt: interviewPrompt ?? undefined,
-          complexity: complexityMatch?.[1] as SkillInfo["complexity"] | undefined,
-          modelMinimum: modelMinimumMatch?.[1] as SkillInfo["modelMinimum"] | undefined,
-        });
-      } catch {
-        // No SKILL.md — skip
+  for (const dir of skillDirs(repoDir)) {
+    try {
+      const entries = await readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || skillsByName.has(entry.name)) continue;
+        try {
+          const skillMd = await readFile(join(dir, entry.name, "SKILL.md"), "utf-8");
+          const description = parseFrontmatterField(skillMd, "description");
+          const complexity = parseFrontmatterField(skillMd, "complexity");
+          const modelMinimum = parseFrontmatterField(skillMd, "model-minimum");
+          const interview = /^interview:\s*true\s*$/m.test(skillMd);
+          const interviewPrompt = interview ? extractInterviewSection(skillMd) : undefined;
+
+          skillsByName.set(entry.name, {
+            name: entry.name,
+            description: description ?? "(no description)",
+            interview,
+            interviewPrompt: interviewPrompt ?? undefined,
+            complexity: complexity && SKILL_COMPLEXITIES.has(complexity as SkillComplexity)
+              ? (complexity as SkillComplexity)
+              : undefined,
+            modelMinimum: modelMinimum && SKILL_MODEL_MINIMA.has(modelMinimum as SkillModelMinimum)
+              ? (modelMinimum as SkillModelMinimum)
+              : undefined,
+          });
+        } catch {
+          // No SKILL.md — skip
+        }
       }
+    } catch (err) {
+      if (!(err && typeof err === "object" && "code" in err && err.code === "ENOENT")) {
+        console.warn("[skills] Could not read skills directory:", dir);
+      }
+      continue;
     }
-  } catch {
-    console.warn("[skills] Could not read skills directory:", dir);
-    return [];
   }
 
+  const skills = Array.from(skillsByName.values());
   skills.sort((a, b) => a.name.localeCompare(b.name));
   cachedSkills = skills;
   cacheTimestamp = now;
@@ -214,7 +248,7 @@ export function isFleetEligibleSkill(skill: SkillInfo): boolean {
   if (!skill.complexity || skill.complexity === "high" || skill.complexity === "opus-only") {
     return false;
   }
-  if (skill.modelMinimum === "opus" || skill.modelMinimum === "sonnet") {
+  if (skill.modelMinimum === "opus" || skill.modelMinimum === "sonnet" || skill.modelMinimum === "gpt-5") {
     return false;
   }
   return true;
@@ -222,6 +256,7 @@ export function isFleetEligibleSkill(skill: SkillInfo): boolean {
 
 /** Backend capability tiers. Higher values can run more complex skills. */
 const BACKEND_TIER: Record<string, number> = {
+  codex: 3,     // GPT-5-class: can run all current repo skills
   claude: 3,    // Opus-class: can run all skills
   cursor: 3,    // Opus-class: can run all skills
   opencode: 1,  // GLM-5: can run medium/low only
@@ -245,7 +280,12 @@ export function canRunSkill(
   const backendTier = BACKEND_TIER[backendName] ?? 1;
   
   if (skill.modelMinimum) {
-    const minimumTier = skill.modelMinimum === "opus" ? 3 : skill.modelMinimum === "sonnet" ? 2 : 1;
+    const minimumTier =
+      skill.modelMinimum === "opus"
+        ? 3
+        : skill.modelMinimum === "sonnet" || skill.modelMinimum === "gpt-5"
+          ? 2
+          : 1;
     if (backendTier < minimumTier) {
       return {
         canRun: false,

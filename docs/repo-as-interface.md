@@ -56,7 +56,7 @@ If these ideas were compressed behind a small surface API, an agent would lose t
 Not every directory is meant to be run unchanged.
 
 - `docs/`, `projects/akari/patterns/`, and `decisions/` explain the design
-- `.claude/skills/` shows how reusable judgment procedures are encoded
+- `.claude/skills/` and `.agents/skills/` show how reusable judgment procedures are encoded for different agent runtimes
 - `infra/` shows concrete implementations of scheduling, experiment submission, and budget enforcement
 - `examples/` shows the minimum project scaffold
 
@@ -96,7 +96,7 @@ If you are new here, start with:
 2. `docs/design.md`
 3. `CLAUDE.md`
 4. `projects/akari/patterns/`
-5. `.claude/skills/`
+5. `.claude/skills/` or `.agents/skills/`
 6. `infra/scheduler/README.md`
 
 That path gives an agent enough context to reconstruct the operating model before touching implementation details.

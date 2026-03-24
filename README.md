@@ -53,7 +53,7 @@ To add your own human messaging interface to OpenAkari:
 | Component | Description | Files |
 |-----------|-------------|-------|
 | [`CLAUDE.md`](CLAUDE.md) | Agent operating manual — conventions, schemas, session discipline | 1 |
-| [`.claude/skills/`](.claude/skills/) | 26 encoded judgment skills (orient, diagnose, design, critique, compound, etc.) | 25 dirs |
+| [`.claude/skills/`](.claude/skills/) + [`.agents/skills/`](.agents/skills/) | Mirrored encoded judgment skills for Claude/Cursor and Codex-style runtimes | 25 dirs |
 | [`infra/scheduler/`](infra/scheduler/) | Session orchestrator — cron scheduling, local control API, safety gates, push coordination | TypeScript |
 | [`infra/scheduler/reference-implementations/`](infra/scheduler/reference-implementations/) | Slack + fleet code as references for agents (not intended to work out of the box) | TypeScript |
 | [`decisions/`](decisions/) | 66 architectural decision records documenting every significant infrastructure choice | 66 files |
@@ -124,7 +124,7 @@ Seven evidence-backed patterns extracted from operating the system:
 | Understand the core philosophy | [`docs/design.md`](docs/design.md) |
 | See the agent operating manual | [`CLAUDE.md`](CLAUDE.md) |
 | Learn the design patterns | [`projects/akari/patterns/`](projects/akari/patterns/) |
-| Read the encoded skills | [`.claude/skills/`](.claude/skills/) |
+| Read the encoded skills | [`.claude/skills/`](.claude/skills/) or [`.agents/skills/`](.agents/skills/) |
 | See the end-to-end work cycle | [`docs/sops/autonomous-work-cycle.md`](docs/sops/autonomous-work-cycle.md) |
 | Understand why decisions were made | [`decisions/`](decisions/) |
 | Create a project structure | [`examples/`](examples/) |

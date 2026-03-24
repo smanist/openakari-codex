@@ -228,6 +228,36 @@ This is a test skill.`
     expect(content).not.toBeNull();
     expect(content!.length).toBeLessThanOrEqual(8000);
   });
+
+  it("reads from .agents/skills when .claude/skills is absent", async () => {
+    const skillsDir = join(tempDir, ".agents", "skills", "codex-skill");
+    await mkdir(skillsDir, { recursive: true });
+    await writeFile(
+      join(skillsDir, "SKILL.md"),
+      `---
+name: codex-skill
+description: "A Codex-native skill"
+---
+# Codex Skill
+Use the .agents copy.`,
+    );
+
+    const content = await readSkillContent(tempDir, "codex-skill");
+    expect(content).not.toBeNull();
+    expect(content).toContain("# Codex Skill");
+  });
+
+  it("prefers .agents/skills over .claude/skills when both define the same skill", async () => {
+    const claudeDir = join(tempDir, ".claude", "skills", "shared-skill");
+    const agentsDir = join(tempDir, ".agents", "skills", "shared-skill");
+    await mkdir(claudeDir, { recursive: true });
+    await mkdir(agentsDir, { recursive: true });
+    await writeFile(join(claudeDir, "SKILL.md"), "# Claude copy");
+    await writeFile(join(agentsDir, "SKILL.md"), "# Agents copy");
+
+    const content = await readSkillContent(tempDir, "shared-skill");
+    expect(content).toContain("# Agents copy");
+  });
 });
 
 describe("extractInterviewSection", () => {
@@ -343,6 +373,63 @@ Do stuff.`,
     expect(skill!.interview).toBe(false);
     expect(skill!.interviewPrompt).toBeUndefined();
   });
+
+  it("reads skills from .agents/skills and parses Codex-style frontmatter", async () => {
+    const skillDir = join(tempDir, ".agents", "skills", "fast-skill");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(
+      join(skillDir, "SKILL.md"),
+      `---
+name: fast-skill
+description: Fast skill without quoted description
+complexity: medium
+model-minimum: fast-model
+interview: true
+---
+# Fast Skill
+
+## Chat Interview
+
+Ask one question.`,
+    );
+
+    const skills = await listSkills(tempDir);
+    const skill = skills.find(s => s.name === "fast-skill");
+    expect(skill).toBeDefined();
+    expect(skill!.description).toBe("Fast skill without quoted description");
+    expect(skill!.complexity).toBe("medium");
+    expect(skill!.modelMinimum).toBe("fast-model" as any);
+    expect(skill!.interview).toBe(true);
+    expect(skill!.interviewPrompt).toContain("Ask one question.");
+  });
+
+  it("prefers the .agents/skills copy when both skill roots define the same name", async () => {
+    const claudeDir = join(tempDir, ".claude", "skills", "shared-skill");
+    const agentsDir = join(tempDir, ".agents", "skills", "shared-skill");
+    await mkdir(claudeDir, { recursive: true });
+    await mkdir(agentsDir, { recursive: true });
+    await writeFile(
+      join(claudeDir, "SKILL.md"),
+      `---
+name: shared-skill
+description: "Claude description"
+---
+# Shared Skill`,
+    );
+    await writeFile(
+      join(agentsDir, "SKILL.md"),
+      `---
+name: shared-skill
+description: "Agents description"
+---
+# Shared Skill`,
+    );
+
+    const skills = await listSkills(tempDir);
+    const skill = skills.find(s => s.name === "shared-skill");
+    expect(skill).toBeDefined();
+    expect(skill!.description).toBe("Agents description");
+  });
 });
 
 describe("readInterviewPrompt", () => {
@@ -454,6 +541,22 @@ describe("canRunSkill", () => {
     expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
   });
 
+  it("blocks skill with model-minimum: gpt-5 on opencode", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "gpt-5" as any };
+    expect(canRunSkill(skill, "opencode")).toEqual({
+      canRun: false,
+      reason: "/test requires gpt-5 but opencode provides lower capability",
+    });
+    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
+  });
+
+  it("allows skill with model-minimum: fast-model on opencode", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "fast-model" as any };
+    expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+  });
+
   it("allows skill without complexity or modelMinimum on any backend", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
@@ -494,6 +597,11 @@ describe("isFleetEligibleSkill", () => {
 
   it("returns false for model-minimum: sonnet", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "sonnet" };
+    expect(isFleetEligibleSkill(skill)).toBe(false);
+  });
+
+  it("returns false for model-minimum: gpt-5", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "gpt-5" as any };
     expect(isFleetEligibleSkill(skill)).toBe(false);
   });
 
