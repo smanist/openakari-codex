@@ -2,10 +2,15 @@
 
 ## Meta-project setup
 
-- [ ] Adapt the self-improvement measurement plan to your own repo [requires-opus] [skill: design] [zero-resource]
+- [x] Adapt the self-improvement measurement plan to your own repo [requires-opus] [skill: design] [zero-resource]
   Why: The public examples show the pattern, but each deployment needs its own metrics, denominators, and failure modes.
-  Done when: A repo-specific measurement plan exists with 3-5 concrete metrics and explicit data sources.
+  Done when: A repo-specific measurement plan exists with 3-5 concrete metrics and explicit data sources. (Implemented in `projects/akari/plans/2026-03-24-self-improvement-measurement-local.md`.)
   Priority: high
+
+- [ ] Align task-claim SOP with scheduler API [requires-opus] [skill: execute] [zero-resource]
+  Why: The SOP recommends claiming tasks via `/api/tasks/claim`, but the local scheduler API may not expose this endpoint yet (claim attempts can return `{\"error\":\"not found\"}`).
+  Done when: Either (a) the scheduler control API supports task claiming with conflict detection, or (b) the SOP is updated to reflect the actual coordination mechanism used in this repo.
+  Priority: medium
 
 - [ ] Measure human intervention rate in your deployment [fleet-eligible] [skill: analyze] [zero-resource]
   Why: A decreasing intervention rate is one of the clearest signals that the system is becoming more autonomous.
