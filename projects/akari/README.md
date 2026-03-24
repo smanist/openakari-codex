@@ -14,6 +14,20 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-24 (Codex model alias normalization)
+
+Fixed a post-migration scheduler bug where the default `auto -> codex` path still emitted Claude model aliases (`opus`, `sonnet`, `haiku`) into Codex/OpenAI CLI invocations. Added `resolveModelForBackend()` in `infra/scheduler/src/backend.ts` so Codex-backed sessions normalize those aliases to `gpt-5.2` at emission time while leaving Claude and Cursor behavior unchanged.
+
+Also added regression coverage in `infra/scheduler/src/backend-all.test.ts` to lock the backend-specific model mapping behavior: Codex/OpenAI normalize Claude aliases, explicit GPT model IDs pass through unchanged, and Claude/Cursor continue to receive the original aliases.
+
+Verification: `cd infra/scheduler && npx vitest run src/backend-all.test.ts src/agent.test.ts`
+Output:
+- `Test Files  2 passed (2)`
+- `Tests  83 passed (83)`
+
+Verification: `cd infra/scheduler && npx tsc --noEmit`
+Output: typecheck still fails in pre-existing unrelated scheduler files including `src/api/server.ts`, `src/cli.ts`, `src/executor.ts`, and `src/api/server.ts`. This fix did not add new typecheck failures.
+
 ### 2026-03-24 (Codex-first migration implementation)
 
 Implemented the first full Codex-first scheduler pass. Added `codex` and `openai` backend names, changed `auto` to capability-aware routing with `codex` as the default path, moved Claude preset injection out of the shared spawn layer, and replaced direct Claude-name supervision checks in deep-work/chat with capability checks.

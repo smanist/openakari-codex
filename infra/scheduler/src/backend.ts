@@ -145,6 +145,29 @@ class ClaudeBackend implements AgentBackend {
 // ── Codex/OpenAI backends (Codex CLI transport) ─────────────────────────────
 
 const CODEX_DEFAULT_MODEL = "gpt-5.2";
+const CODEX_MODEL_ALIASES: Record<string, string> = {
+  opus: CODEX_DEFAULT_MODEL,
+  sonnet: CODEX_DEFAULT_MODEL,
+  haiku: CODEX_DEFAULT_MODEL,
+};
+
+export function resolveModelForBackend(
+  backendName: BackendName,
+  model?: string,
+): string {
+  const requested = model?.trim();
+  if (!requested) {
+    return backendName === "codex" || backendName === "openai"
+      ? CODEX_DEFAULT_MODEL
+      : "";
+  }
+
+  if (backendName === "codex" || backendName === "openai") {
+    return CODEX_MODEL_ALIASES[requested] ?? requested;
+  }
+
+  return requested;
+}
 
 export function parseCodexMessage(line: string): SDKMessage | null {
   try {
@@ -215,18 +238,20 @@ abstract class BaseCodexBackend implements AgentBackend {
 
   protected buildExecArgs(opts: BackendQueryOpts): string[] {
     const prompt = this.buildPrompt(opts);
+    const model = resolveModelForBackend(this.name, opts.model);
     const args = [
       "exec",
       "--json",
       "-C", opts.cwd,
       "--dangerously-bypass-approvals-and-sandbox",
     ];
-    args.push("-m", opts.model ?? CODEX_DEFAULT_MODEL);
+    args.push("-m", model);
     args.push(prompt);
     return args;
   }
 
   protected buildResumeArgs(sessionId: string, prompt: string, opts: BackendQueryOpts): string[] {
+    const model = resolveModelForBackend(this.name, opts.model);
     const args = [
       "exec",
       "resume",
@@ -234,7 +259,7 @@ abstract class BaseCodexBackend implements AgentBackend {
       "-C", opts.cwd,
       "--dangerously-bypass-approvals-and-sandbox",
     ];
-    args.push("-m", opts.model ?? CODEX_DEFAULT_MODEL);
+    args.push("-m", model);
     args.push(sessionId, prompt);
     return args;
   }

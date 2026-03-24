@@ -12,6 +12,7 @@ import {
   isBillingError,
   isRateLimitError,
   getEffectiveBackendName,
+  resolveModelForBackend,
 } from "./backend.js";
 import {
   getBackendPreference,
@@ -139,6 +140,33 @@ describe("getEffectiveBackendName", () => {
 
   it("returns 'codex' for undefined preference (defaults to auto)", () => {
     expect(getEffectiveBackendName(undefined)).toBe("codex");
+  });
+});
+
+describe("resolveModelForBackend", () => {
+  it("maps Claude opus alias to a Codex-compatible model", () => {
+    expect(resolveModelForBackend("codex", "opus")).toBe("gpt-5.2");
+    expect(resolveModelForBackend("openai", "opus")).toBe("gpt-5.2");
+  });
+
+  it("maps Claude sonnet and haiku aliases to a Codex-compatible model", () => {
+    expect(resolveModelForBackend("codex", "sonnet")).toBe("gpt-5.2");
+    expect(resolveModelForBackend("openai", "haiku")).toBe("gpt-5.2");
+  });
+
+  it("preserves explicit GPT model ids for Codex-compatible backends", () => {
+    expect(resolveModelForBackend("codex", "gpt-5.2")).toBe("gpt-5.2");
+    expect(resolveModelForBackend("openai", "gpt-5.2")).toBe("gpt-5.2");
+  });
+
+  it("preserves Claude aliases for Claude backend", () => {
+    expect(resolveModelForBackend("claude", "opus")).toBe("opus");
+    expect(resolveModelForBackend("claude", "sonnet")).toBe("sonnet");
+  });
+
+  it("preserves Claude aliases for Cursor backend so its own mapper can translate them", () => {
+    expect(resolveModelForBackend("cursor", "opus")).toBe("opus");
+    expect(resolveModelForBackend("cursor", "sonnet")).toBe("sonnet");
   });
 });
 
