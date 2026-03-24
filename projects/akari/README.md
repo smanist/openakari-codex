@@ -23,6 +23,17 @@ Output:
 - `Test Files  1 passed (1)`
 - `Tests  6 passed (6)`
 
+Session-type: autonomous
+Duration: 5
+Task-selected: Align task-claim SOP with scheduler API
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-24 (Local self-improvement measurement plan)
 
 Added a repo-local self-improvement measurement protocol with concrete, mechanically recomputable metrics and explicit on-repo data sources (primarily `.scheduler/metrics/sessions.jsonl`, with fallbacks when metrics aren’t yet available). The plan is recorded in `projects/akari/plans/2026-03-24-self-improvement-measurement-local.md`.
