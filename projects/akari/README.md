@@ -14,6 +14,18 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-24 (verification follow-up)
+
+Re-ran verification for the Codex skill-discovery patch after Node/npm and scheduler dependencies became available locally. Focused scheduler tests now pass for the patched area, while the scheduler-wide typecheck still fails on pre-existing errors outside `src/skills.ts`.
+
+Verification: `cd infra/scheduler && npx vitest run src/skills.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  57 passed (57)`
+
+Verification: `cd infra/scheduler && npx tsc --noEmit`
+Output: typecheck still fails in unrelated files including `src/api/server.ts`, `src/cli.ts`, and `src/executor.ts`. No typecheck errors were reported for `src/skills.ts` or `src/skills.test.ts`.
+
 ### 2026-03-24
 
 Improved repo-local skill discovery so Codex-facing `.agents/skills/` files are no longer ignored by scheduler-side enumeration. Added a completed plan at `projects/akari/plans/2026-03-24-codex-skill-discovery.md`, patched `infra/scheduler/src/skills.ts` to prefer `.agents/skills/` over `.claude/skills/`, and added regression tests/documentation for dual-root discovery and Codex-style frontmatter parsing.
