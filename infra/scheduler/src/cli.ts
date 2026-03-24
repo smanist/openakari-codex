@@ -140,7 +140,7 @@ Add options:
   --message <msg>           Prompt message for agent session (required)
   --model <model>           Model name (e.g. opus, sonnet)
   --cwd <dir>               Working directory for agent session
-  --backend <backend>       Agent backend: claude, cursor, or auto (default: auto)
+  --backend <backend>       Agent backend: codex, openai, cursor, opencode, claude (deprecated), or auto (default: auto)
 `.trim();
 
 function fail(msg: string): never {
@@ -339,7 +339,7 @@ async function cmdStart(): Promise<void> {
         jobName: job.name,
         runId,
         triggerSource: result.triggerSource,
-        backend: (result.backend ?? "claude") as "claude" | "cursor" | "opencode",
+        backend: (result.backend ?? "codex") as "codex" | "openai" | "claude" | "cursor" | "opencode",
         durationMs: result.durationMs,
         costUsd: result.costUsd ?? null,
         numTurns: result.numTurns ?? null,
@@ -775,9 +775,9 @@ async function cmdAdd(args: string[]): Promise<void> {
     return fail("Error: --cron or --every is required.");
   }
 
-  const backendOpt = opts["backend"] as "claude" | "cursor" | "opencode" | "auto" | undefined;
-  if (backendOpt && !["claude", "cursor", "opencode", "auto"].includes(backendOpt)) {
-    return fail("Error: --backend must be claude, cursor, opencode, or auto.");
+  const backendOpt = opts["backend"] as "codex" | "openai" | "claude" | "cursor" | "opencode" | "auto" | undefined;
+  if (backendOpt && !["codex", "openai", "claude", "cursor", "opencode", "auto"].includes(backendOpt)) {
+    return fail("Error: --backend must be codex, openai, claude, cursor, opencode, or auto.");
   }
 
   const input: JobCreate = {

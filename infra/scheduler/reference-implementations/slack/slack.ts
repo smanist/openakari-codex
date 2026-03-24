@@ -896,7 +896,7 @@ export async function handleAkariCommand(input: AkariCommandInput): Promise<Akar
         `• \`/akari mode off\` — remove this channel from Akari\n` +
         `• \`/akari max-turns N\` — limit bot replies per thread to N turns\n` +
         `• \`/akari max-turns off\` — remove the turn limit\n` +
-        `• \`/akari backend <claude|cursor|opencode|auto>\` — switch agent backend\n` +
+        `• \`/akari backend <codex|openai|cursor|opencode|claude|auto>\` — switch agent backend\n` +
         `• \`/akari backend reset\` — reset to default (auto with env fallback)\n` +
         `• \`/akari status\` — show this channel's current mode and backend\n` +
         `• \`/akari help\` — this message\n\n` +
@@ -962,9 +962,9 @@ export async function handleAkariCommand(input: AkariCommandInput): Promise<Akar
       const current = getDefaultBackend();
       const persisted = getBackendPreference();
       if (persisted) {
-        return { text: `:information_source: Current backend: *${current}* (persisted). Use \`/akari backend <claude|cursor|opencode|auto>\` to change.` };
+        return { text: `:information_source: Current backend: *${current}* (persisted). Use \`/akari backend <codex|openai|cursor|opencode|claude|auto>\` to change.` };
       }
-      return { text: `:information_source: Current backend: *${current}* (env default). Use \`/akari backend <claude|cursor|opencode|auto>\` to persist a preference.` };
+      return { text: `:information_source: Current backend: *${current}* (env default). Use \`/akari backend <codex|openai|cursor|opencode|claude|auto>\` to persist a preference.` };
     }
 
     if (backendArg === "reset" || backendArg === "default" || backendArg === "clear") {
@@ -972,14 +972,14 @@ export async function handleAkariCommand(input: AkariCommandInput): Promise<Akar
       return { text: `:white_check_mark: Backend preference reset to default. Will use AGENT_BACKEND env var or auto.` };
     }
 
-    const validBackends: BackendPreference[] = ["claude", "cursor", "opencode", "auto"];
+    const validBackends: BackendPreference[] = ["codex", "openai", "claude", "cursor", "opencode", "auto"];
     if (!validBackends.includes(backendArg as BackendPreference)) {
-      return { text: `:warning: Unknown backend \`${backendArg}\`. Use \`claude\`, \`cursor\`, \`opencode\`, or \`auto\`.` };
+      return { text: `:warning: Unknown backend \`${backendArg}\`. Use \`codex\`, \`openai\`, \`cursor\`, \`opencode\`, \`claude\`, or \`auto\`.` };
     }
 
     await setBackendPreference(backendArg as BackendPreference);
     const description = backendArg === "auto"
-      ? "fallback chain (Claude → Cursor → opencode)"
+      ? "capability-aware routing (codex default, openai only when needed)"
       : backendArg;
     return { text: `:white_check_mark: Backend set to *${backendArg}* — ${description}.` };
   }

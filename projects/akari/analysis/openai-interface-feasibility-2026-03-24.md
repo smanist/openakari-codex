@@ -106,3 +106,22 @@ Pursue the migration, but do it in phases:
 4. only then rewrite the docs and defaults to make Codex/OpenAI the primary interface
 
 Do not treat `opencode` as "good enough OpenAI." It is currently a separate GLM-5 execution path with different capability and accounting assumptions.
+
+## Post-implementation supervision status
+
+After the 2026-03-24 scheduler refactor, the repo's supervision surfaces now classify as:
+
+| Surface | Status | Evidence |
+|---|---|---|
+| Work sessions | preserved on `codex` | `infra/scheduler/src/backend.ts`, `infra/scheduler/src/agent.ts` |
+| Deep-work auto-approval | API-fallback-only in policy; best-effort Codex/OpenAI transport in implementation | `infra/scheduler/src/event-agents.ts`, `infra/scheduler/src/backend.ts` |
+| Slack ask-session forwarding | capability-gated, no longer Claude-name-gated | `infra/scheduler/reference-implementations/slack/chat/chat.ts` |
+| Fleet workers | unchanged on `opencode` | `infra/scheduler/reference-implementations/fleet/` and `infra/scheduler/src/backend.ts` |
+
+Interpretation:
+
+- the scheduler now has a real `codex` work-session path
+- deep-work/chat code no longer hardcodes `backend === "claude"`
+- the current `openai` path is still a transport shim over Codex CLI rather than a raw Responses API runtime
+
+That means the migration is materially implemented at the routing/interface level, but raw OpenAI API parity remains future work if the repo needs a non-Codex transport with stronger session semantics.

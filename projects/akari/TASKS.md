@@ -24,22 +24,22 @@
 
 ## Backend migration
 
-- [ ] Add a first-class Codex scheduler backend [requires-opus] [skill: execute]
+- [x] Add a first-class Codex scheduler backend [requires-opus] [skill: execute]
   Why: Codex is a supported interactive runtime via `AGENTS.md` and `.agents/skills/`, but the scheduler still only exposes `claude`, `cursor`, `opencode`, and `auto`.
   Done when: Scheduler jobs can run with `--backend codex`, tests cover backend resolution and CLI validation, and work-session execution no longer depends on pretending Codex is `opencode`.
   Priority: high
 
-- [ ] Split backend-agnostic spawn logic from Claude-specific presets [requires-opus] [skill: execute]
+- [x] Split backend-agnostic spawn logic from Claude-specific presets [requires-opus] [skill: execute]
   Why: `spawnAgent()` currently injects `claude_code` system prompt and tool presets for every backend, which blocks a clean Codex/OpenAI execution path.
   Done when: Backend adapters own prompt/tool shaping, and regression coverage shows Claude, Cursor/opencode, and Codex paths each using appropriate configuration.
   Priority: high
 
-- [ ] Audit deep-work and chat supervision for Codex/OpenAI compatibility [requires-opus] [skill: diagnose] [zero-resource]
+- [x] Audit deep-work and chat supervision for Codex/OpenAI compatibility [requires-opus] [skill: diagnose] [zero-resource]
   Why: Plan auto-approval and live human message forwarding currently rely on Claude-only `streamInput` behavior.
   Done when: A written note classifies each supervision feature as preserved, degraded, or API-fallback-only for Codex/OpenAI with file-level evidence.
   Priority: medium
 
-- [ ] Rewrite setup docs to present Codex/OpenAI as the primary path [fleet-eligible] [skill: record] [zero-resource]
+- [x] Rewrite setup docs to present Codex/OpenAI as the primary path [fleet-eligible] [skill: record] [zero-resource]
   Why: The repo now has Codex-facing artifacts, but the docs still teach a Claude-first mental model.
   Done when: `README.md`, `docs/getting-started.md`, and `infra/scheduler/README.md` present `AGENTS.md` and Codex/OpenAI-first examples without removing legacy backend compatibility notes.
   Priority: medium

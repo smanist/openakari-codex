@@ -6,7 +6,7 @@ If you are a human operator, treat this file as a reference for how your agent s
 
 ## Prerequisites
 
-- **One supported agent backend** — openakari supports `claude` (Claude Code), `cursor` (Cursor agent CLI), and `opencode` (opencode CLI). Install at least one of them before running autonomous sessions.
+- **One supported agent backend** — openakari supports `codex` (recommended), `openai` capability-fallback routing, `cursor`, `opencode`, and `claude` (deprecated compatibility). Install at least one runnable local path before running autonomous sessions.
 - **Node.js 18+** — for the scheduler.
 - **Python 3.10+** — for the experiment runner and budget tools.
 - **Git** — the repo is the system's memory; git is how it persists.
@@ -20,9 +20,11 @@ cd akari
 
 The agent should start by reading the two documents that define the system:
 
-1. **[`CLAUDE.md`](../CLAUDE.md)** — the agent operating manual. This is the single most important file. It defines conventions, schemas, session discipline, and approval gates. Every agent session loads this as its instructions.
+1. **[`AGENTS.md`](../AGENTS.md)** — the Codex-facing operating manual. This is the primary agent entrypoint in the current repo. It defines conventions, schemas, session discipline, and approval gates.
 
-2. **[`docs/design.md`](design.md)** — why the repo is structured this way. Explains the core insight: LLM agents lose all memory between sessions, so the repo must encode cognitive state explicitly.
+2. **[`CLAUDE.md`](../CLAUDE.md)** — compatibility operating manual for Claude/Cursor-era runtimes. Keep it aligned if you still run those backends during migration.
+
+3. **[`docs/design.md`](design.md)** — why the repo is structured this way. Explains the core insight: LLM agents lose all memory between sessions, so the repo must encode cognitive state explicitly.
 
 ## Step 2: Create your first project scaffold
 
@@ -49,9 +51,9 @@ Example task:
   Priority: high
 ```
 
-## Step 3: Customize CLAUDE.md for the agent
+## Step 3: Customize AGENTS.md for the primary agent
 
-`CLAUDE.md` ships with generic conventions. Customize it for your research domain:
+`AGENTS.md` ships with generic conventions. Customize it for your research domain:
 
 - **Approval gates**: Adjust which modules are "production" and require PR approval.
 - **Schemas**: The experiment, task, and decision record schemas work for most research. Extend them only when a real need arises.
@@ -69,10 +71,12 @@ The scheduler runs autonomous agent sessions on a cron schedule.
 
 Openakari supports these scheduler backends:
 
-- `claude` — Claude Code / Claude Agent SDK
+- `codex` — local Codex CLI (recommended default)
+- `openai` — capability-fallback path when the default Codex route is insufficient
 - `cursor` — Cursor agent CLI
 - `opencode` — opencode CLI
-- `auto` — try available backends in fallback order
+- `claude` — deprecated compatibility backend
+- `auto` — capability-aware routing (`codex` default, `openai` only when needed)
 
 ```bash
 cd infra/scheduler
@@ -88,23 +92,27 @@ node dist/cli.js add \
   --cron "0 * * * *" \
   --tz "UTC" \
   --message "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report." \
-  --backend claude \
-  --model opus \
+  --backend codex \
+  --model gpt-5.2 \
   --cwd /path/to/your/akari
 ```
 
 Choose the backend that matches your installed agent:
 
-- `--backend claude` for Claude Code
+- `--backend codex` for local Codex CLI
+- `--backend openai` for the capability-fallback path
 - `--backend cursor` for Cursor
 - `--backend opencode` for opencode
-- `--backend auto` to let the scheduler try available backends automatically
+- `--backend auto` to let the scheduler choose `codex` first and use `openai` only when required capabilities demand it
 
 Examples:
 
 ```bash
-# Claude Code backend
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend claude --model opus --cwd /path/to/your/akari
+# Codex backend
+node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend codex --model gpt-5.2 --cwd /path/to/your/akari
+
+# OpenAI capability-fallback backend
+node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend openai --model gpt-5.2 --cwd /path/to/your/akari
 
 # Cursor backend
 node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend cursor --model opus --cwd /path/to/your/akari
@@ -141,10 +149,10 @@ node dist/cli.js run <job-id>
 Or run an agent directly:
 
 ```bash
-# Claude Code
-claude -p "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md." --dangerously-skip-permissions
+# Codex
+codex exec --dangerously-bypass-approvals-and-sandbox -C /path/to/your/akari "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md."
 
-# Cursor and opencode can also be used directly if you prefer to drive them outside the scheduler.
+# Cursor, opencode, and legacy Claude paths can also be used directly if you prefer to drive them outside the scheduler.
 ```
 
 Watch for the session to:
@@ -226,4 +234,4 @@ Primarily for the agent. A human should use it to understand the expected setup 
 Define `budget.yaml` limits per project. The system enforces them — agents check remaining budget before starting resource-consuming work. Track actual consumption in `ledger.yaml`.
 
 **Can I use models other than Claude?**
-Yes. The scheduler supports `claude`, `cursor`, and `opencode` backends. The conventions and skills are model-agnostic — they work with any LLM that can follow structured instructions. Validate model fit empirically for the task(s) you care about.
+Yes. The scheduler now prefers `codex`, supports `openai` as a capability-fallback path, and still supports `cursor`, `opencode`, and legacy `claude` compatibility during migration. The conventions and skills are model-agnostic — validate model fit empirically for the task(s) you care about.

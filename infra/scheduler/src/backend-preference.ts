@@ -56,7 +56,7 @@ function loadPersistedPreference(): BackendPreference | null {
   try {
     const raw = readFileSync(persistPath, "utf-8");
     const data = JSON.parse(raw) as PersistedBackendPreference;
-    if (data.backend && ["claude", "cursor", "opencode", "auto"].includes(data.backend)) {
+    if (data.backend && ["codex", "openai", "claude", "cursor", "opencode", "auto"].includes(data.backend)) {
       return data.backend;
     }
     return null;

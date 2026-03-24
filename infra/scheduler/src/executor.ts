@@ -53,7 +53,7 @@ export interface ExecutionResult {
   logFile?: string;
   costUsd?: number;
   numTurns?: number;
-  backend?: "claude" | "cursor" | "opencode";
+  backend?: "codex" | "openai" | "claude" | "cursor" | "opencode";
   timedOut?: boolean;
   sessionId?: string;
   triggerSource?: "scheduler" | "slack" | "manual" | "fleet";
@@ -76,7 +76,7 @@ export async function executeJob(
 ): Promise<ExecutionResult> {
   const start = Date.now();
   const cwd = job.payload.cwd ?? process.cwd();
-  const backend = resolveBackend(job.payload.backend);
+  const backend = resolveBackend(job.payload.backend, job.payload.requiredCapabilities);
 
   let threadInfo: { channel: string; threadTs: string } | null = null;
 
@@ -159,6 +159,7 @@ export async function executeJob(
       cwd,
       sessionId,
       backend: job.payload.backend,
+      requiredCapabilities: job.payload.requiredCapabilities,
       jobId: job.id,
       jobName: job.name,
       agents: teamConfig?.agents,

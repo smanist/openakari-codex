@@ -14,6 +14,23 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-24 (Codex-first migration implementation)
+
+Implemented the first full Codex-first scheduler pass. Added `codex` and `openai` backend names, changed `auto` to capability-aware routing with `codex` as the default path, moved Claude preset injection out of the shared spawn layer, and replaced direct Claude-name supervision checks in deep-work/chat with capability checks.
+
+Also rewrote the primary setup docs so `AGENTS.md` and Codex-backed scheduler examples are now the primary path in `README.md`, `docs/getting-started.md`, and `infra/scheduler/README.md`. Updated the earlier feasibility note with a post-implementation supervision classification, and marked the backend-migration tasks complete in `projects/akari/TASKS.md`.
+
+Verification: `cd infra/scheduler && npx vitest run src/backend-all.test.ts src/backend-preference.test.ts reference-implementations/slack/slack.test.ts`
+Output:
+- `Test Files  2 passed (2)`
+- `Tests  72 passed (72)`
+
+Verification: `cd infra/scheduler && npx vitest run src/event-agents.test.ts src/drain-all.test.ts`
+Output: `src/drain-all.test.ts` passed; two `src/event-agents.test.ts` failures were environment-related (`ModuleNotFoundError: No module named 'yaml'`) rather than backend-routing regressions.
+
+Verification: `cd infra/scheduler && npx tsc --noEmit`
+Output: typecheck still fails in pre-existing scheduler files including `src/api/server.ts`, `src/cli.ts`, and `src/executor.ts`. This session did not clear the broader type debt.
+
 ### 2026-03-24 (Codex/OpenAI migration assessment)
 
 Assessed whether openakari can redirect its execution interface toward local Codex first, with OpenAI API calls only when needed. The core finding is that this is feasible, but not as a config-only change: Codex already exists as a human-invoked runtime via `AGENTS.md` and `.agents/skills/`, while the scheduler and supervision layers remain partly Claude-shaped.

@@ -1,5 +1,7 @@
 /** Type definitions for the akari scheduler. Minimal extraction from OpenClaw cron types. */
 
+import type { BackendCapability } from "./backend.js";
+
 export interface CronSchedule {
   kind: "cron";
   /** 5-field cron expression (minute hour day month weekday) */
@@ -27,8 +29,10 @@ export interface JobPayload {
   model?: string;
   /** Working directory for the agent session */
   cwd?: string;
-  /** Agent backend: "claude" (SDK), "cursor" (CLI), "opencode" (CLI), or "auto" (claude → cursor → opencode fallback). Default: auto. */
-  backend?: "claude" | "cursor" | "opencode" | "auto";
+  /** Agent backend: codex, openai, claude (deprecated compatibility), cursor, opencode, or auto. */
+  backend?: "codex" | "openai" | "claude" | "cursor" | "opencode" | "auto";
+  /** Backend capabilities required when auto-selecting a backend. */
+  requiredCapabilities?: BackendCapability[];
   /** Maximum session duration in milliseconds. Default: 3,600,000 (60 min). */
   maxDurationMs?: number;
   /** Agent profile key from AGENT_PROFILES (e.g. "skillCycle"). Overrides model/maxDurationMs defaults. */
@@ -141,7 +145,7 @@ export interface FleetWorkerResult {
   /** Whether the session timed out. */
   timedOut?: boolean;
   /** Backend used (always "opencode" for fleet workers currently). */
-  backend?: "claude" | "cursor" | "opencode";
+  backend?: "codex" | "openai" | "claude" | "cursor" | "opencode";
   /** Per-model token usage and cost breakdown. */
   modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
   /** Per-tool invocation counts. */

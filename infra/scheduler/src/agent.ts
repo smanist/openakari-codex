@@ -1,6 +1,6 @@
 /** Unified agent spawning — single entry point for all agent sessions (work, chat, autofix, team). */
 
-import { resolveBackend, type BackendQueryOpts, type SessionHandle, type BackendPreference } from "./backend.js";
+import { resolveBackend, type BackendQueryOpts, type SessionHandle, type BackendPreference, type BackendCapability } from "./backend.js";
 import type { QueryOpts } from "./sdk.js";
 import {
   registerSession,
@@ -67,6 +67,7 @@ export interface SpawnAgentOpts {
   prompt: string;
   cwd: string;
   backend?: BackendPreference;
+  requiredCapabilities?: BackendCapability[];
   jobId?: string;
   jobName?: string;
   /** Pre-generated session ID. If omitted, one is generated from profile label + timestamp. */
@@ -166,7 +167,7 @@ export function spawnAgent(opts: SpawnAgentOpts): {
   }
 
   const sessionId = opts.sessionId ?? `${opts.profile.label}-${Date.now().toString(36)}`;
-  const backend = resolveBackend(opts.backend);
+  const backend = resolveBackend(opts.backend, opts.requiredCapabilities);
 
   console.log(`[agent] Spawning [${sessionId}]: backend=${backend.name}, model=${opts.profile.model}, maxTurns=${opts.profile.maxTurns ?? "unlimited"}, prompt="${opts.prompt.slice(0, 80)}..."`);
 
@@ -174,12 +175,11 @@ export function spawnAgent(opts: SpawnAgentOpts): {
     prompt: opts.prompt,
     cwd: opts.cwd,
     model: opts.profile.model,
-    systemPrompt: { type: "preset", preset: "claude_code" },
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
-    tools: { type: "preset", preset: "claude_code" },
     settingSources: ["project", "user"],
     maxTurns: opts.profile.maxTurns,
+    requiredCapabilities: opts.requiredCapabilities,
     disallowedTools: opts.disallowedTools,
     agents: opts.agents,
     hooks: opts.hooks,

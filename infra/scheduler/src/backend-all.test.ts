@@ -8,6 +8,7 @@ import {
   resolveBackend,
   getBackend,
   parseOpenCodeMessage,
+  parseCodexMessage,
   isBillingError,
   isRateLimitError,
   getEffectiveBackendName,
@@ -37,6 +38,16 @@ describe("resolveBackend", () => {
     expect(backend.name).toBe("claude");
   });
 
+  it("returns codex backend when preference is 'codex'", () => {
+    const backend = resolveBackend("codex");
+    expect(backend.name).toBe("codex");
+  });
+
+  it("returns openai backend when preference is 'openai'", () => {
+    const backend = resolveBackend("openai");
+    expect(backend.name).toBe("openai");
+  });
+
   it("returns cursor backend when preference is 'cursor'", () => {
     const backend = resolveBackend("cursor");
     expect(backend.name).toBe("cursor");
@@ -49,23 +60,38 @@ describe("resolveBackend", () => {
 
   it("returns fallback backend when preference is 'auto'", () => {
     const backend = resolveBackend("auto");
-    expect(backend.name).toBe("claude");
+    expect(backend.name).toBe("codex");
+  });
+
+  it("routes auto to openai when interactive input is required", () => {
+    const backend = resolveBackend("auto", ["interactive_input"]);
+    expect(backend.name).toBe("openai");
   });
 
   it("respects AGENT_BACKEND environment variable", () => {
-    process.env["AGENT_BACKEND"] = "opencode";
+    process.env["AGENT_BACKEND"] = "codex";
     const backend = resolveBackend();
-    expect(backend.name).toBe("opencode");
+    expect(backend.name).toBe("codex");
   });
 
   it("defaults to auto when AGENT_BACKEND is not set", () => {
     delete process.env["AGENT_BACKEND"];
     const backend = resolveBackend();
-    expect(backend.name).toBe("claude");
+    expect(backend.name).toBe("codex");
   });
 });
 
 describe("getBackend", () => {
+  it("returns codex backend by name", () => {
+    const backend = getBackend("codex");
+    expect(backend.name).toBe("codex");
+  });
+
+  it("returns openai backend by name", () => {
+    const backend = getBackend("openai");
+    expect(backend.name).toBe("openai");
+  });
+
   it("returns claude backend by name", () => {
     const backend = getBackend("claude");
     expect(backend.name).toBe("claude");
@@ -83,6 +109,14 @@ describe("getBackend", () => {
 });
 
 describe("getEffectiveBackendName", () => {
+  it("returns 'codex' for codex preference", () => {
+    expect(getEffectiveBackendName("codex")).toBe("codex");
+  });
+
+  it("returns 'openai' for openai preference", () => {
+    expect(getEffectiveBackendName("openai")).toBe("openai");
+  });
+
   it("returns 'claude' for claude preference", () => {
     expect(getEffectiveBackendName("claude")).toBe("claude");
   });
@@ -95,12 +129,56 @@ describe("getEffectiveBackendName", () => {
     expect(getEffectiveBackendName("opencode")).toBe("opencode");
   });
 
-  it("returns 'claude' for auto preference (first in fallback chain)", () => {
-    expect(getEffectiveBackendName("auto")).toBe("claude");
+  it("returns 'codex' for auto preference (default backend)", () => {
+    expect(getEffectiveBackendName("auto")).toBe("codex");
   });
 
-  it("returns 'claude' for undefined preference (defaults to auto)", () => {
-    expect(getEffectiveBackendName(undefined)).toBe("claude");
+  it("returns 'openai' for auto preference when interactive input is required", () => {
+    expect(getEffectiveBackendName("auto", ["interactive_input"])).toBe("openai");
+  });
+
+  it("returns 'codex' for undefined preference (defaults to auto)", () => {
+    expect(getEffectiveBackendName(undefined)).toBe("codex");
+  });
+});
+
+describe("parseCodexMessage", () => {
+  it("parses assistant output text events", () => {
+    const line = JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "text", text: "Hello from Codex" }] },
+    });
+    const msg = parseCodexMessage(line);
+    expect(msg).not.toBeNull();
+    expect(msg?.type).toBe("assistant");
+  });
+
+  it("parses session init events with session_id", () => {
+    const line = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      session_id: "session-123",
+    });
+    const msg = parseCodexMessage(line);
+    expect(msg).not.toBeNull();
+    expect(msg?.type).toBe("system");
+  });
+
+  it("parses result events", () => {
+    const line = JSON.stringify({
+      type: "result",
+      result: "Done",
+      total_cost_usd: 0.12,
+      num_turns: 4,
+      session_id: "session-123",
+    });
+    const msg = parseCodexMessage(line);
+    expect(msg).not.toBeNull();
+    expect(msg?.type).toBe("result");
+  });
+
+  it("returns null for invalid JSON", () => {
+    expect(parseCodexMessage("not json")).toBeNull();
   });
 });
 
@@ -288,7 +366,7 @@ describe("backend-preference", () => {
   });
 
   it("supports all valid backends", async () => {
-    const backends = ["claude", "cursor", "opencode", "auto"] as const;
+    const backends = ["codex", "openai", "claude", "cursor", "opencode", "auto"] as const;
     for (const backend of backends) {
       await setBackendPreference(backend);
       expect(getBackendPreference()).toBe(backend);

@@ -74,7 +74,7 @@ describe("backend-preference", () => {
   });
 
   it("initBackendPreference accepts all valid backend types", async () => {
-    const backends = ["claude", "cursor", "opencode", "auto"] as const;
+    const backends = ["codex", "openai", "claude", "cursor", "opencode", "auto"] as const;
     for (const backend of backends) {
       rmSync(testDir, { recursive: true, force: true });
       mkdirSync(testDir, { recursive: true });
@@ -94,10 +94,10 @@ describe("backend-preference", () => {
       "./backend-preference.js"
     );
     setBackendPreferencePath(testFile);
-    await setBackendPreference("claude");
-    expect(getBackendPreference()).toBe("claude");
+    await setBackendPreference("codex");
+    expect(getBackendPreference()).toBe("codex");
     const written = JSON.parse(readFileSync(testFile, "utf-8"));
-    expect(written.backend).toBe("claude");
+    expect(written.backend).toBe("codex");
   });
 
   it("clearBackendPreference clears preference and persists to disk", async () => {

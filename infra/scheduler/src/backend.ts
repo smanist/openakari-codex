@@ -1,8 +1,7 @@
-/** Agent backend abstraction. Supports Claude Code SDK, Cursor Agent CLI, and opencode CLI with automatic fallback chain: Claude → Cursor → opencode. */
+/** Agent backend abstraction. Supports Codex CLI, OpenAI/Codex transport, Claude Code SDK, Cursor Agent CLI, and opencode CLI. */
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import type { SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import {
   runQuery as claudeRunQuery,
   runQuerySupervised as claudeRunQuerySupervised,
@@ -15,20 +14,38 @@ import { getSessionCostFromDb } from "./opencode-db.js";
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 
+export type BackendCapability =
+  | "interactive_input"
+  | "session_interrupt"
+  | "subagents"
+  | "native_system_prompt";
+
+export type BackendName = "codex" | "openai" | "claude" | "cursor" | "opencode";
+export type BackendPreference = BackendName | "auto";
+
+export interface UserInputMessage {
+  content: string;
+  sessionId?: string;
+}
+
 /** Handle for supervising a running session (watch / ask / stop). */
 export interface SessionHandle {
   /** Gracefully interrupt the session. */
   interrupt(): Promise<void>;
-  /** Inject a human message into the session. Only supported by Claude backend. */
-  streamInput?(input: AsyncIterable<SDKUserMessage>): Promise<void>;
+  /** Inject a human message into the session when the backend supports it. */
+  streamInput?(input: AsyncIterable<UserInputMessage>): Promise<void>;
   /** Backend that produced this handle. */
-  readonly backend: "claude" | "cursor" | "opencode";
+  readonly backend: BackendName;
+  readonly capabilities: ReadonlySet<BackendCapability>;
+  supportsCapability(capability: BackendCapability): boolean;
 }
 
 /** Common options for running a query through any backend. */
 export interface BackendQueryOpts extends QueryOpts {
   /** For Cursor: prepend this to the prompt since CLI has no system prompt flag. */
   systemPromptText?: string;
+  /** Capabilities the caller requires when selecting a backend in auto mode. */
+  requiredCapabilities?: BackendCapability[];
 }
 
 export interface SupervisedResult {
@@ -37,29 +54,329 @@ export interface SupervisedResult {
 }
 
 export interface AgentBackend {
-  readonly name: "claude" | "cursor" | "opencode";
+  readonly name: BackendName;
+  readonly capabilities: ReadonlySet<BackendCapability>;
   runQuery(opts: BackendQueryOpts): Promise<QueryResult>;
   runSupervised(opts: BackendQueryOpts): SupervisedResult;
+}
+
+function capabilitySet(...caps: BackendCapability[]): ReadonlySet<BackendCapability> {
+  return new Set(caps);
+}
+
+function makeHandle(
+  backend: BackendName,
+  capabilities: ReadonlySet<BackendCapability>,
+  interrupt: () => Promise<void>,
+  streamInput?: (input: AsyncIterable<UserInputMessage>) => Promise<void>,
+): SessionHandle {
+  return {
+    backend,
+    capabilities,
+    interrupt,
+    streamInput,
+    supportsCapability(capability: BackendCapability) {
+      return capabilities.has(capability);
+    },
+  };
+}
+
+async function materializeUserInput(input: AsyncIterable<UserInputMessage>): Promise<UserInputMessage | null> {
+  const chunks: string[] = [];
+  let sessionId: string | undefined;
+  for await (const item of input) {
+    if (!item) continue;
+    if (item.sessionId) sessionId = item.sessionId;
+    if (item.content) chunks.push(item.content);
+  }
+  const content = chunks.join("\n").trim();
+  if (!content) return null;
+  return { content, sessionId };
 }
 
 // ── Claude Backend (SDK) ─────────────────────────────────────────────────────
 
 class ClaudeBackend implements AgentBackend {
   readonly name = "claude" as const;
+  readonly capabilities = capabilitySet(
+    "interactive_input",
+    "session_interrupt",
+    "subagents",
+    "native_system_prompt",
+  );
 
   async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    return claudeRunQuery(opts);
+    return claudeRunQuery({
+      ...opts,
+      systemPrompt: opts.systemPrompt ?? { type: "preset", preset: "claude_code" },
+      tools: opts.tools ?? { type: "preset", preset: "claude_code" },
+    });
   }
 
   runSupervised(opts: BackendQueryOpts): SupervisedResult {
-    const supervised = claudeRunQuerySupervised(opts);
-    const handle: SessionHandle = {
-      backend: "claude",
-      interrupt: () => supervised.query.interrupt(),
-      streamInput: (input) => supervised.query.streamInput(input),
-    };
+    const supervised = claudeRunQuerySupervised({
+      ...opts,
+      systemPrompt: opts.systemPrompt ?? { type: "preset", preset: "claude_code" },
+      tools: opts.tools ?? { type: "preset", preset: "claude_code" },
+    });
+    const handle = makeHandle(
+      "claude",
+      this.capabilities,
+      () => supervised.query.interrupt(),
+      async (input) => {
+        const msg = await materializeUserInput(input);
+        if (!msg) return;
+        await supervised.query.streamInput(
+          (async function* () {
+            yield {
+              type: "user" as const,
+              message: { role: "user" as const, content: msg.content },
+              parent_tool_use_id: null,
+              session_id: msg.sessionId ?? "",
+            };
+          })(),
+        );
+      },
+    );
     return { handle, result: supervised.result };
   }
+}
+
+// ── Codex/OpenAI backends (Codex CLI transport) ─────────────────────────────
+
+const CODEX_DEFAULT_MODEL = "gpt-5.2";
+
+export function parseCodexMessage(line: string): SDKMessage | null {
+  try {
+    const msg = JSON.parse(line);
+
+    if (msg.type === "assistant" && msg.message?.content) {
+      return msg as SDKMessage;
+    }
+
+    if (msg.type === "system" && msg.subtype === "init") {
+      return {
+        type: "system",
+        subtype: "init",
+        session_id: msg.session_id ?? msg.sessionId ?? msg.id ?? "",
+      } as unknown as SDKMessage;
+    }
+
+    if (msg.type === "result") {
+      return {
+        type: "result",
+        subtype: msg.subtype ?? "success",
+        duration_ms: msg.duration_ms ?? msg.durationMs ?? 0,
+        is_error: msg.is_error ?? false,
+        result: msg.result ?? msg.output_text ?? "",
+        session_id: msg.session_id ?? msg.sessionId ?? msg.id ?? "",
+        total_cost_usd: msg.total_cost_usd ?? 0,
+        num_turns: msg.num_turns ?? 0,
+      } as unknown as SDKMessage;
+    }
+
+    if (msg.type === "tool_use" || msg.type === "tool_call") {
+      const toolName = msg.name ?? msg.tool_name ?? msg.tool?.name ?? msg.part?.tool ?? "tool";
+      const input = msg.input ?? msg.args ?? msg.part?.state?.input ?? {};
+      let detail = "";
+      if (input.command) {
+        const cmd = String(input.command);
+        detail = ` \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\``;
+      } else if (input.file_path) {
+        detail = ` ${input.file_path}`;
+      } else if (input.path) {
+        detail = ` ${input.path}`;
+      } else if (input.pattern) {
+        detail = ` ${input.pattern}`;
+      }
+      return { type: "tool_use_summary", summary: `${toolName}${detail}` } as unknown as SDKMessage;
+    }
+
+    if (msg.type === "tool_call_completed" || (msg.type === "tool_call" && msg.subtype === "completed")) {
+      return { type: "tool_call_completed" } as unknown as SDKMessage;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+abstract class BaseCodexBackend implements AgentBackend {
+  abstract readonly name: "codex" | "openai";
+  abstract readonly capabilities: ReadonlySet<BackendCapability>;
+
+  protected buildPrompt(opts: BackendQueryOpts): string {
+    if (opts.systemPromptText) {
+      return `<system_instructions>\n${opts.systemPromptText}\n</system_instructions>\n\n${opts.prompt}`;
+    }
+    return opts.prompt;
+  }
+
+  protected buildExecArgs(opts: BackendQueryOpts): string[] {
+    const prompt = this.buildPrompt(opts);
+    const args = [
+      "exec",
+      "--json",
+      "-C", opts.cwd,
+      "--dangerously-bypass-approvals-and-sandbox",
+    ];
+    args.push("-m", opts.model ?? CODEX_DEFAULT_MODEL);
+    args.push(prompt);
+    return args;
+  }
+
+  protected buildResumeArgs(sessionId: string, prompt: string, opts: BackendQueryOpts): string[] {
+    const args = [
+      "exec",
+      "resume",
+      "--json",
+      "-C", opts.cwd,
+      "--dangerously-bypass-approvals-and-sandbox",
+    ];
+    args.push("-m", opts.model ?? CODEX_DEFAULT_MODEL);
+    args.push(sessionId, prompt);
+    return args;
+  }
+
+  protected spawnCodex(
+    args: string[],
+    opts: BackendQueryOpts,
+    onMessage?: (msg: SDKMessage) => void | Promise<void>,
+  ): { proc: ChildProcess; result: Promise<QueryResult>; getSessionId: () => string | undefined } {
+    const start = Date.now();
+    const cwd = opts.cwd;
+    const codexBin = process.env["CODEX_BIN"] || "codex";
+    console.log(`[${this.name}] Spawning: ${codexBin} ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
+
+    const proc = spawn(codexBin, args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env },
+    });
+
+    let sessionId: string | undefined;
+
+    const result = new Promise<QueryResult>((resolve, reject) => {
+      let text = "";
+      let numTurns = 0;
+      let isError = false;
+      let stderr = "";
+
+      if (proc.stdout) {
+        const rl = createInterface({ input: proc.stdout });
+        rl.on("line", async (line) => {
+          const msg = parseCodexMessage(line);
+          if (!msg) return;
+
+          if (onMessage) {
+            try { await onMessage(msg); } catch { /* best-effort */ }
+          }
+
+          if (msg.type === "system" && "subtype" in msg && (msg as Record<string, unknown>).subtype === "init") {
+            sessionId = (msg as Record<string, unknown>).session_id as string;
+          }
+
+          if (msg.type === "assistant") {
+            numTurns++;
+            const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
+            if (content?.content) {
+              for (const block of content.content) {
+                if (block.type === "text" && block.text) text = block.text;
+              }
+            }
+          }
+
+          if (msg.type === "result") {
+            const r = msg as unknown as { result?: string; is_error?: boolean; session_id?: string; num_turns?: number };
+            if (r.result) text = r.result;
+            if (r.is_error) isError = true;
+            if (r.session_id) sessionId = r.session_id;
+            if (typeof r.num_turns === "number" && r.num_turns > 0) numTurns = r.num_turns;
+          }
+        });
+      }
+
+      if (proc.stderr) {
+        proc.stderr.on("data", (chunk: Buffer) => {
+          stderr += chunk.toString();
+        });
+      }
+
+      proc.on("error", (err) => {
+        reject(new Error(`${this.name} failed to start: ${err.message}`));
+      });
+
+      proc.on("close", (code) => {
+        const durationMs = Date.now() - start;
+        if (code !== 0 && !text) {
+          reject(new Error(
+            `${this.name} exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`,
+          ));
+          return;
+        }
+        resolve({
+          text,
+          ok: !isError,
+          sessionId,
+          costUsd: undefined,
+          numTurns,
+          durationMs,
+        });
+      });
+    });
+
+    return { proc, result, getSessionId: () => sessionId };
+  }
+
+  async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
+    const { result } = this.spawnCodex(this.buildExecArgs(opts), opts, opts.onMessage);
+    return result;
+  }
+
+  runSupervised(opts: BackendQueryOpts): SupervisedResult {
+    const { proc, result, getSessionId } = this.spawnCodex(this.buildExecArgs(opts), opts, opts.onMessage);
+    const streamInput = this.capabilities.has("interactive_input")
+      ? async (input: AsyncIterable<UserInputMessage>) => {
+          const msg = await materializeUserInput(input);
+          const sessionId = msg?.sessionId ?? getSessionId();
+          if (!msg || !sessionId) {
+            throw new Error(`${this.name} session has no resumable session id for injected input`);
+          }
+          const resume = this.spawnCodex(this.buildResumeArgs(sessionId, msg.content, opts), opts, opts.onMessage);
+          await resume.result;
+        }
+      : undefined;
+
+    const handle = makeHandle(
+      this.name,
+      this.capabilities,
+      async () => {
+        if (!proc.killed) {
+          proc.kill("SIGTERM");
+          setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
+        }
+      },
+      streamInput,
+    );
+
+    return { handle, result };
+  }
+}
+
+class CodexBackend extends BaseCodexBackend {
+  readonly name = "codex" as const;
+  readonly capabilities = capabilitySet("session_interrupt", "subagents");
+}
+
+class OpenAIBackend extends BaseCodexBackend {
+  readonly name = "openai" as const;
+  readonly capabilities = capabilitySet(
+    "interactive_input",
+    "session_interrupt",
+    "subagents",
+    "native_system_prompt",
+  );
 }
 
 // ── Cursor Backend (CLI) ─────────────────────────────────────────────────────
@@ -141,6 +458,7 @@ export function parseCursorMessage(line: string): SDKMessage | null {
 
 class CursorBackend implements AgentBackend {
   readonly name = "cursor" as const;
+  readonly capabilities = capabilitySet("session_interrupt");
 
   private buildPrompt(opts: BackendQueryOpts): string {
     if (opts.systemPromptText) {
@@ -258,18 +576,17 @@ class CursorBackend implements AgentBackend {
 
   runSupervised(opts: BackendQueryOpts): SupervisedResult {
     const { proc, result } = this.spawnAgent(opts, opts.onMessage);
-
-    const handle: SessionHandle = {
-      backend: "cursor",
-      interrupt: async () => {
+    const handle = makeHandle(
+      "cursor",
+      this.capabilities,
+      async () => {
         if (!proc.killed) {
           proc.kill("SIGTERM");
           // Give it a moment, then force kill
           setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
         }
       },
-      // streamInput not supported for Cursor
-    };
+    );
 
     return { handle, result };
   }
@@ -361,6 +678,7 @@ export function parseOpenCodeMessage(line: string): SDKMessage | null {
 
 class OpenCodeBackend implements AgentBackend {
   readonly name = "opencode" as const;
+  readonly capabilities = capabilitySet("session_interrupt");
 
   private buildPrompt(opts: BackendQueryOpts): string {
     if (opts.systemPromptText) {
@@ -495,22 +813,22 @@ class OpenCodeBackend implements AgentBackend {
 
   runSupervised(opts: BackendQueryOpts): SupervisedResult {
     const { proc, result } = this.spawnAgent(opts, opts.onMessage);
-
-    const handle: SessionHandle = {
-      backend: "opencode",
-      interrupt: async () => {
+    const handle = makeHandle(
+      "opencode",
+      this.capabilities,
+      async () => {
         if (!proc.killed) {
           proc.kill("SIGTERM");
           setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
         }
       },
-    };
+    );
 
     return { handle, result };
   }
 }
 
-// ── Fallback detection ───────────────────────────────────────────────────────
+// ── Error helpers ────────────────────────────────────────────────────────────
 
 /** Strict rate-limit check: matches known API rate-limit / usage-limit error patterns. */
 export function isRateLimitError(err: unknown): boolean {
@@ -524,19 +842,16 @@ export function isBillingError(err: unknown): boolean {
   return /unpaid invoice|payment required|billing|subscription|insufficient credit/.test(msg);
 }
 
-/** Broad fallback check for "auto" mode: falls back on rate limits AND process-level failures
- *  (exit code errors, connection failures, billing errors) that likely indicate the backend
- *  is unavailable or misconfigured. */
-function shouldFallback(err: unknown): boolean {
-  if (isRateLimitError(err)) return true;
-  if (isBillingError(err)) return true;
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return /exited with code|econnrefused|econnreset|etimedout|process .* exit|spawn .* enoent/.test(msg);
+export function backendSupportsCapabilities(
+  backendName: BackendName,
+  requiredCapabilities?: BackendCapability[],
+): boolean {
+  if (!requiredCapabilities || requiredCapabilities.length === 0) return true;
+  const backend = getBackend(backendName);
+  return requiredCapabilities.every((capability) => backend.capabilities.has(capability));
 }
 
 // ── Backend resolution ───────────────────────────────────────────────────────
-
-export type BackendPreference = "claude" | "cursor" | "opencode" | "auto";
 
 /** Returns the configured default backend preference.
  *  Precedence: persisted preference > AGENT_BACKEND env var > "auto".
@@ -547,55 +862,25 @@ export function getDefaultBackend(): BackendPreference {
   return (process.env["AGENT_BACKEND"] as BackendPreference) ?? "auto";
 }
 
+const codexBackend = new CodexBackend();
+const openaiBackend = new OpenAIBackend();
 const claudeBackend = new ClaudeBackend();
 const cursorBackend = new CursorBackend();
 const opencodeBackend = new OpenCodeBackend();
 
-/** Wraps a primary backend with automatic fallback on rate-limit errors.
- *  Supports multi-tier fallback via chaining FallbackBackend instances. */
-class FallbackBackend implements AgentBackend {
-  readonly name: "claude" | "cursor" | "opencode";
-
-  constructor(
-    private primary: AgentBackend,
-    private fallback: AgentBackend,
-  ) {
-    this.name = primary.name;
-  }
-
-  async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    try {
-      return await this.primary.runQuery(opts);
-    } catch (err) {
-      if (shouldFallback(err)) {
-        console.log(`[backend] ${this.primary.name} failed (${err instanceof Error ? err.message : err}), falling back to ${this.fallback.name}`);
-        return this.fallback.runQuery(opts);
-      }
-      throw err;
-    }
-  }
-
-  runSupervised(opts: BackendQueryOpts): SupervisedResult {
-    const primary = this.primary.runSupervised(opts);
-
-    const wrappedResult = primary.result.catch((err) => {
-      if (shouldFallback(err)) {
-        console.log(`[backend] ${this.primary.name} failed (supervised: ${err instanceof Error ? err.message : err}), falling back to ${this.fallback.name}`);
-        const fallbackRun = this.fallback.runSupervised(opts);
-        return fallbackRun.result;
-      }
-      throw err;
-    });
-
-    return { handle: primary.handle, result: wrappedResult };
-  }
-}
-
 /** Get the appropriate backend for the given preference.
- *  Auto mode uses fallback chain: Claude → Cursor → opencode */
-export function resolveBackend(preference?: BackendPreference): AgentBackend {
+ *  Auto mode is capability-aware: prefer codex and escalate to openai only
+ *  when the caller needs capabilities codex does not provide. */
+export function resolveBackend(
+  preference?: BackendPreference,
+  requiredCapabilities?: BackendCapability[],
+): AgentBackend {
   const pref = preference ?? getDefaultBackend();
   switch (pref) {
+    case "codex":
+      return codexBackend;
+    case "openai":
+      return openaiBackend;
     case "claude":
       return claudeBackend;
     case "cursor":
@@ -603,17 +888,19 @@ export function resolveBackend(preference?: BackendPreference): AgentBackend {
     case "opencode":
       return opencodeBackend;
     case "auto":
-      // 3-tier fallback: Claude → Cursor → opencode
-      return new FallbackBackend(
-        claudeBackend,
-        new FallbackBackend(cursorBackend, opencodeBackend),
-      );
+      if (backendSupportsCapabilities("codex", requiredCapabilities)) return codexBackend;
+      if (backendSupportsCapabilities("openai", requiredCapabilities)) return openaiBackend;
+      return codexBackend;
   }
 }
 
 /** Get a specific backend by name (no fallback wrapping). */
-export function getBackend(name: "claude" | "cursor" | "opencode"): AgentBackend {
+export function getBackend(name: BackendName): AgentBackend {
   switch (name) {
+    case "codex":
+      return codexBackend;
+    case "openai":
+      return openaiBackend;
     case "claude":
       return claudeBackend;
     case "cursor":
@@ -623,18 +910,10 @@ export function getBackend(name: "claude" | "cursor" | "opencode"): AgentBackend
   }
 }
 
-/** Get the effective backend name for skill gating purposes.
- *  For explicit preferences, returns the name.
- *  For "auto", returns "claude" (first in fallback chain, most capable). */
-export function getEffectiveBackendName(preference?: BackendPreference): "claude" | "cursor" | "opencode" {
-  const pref = preference ?? "auto";
-  switch (pref) {
-    case "claude":
-    case "cursor":
-    case "opencode":
-      return pref;
-    case "auto":
-      // Auto mode tries Claude first, so gate as if Claude is available
-      return "claude";
-  }
+/** Get the effective backend name for skill gating purposes. */
+export function getEffectiveBackendName(
+  preference?: BackendPreference,
+  requiredCapabilities?: BackendCapability[],
+): BackendName {
+  return resolveBackend(preference, requiredCapabilities).name;
 }

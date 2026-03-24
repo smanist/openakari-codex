@@ -22,13 +22,13 @@ Important note:
 OpenAkari does not ship with any library, API, CLI (command line interface), or GUI (graphical user interface). The primary user of Akari is Akari itself powered by LLM agents. The repo is the interface.
 
 ### Intended usage to use OpenAkari as a "dependency library" for your agent system
-1. Point your LLM agent (Claude Code, Cursor, Copilot, etc.) at this repo
+1. Point your LLM agent (Codex first; Claude Code, Cursor, Copilot, etc. also possible) at this repo
 2. Tell it what kind of autonomous system you want to build
 3. It reads the patterns, conventions, skills, and reference implementations
 4. It adapts what's relevant to your project
 
 ### Intended usage to use OpenAkari to carry out research projects
-1. Run your LLM agent (Claude Code, Cursor, Copilot, etc.) in this repo
+1. Run your LLM agent (Codex first; Claude Code, Cursor, Copilot, etc. also possible) in this repo
 2. Tell it what projects you would like to do
 3. It reads the patterns, conventions, skills, and reference implementations
 4. It adapts what's relevant to your project
@@ -52,7 +52,7 @@ To add your own human messaging interface to OpenAkari:
 
 | Component | Description | Files |
 |-----------|-------------|-------|
-| [`CLAUDE.md`](CLAUDE.md) | Agent operating manual — conventions, schemas, session discipline | 1 |
+| [`AGENTS.md`](AGENTS.md) + [`CLAUDE.md`](CLAUDE.md) | Agent operating manuals — Codex primary, Claude compatibility | 2 |
 | [`.claude/skills/`](.claude/skills/) + [`.agents/skills/`](.agents/skills/) | Mirrored encoded judgment skills for Claude/Cursor and Codex-style runtimes | 25 dirs |
 | [`infra/scheduler/`](infra/scheduler/) | Session orchestrator — cron scheduling, local control API, safety gates, push coordination | TypeScript |
 | [`infra/scheduler/reference-implementations/`](infra/scheduler/reference-implementations/) | Slack + fleet code as references for agents (not intended to work out of the box) | TypeScript |
@@ -73,7 +73,7 @@ To add your own human messaging interface to OpenAkari:
 
 **Autonomous execution needs safety gates.** Agents can run freely on routine work. Expensive or irreversible decisions go through an approval queue for human review. See [`projects/akari/patterns/autonomous-execution.md`](projects/akari/patterns/autonomous-execution.md).
 
-**Knowledge output is the metric.** Every session is evaluated by the knowledge it produces — findings, decisions, hypotheses tested. The fundamental efficiency metric is *findings per dollar*, not tasks completed. See [`CLAUDE.md`](CLAUDE.md).
+**Knowledge output is the metric.** Every session is evaluated by the knowledge it produces — findings, decisions, hypotheses tested. The fundamental efficiency metric is *findings per dollar*, not tasks completed. See [`AGENTS.md`](AGENTS.md).
 
 ## How it compares
 
@@ -122,7 +122,7 @@ Seven evidence-backed patterns extracted from operating the system:
 | Understand how to use this repo | [`docs/repo-as-interface.md`](docs/repo-as-interface.md) |
 | See operational evidence for autonomy at scale | [`docs/fleet-research.md`](docs/fleet-research.md) |
 | Understand the core philosophy | [`docs/design.md`](docs/design.md) |
-| See the agent operating manual | [`CLAUDE.md`](CLAUDE.md) |
+| See the primary agent operating manual | [`AGENTS.md`](AGENTS.md) |
 | Learn the design patterns | [`projects/akari/patterns/`](projects/akari/patterns/) |
 | Read the encoded skills | [`.claude/skills/`](.claude/skills/) or [`.agents/skills/`](.agents/skills/) |
 | See the end-to-end work cycle | [`docs/sops/autonomous-work-cycle.md`](docs/sops/autonomous-work-cycle.md) |

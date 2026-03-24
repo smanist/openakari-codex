@@ -89,7 +89,7 @@ export interface SessionMetrics {
   jobName: string;
   runId: string;
   triggerSource?: "scheduler" | "slack" | "manual" | "fleet";
-  backend: "claude" | "cursor" | "opencode";
+  backend: "codex" | "openai" | "claude" | "cursor" | "opencode";
   durationMs: number;
   costUsd: number | null;
   numTurns: number | null;

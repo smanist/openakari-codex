@@ -1,6 +1,6 @@
 # akari
 
-Minimal cron scheduler for autonomous agent sessions. Manages scheduled jobs that invoke `claude -p` to run autonomous work cycles.
+Minimal cron scheduler for autonomous agent sessions. Manages scheduled jobs that invoke local agent runtimes such as `codex exec` to run autonomous work cycles.
 
 Status: active
 Mission: Provide a standalone, zero-dependency (beyond croner) scheduler for akari autonomous execution.
@@ -14,13 +14,13 @@ CLI (cli.ts)
  └── start (daemon)         → SchedulerService (service.ts)
                                 ├── poll loop (30s)
                                 ├── computeNextRunAtMs (schedule.ts)
-                                └── executeJob (executor.ts) → claude -p
+                                └── executeJob (executor.ts) → backend adapter → codex/openai/cursor/opencode
 ```
 
 - **types.ts**: Job schema (schedule, payload, state)
 - **schedule.ts**: Cron expression → next run time (via croner library)
 - **store.ts**: JSON file persistence for job definitions and state
-- **executor.ts**: Spawns `claude -p` as child process with `--dangerously-skip-permissions` for unattended execution
+- **executor.ts**: Spawns the selected agent backend for unattended execution
 - **service.ts**: Timer loop that checks for due jobs and runs them
 - **cli.ts**: CLI entry point for managing jobs and running the daemon
 
@@ -91,20 +91,25 @@ Jobs are persisted to `.scheduler/jobs.json` relative to the scheduler directory
 
 ## Agent backends
 
-The scheduler supports two agent backends, configurable per-job or globally:
+The scheduler supports multiple agent backends, configurable per-job or globally:
 
 | Backend | How | Model default | Supervision | Cost tracking |
 |---------|-----|---------------|-------------|---------------|
+| `codex` | local Codex CLI (`codex exec --json`) | `gpt-5.2` | work-session default; best-effort stop | no |
+| `openai` | Codex/OpenAI transport path for capability escape hatches | `gpt-5.2` | capability escape path; best-effort ask/stop | no |
 | `claude` | Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`) | per job config | full (watch/ask/stop) | yes |
 | `cursor` | Cursor Agent CLI (`agent -p --output-format stream-json`) | `opus-4.6-thinking` | partial (watch/stop only, no ask) | no |
+| `opencode` | opencode CLI (GLM-5 fleet path) | `glm5/zai-org/GLM-5-FP8` | partial (watch/stop only, no ask) | local DB estimate |
 
 **Configuration:**
 
-- **Per-job**: `--backend claude|cursor|auto` when adding a job
-- **Global**: `AGENT_BACKEND=claude|cursor|auto` env var (default: `auto`)
-- **`auto` mode**: tries Claude first; if Claude fails (rate limit, usage limit, process error), automatically retries with Cursor
+- **Per-job**: `--backend codex|openai|cursor|opencode|claude|auto` when adding a job
+- **Global**: `AGENT_BACKEND=codex|openai|cursor|opencode|claude|auto` env var (default: `auto`)
+- **`auto` mode**: capability-aware routing. Default route is `codex`; `openai` is selected only when the caller requires capabilities the default codex path does not provide.
 
-The Cursor backend has no native system prompt flag, so for chat queries the system prompt is prepended to the user message in `<system_instructions>` tags. Cursor sessions don't report API cost, and the `ask` supervision command (message injection) is not supported — use `stop` to interrupt instead.
+`claude` remains as a deprecated compatibility backend during migration. New defaults and examples should use `codex` unless a capability-specific `openai` path is required.
+
+The Cursor, Codex, and opencode-style CLI backends do not share a native Claude-style preset interface, so prompts are backend-shaped at the adapter layer. Cursor and opencode sessions do not report API cost; codex/openai paths currently rely on CLI transport rather than raw Responses API integration.
 
 ## Skill discovery
 
@@ -179,8 +184,8 @@ Internal monitoring (health-watchdog) only runs when the scheduler is running. I
 - **Serialized pushes under concurrency**: Fleet workers can request pushes via the control API so `git push` is effectively serialized.
 - **Store reloaded on each tick**: Allows external modification (e.g., `add` from CLI while daemon runs) without restart.
 - **Explicit multi-step prompts required**: Prototype testing (see [projects/akari/README.md](../../projects/akari/README.md) experiment log) showed that referencing the SOP file alone produces orient-only behavior (2/7 SOP steps). Explicitly enumerating all 5 steps in the prompt achieves 7/7 adherence.
-- **CLAUDECODE env var stripped**: The executor removes the `CLAUDECODE` environment variable before spawning claude, preventing nested-session guard from blocking execution when the scheduler itself runs inside a Claude Code context.
-- **Multi-backend with auto-fallback**: Claude SDK is the primary backend (richer supervision, cost tracking). Cursor CLI is the fallback when Claude is unavailable (rate limits, usage caps). The `auto` mode makes this transparent — sessions run on whichever backend is available.
+- **CLAUDECODE env var stripped**: The executor removes the `CLAUDECODE` environment variable before spawning Claude SDK sessions, preventing nested-session guard from blocking execution when the scheduler itself runs inside a Claude Code context.
+- **Codex-first routing**: `auto` now prefers local Codex for ordinary work sessions and only escalates to the `openai` path when the caller explicitly needs capabilities the default Codex route does not guarantee.
 
 ## Push Queue
 
@@ -225,6 +230,18 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-03-24 — Codex-first backend routing and compatibility migration
+
+Added first-class `codex` and `openai` backend names, changed `auto` from provider-fallback semantics to capability-aware routing, and moved Claude-specific prompt/tool defaults out of the shared spawn path and into the Claude adapter. Deep-work/chat supervision now checks backend capabilities instead of hardcoding `backend === "claude"`, while Slack/CLI/backend preference surfaces now present Codex/OpenAI-first naming.
+
+Verification: `cd infra/scheduler && npx vitest run src/backend-all.test.ts src/backend-preference.test.ts reference-implementations/slack/slack.test.ts`
+Output:
+- `Test Files  2 passed (2)`
+- `Tests  72 passed (72)`
+
+Verification: `cd infra/scheduler && npx tsc --noEmit`
+Output: typecheck still fails in pre-existing files including `src/api/server.ts`, `src/cli.ts`, and `src/executor.ts`. This session did not resolve the wider scheduler type debt.
 
 ### 2026-03-24 — Dual skill-root discovery for Codex compatibility
 

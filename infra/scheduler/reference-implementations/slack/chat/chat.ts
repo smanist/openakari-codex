@@ -732,10 +732,8 @@ async function handleAgentResponseInner(
           await session.handle.streamInput(
             (async function* () {
               yield {
-                type: "user" as const,
-                message: { role: "user" as const, content: framedContent },
-                parent_tool_use_id: null,
-                session_id: session.sessionId ?? "",
+                content: framedContent,
+                sessionId: session.sessionId ?? "",
               };
             })(),
           );
@@ -1745,17 +1743,15 @@ async function processMessageInner(
   // Forward to active deep work session if one exists for this thread (dev mode only)
   if (mode === "dev") {
     const activeSession = findSessionByWatcher(channelId);
-    if (activeSession?.handle.streamInput && activeSession.handle.backend === "claude") {
+    if (activeSession?.handle.streamInput && activeSession.handle.supportsCapability("interactive_input")) {
       addMessage(conv, "user", message);
       const framedContent = `[HUMAN SUPERVISOR MESSAGE]\n${message}\n\nPlease consider this and continue your work.`;
       try {
         await activeSession.handle.streamInput(
           (async function* () {
             yield {
-              type: "user" as const,
-              message: { role: "user" as const, content: framedContent },
-              parent_tool_use_id: null,
-              session_id: activeSession.sessionId ?? "",
+              content: framedContent,
+              sessionId: activeSession.sessionId ?? "",
             };
           })(),
         );

@@ -6,7 +6,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
 import { spawnAgent, AGENT_PROFILES, resolveProfileForBackend, summarizeToolUses, createToolBatchFlusher } from "./agent.js";
-import { resolveBackend } from "./backend.js";
+import { resolveBackend, type UserInputMessage } from "./backend.js";
 import { validateShellCommand, validateCommand, SecurityError } from "./security.js";
 import { SHELL_TOOL_NAMES } from "./sleep-guard.js";
 import { launchExperiment, trackExperiment } from "./experiments.js";
@@ -655,7 +655,7 @@ export async function spawnDeepWork(
 
   // Mutable ref for the session handle — populated after spawnAgent() returns.
   // The onExitPlanMode callback captures this ref to inject approval messages.
-  let handleRef: { streamInput?: (input: AsyncIterable<import("@anthropic-ai/claude-agent-sdk").SDKUserMessage>) => Promise<void>; sessionId?: string } | null = null;
+  let handleRef: { streamInput?: (input: AsyncIterable<UserInputMessage>) => Promise<void>; sessionId?: string } | null = null;
 
   const { handler, flusher } = buildProgressHandler({
     onProgress: callbacks.onProgress,
@@ -679,10 +679,8 @@ export async function spawnDeepWork(
         await handleRef.streamInput(
           (async function* () {
             yield {
-              type: "user" as const,
-              message: { role: "user" as const, content: "Approved. Proceed with implementation." },
-              parent_tool_use_id: null,
-              session_id: handleRef?.sessionId ?? "",
+              content: "Approved. Proceed with implementation.",
+              sessionId: handleRef?.sessionId ?? "",
             };
           })(),
         );
@@ -702,13 +700,14 @@ export async function spawnDeepWork(
   // Without this, opencode deep work sessions use the default 20-min/256-turn
   // limits instead of the intended 15-min/128-turn limits.
   // See diagnosis-deep-work-timeout-loop-2026-02-28.
-  const backend = resolveBackend();
+  const backend = resolveBackend(undefined, ["interactive_input"]);
   const profile = resolveDeepWorkProfile(backend.name);
 
   const { sessionId, handle, result } = spawnAgent({
     profile,
     prompt,
     cwd: repoDir,
+    requiredCapabilities: ["interactive_input"],
     onMessage: handler,
   });
 

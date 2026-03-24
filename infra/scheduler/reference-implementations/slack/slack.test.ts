@@ -507,17 +507,23 @@ it("includes max-turns in help output", async () => {
   it("includes backend in help output", async () => {
     const result = await handleAkariCommand({ text: "help", userId: OPERATOR, channelId: "C001" });
     expect(result.text).toContain("backend");
-    expect(result.text).toContain("claude");
-    expect(result.text).toContain("cursor");
+    expect(result.text).toContain("codex");
+    expect(result.text).toContain("openai");
   });
 
   // backend subcommand tests
 
   it("sets backend preference", async () => {
-    const result = await handleAkariCommand({ text: "backend claude", userId: OPERATOR, channelId: "C001" });
-    expect(result.text).toContain("claude");
+    const result = await handleAkariCommand({ text: "backend codex", userId: OPERATOR, channelId: "C001" });
+    expect(result.text).toContain("codex");
     expect(result.text).toContain("Backend set");
-    expect(getBackendPreference()).toBe("claude");
+    expect(getBackendPreference()).toBe("codex");
+  });
+
+  it("sets backend to openai", async () => {
+    const result = await handleAkariCommand({ text: "backend openai", userId: OPERATOR, channelId: "C001" });
+    expect(result.text).toContain("openai");
+    expect(getBackendPreference()).toBe("openai");
   });
 
   it("sets backend to cursor", async () => {
@@ -535,7 +541,7 @@ it("includes max-turns in help output", async () => {
   it("sets backend to auto with description", async () => {
     const result = await handleAkariCommand({ text: "backend auto", userId: OPERATOR, channelId: "C001" });
     expect(result.text).toContain("auto");
-    expect(result.text).toContain("fallback");
+    expect(result.text).toContain("capability");
     expect(getBackendPreference()).toBe("auto");
   });
 
@@ -553,8 +559,8 @@ it("includes max-turns in help output", async () => {
   });
 
   it("resets backend preference with 'reset'", async () => {
-    await handleAkariCommand({ text: "backend claude", userId: OPERATOR, channelId: "C001" });
-    expect(getBackendPreference()).toBe("claude");
+    await handleAkariCommand({ text: "backend codex", userId: OPERATOR, channelId: "C001" });
+    expect(getBackendPreference()).toBe("codex");
 
     const result = await handleAkariCommand({ text: "backend reset", userId: OPERATOR, channelId: "C001" });
     expect(result.text).toContain("reset");
@@ -569,7 +575,7 @@ it("includes max-turns in help output", async () => {
   });
 
   it("rejects backend changes from non-designated users", async () => {
-    const result = await handleAkariCommand({ text: "backend claude", userId: OTHER_USER, channelId: "C001" });
+    const result = await handleAkariCommand({ text: "backend codex", userId: OTHER_USER, channelId: "C001" });
     expect(result.text).toContain("Only the designated");
     expect(getBackendPreference()).toBeNull();
   });
