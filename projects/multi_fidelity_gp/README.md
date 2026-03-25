@@ -310,6 +310,46 @@ Budget-remaining: n/a
 
 Sources: none (calibration diagnostics)
 
+### 2026-03-25 — Calibration target set to latent uncertainty
+
+Claimed and completed the task “Decide which uncertainty definition to optimize for calibration” (making “calibrated uncertainty” explicit and consistent in the benchmark artifacts).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"0b5efab1373e7803","taskId":"39914b2a1a15","taskText":"Decide which uncertainty definition to optimize for calibration","project":"multi_fidelity_gp","agentId":"work-session-mn6hdc3k","claimedAt":1774469690028,"expiresAt":1774472390028}}`
+
+Decision:
+- Calibration targets **latent predictive uncertainty** (uncertainty over the deterministic function value `f(x)`), since the synthetic high-fidelity values are noise-free function evaluations. Observation uncertainty is still reported for reference, but should not be the default calibration target.
+
+Changes:
+- Added a short “Calibration target (uncertainty)” section to `projects/multi_fidelity_gp/README.md`.
+- Updated holdout evaluation artifacts so the preference rule is defined in terms of **latent** uncertainty (and recorded this in `results.md` / `results.json`), and updated `EXPERIMENT.md` accordingly.
+- Marked the task complete in `projects/multi_fidelity_gp/TASKS.md` with evidence + verification.
+- (Compound fast) Aligned the HF-size sweep preference rule and reporting to the same latent calibration target and regenerated its `results.md` / `results.json` artifacts.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+- `python projects/multi_fidelity_gp/experiments/hf-size-sweep/sweep.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/hf-size-sweep/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/hf-size-sweep/results.json`
+
+Compound (fast): 1 action — aligned HF-size sweep preference rule with latent calibration target.
+Fleet: no recent sessions found.
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Decide which uncertainty definition to optimize for calibration
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 11
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (calibration target decision)
+
 ## Open questions
 
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?

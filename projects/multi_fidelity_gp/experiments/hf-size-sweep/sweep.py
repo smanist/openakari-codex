@@ -160,13 +160,14 @@ def main() -> int:
     lf_pred = LowFidelityOnlyModel(f_lf).predict(x_test)
 
     sizes = [4, 8, int(x_train_full.size)]
+    calibration_target = "latent"
     target_cov = 0.95
 
     sweep: dict[str, Any] = {
         "train_sizes": sizes,
         "test_points": int(x_test.size),
         "subset_rule": "even_indices_from_default_train_grid",
-        "preference_rule": "rmse + observation_coverage",
+        "preference_rule": f"rmse + {calibration_target}_coverage",
         "target_coverage": target_cov,
         "runs": [],
     }
@@ -227,11 +228,11 @@ def main() -> int:
             point_metrics["residual_gp_correction"].rmse
             < point_metrics["high_fidelity_gp"].rmse
             and abs(
-                uncertainty_metrics["residual_gp_correction"]["observation"].coverage_95
+                uncertainty_metrics["residual_gp_correction"][calibration_target].coverage_95
                 - target_cov
             )
             < abs(
-                uncertainty_metrics["high_fidelity_gp"]["observation"].coverage_95
+                uncertainty_metrics["high_fidelity_gp"][calibration_target].coverage_95
                 - target_cov
             )
         )
@@ -278,6 +279,7 @@ def main() -> int:
     lines.append(
         "- Training subsets: deterministic approximately-evenly-spaced indices from the default 12-point train grid."
     )
+    lines.append(f"- Calibration target: **{calibration_target}** predictive distribution")
     lines.append("")
 
     lines.append("## Accuracy (point metrics)")
@@ -323,10 +325,11 @@ def main() -> int:
                 )
         lines.append("")
 
-    lines.append("## Preference rule (initial)")
+    lines.append("## Preference rule")
     lines.append("")
     lines.append(
-        "Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% *observation* interval coverage closer to 0.95."
+        "Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% interval coverage closer to 0.95"
+        f" under the **{calibration_target}** predictive distribution."
     )
     for run in sweep["runs"]:
         n = int(run["train_points"])
@@ -346,4 +349,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

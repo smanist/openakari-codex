@@ -1,5 +1,5 @@
 {
-  "preference_rule": "rmse + observation_coverage",
+  "preference_rule": "rmse + latent_coverage",
   "runs": [
     {
       "gp_hyperparams": {

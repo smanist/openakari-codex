@@ -26,7 +26,7 @@ Results from `results.md` for `N_train ∈ {4, 8, 12}` (80 HF test points):
   - `N_train=4`: high-fidelity GP `0.613405`, residual correction `0.672502` (both worse than low-fidelity `0.486761`)
   - `N_train=8`: high-fidelity GP `0.239185`, residual correction `0.101889` (residual correction better)
   - `N_train=12`: high-fidelity GP `0.002392`, residual correction `0.004678` (high-fidelity GP better)
-- Calibration (95% coverage, observation):
+- Calibration (95% coverage, latent):
   - `N_train=4`: residual correction `0.012500` (severely undercovers; NLL explodes)
   - `N_train=8`: high-fidelity GP `1.000000`, residual correction `1.000000` (coverage saturates)
   - `N_train=12`: high-fidelity GP `1.000000`, residual correction `1.000000` (coverage saturates)

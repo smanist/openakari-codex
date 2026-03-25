@@ -2,6 +2,7 @@
 
 - Test points: 80 (fixed high-fidelity test grid from `synthetic-benchmark/`)
 - Training subsets: deterministic approximately-evenly-spaced indices from the default 12-point train grid.
+- Calibration target: **latent** predictive distribution
 
 ## Accuracy (point metrics)
 
@@ -43,9 +44,9 @@ Reported for both **latent** and **observation** predictive distributions (see `
 | 12 | High-fidelity GP | -3.394546 | 1.000000 | 0.026837 | 1.000000 | 0.052599 |
 | 12 | Residual GP correction | -3.948140 | 0.987500 | 0.015234 | 1.000000 | 0.029858 |
 
-## Preference rule (initial)
+## Preference rule
 
-Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% *observation* interval coverage closer to 0.95.
+Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% interval coverage closer to 0.95 under the **latent** predictive distribution.
 - N_train=4: preferred = no
 - N_train=8: preferred = no
 - N_train=12: preferred = no
