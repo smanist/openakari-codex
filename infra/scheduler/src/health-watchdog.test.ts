@@ -384,6 +384,25 @@ describe("analyzeHealth", () => {
       expect(checks.find((c) => c.id === "high_zero_knowledge_rate")).toBeUndefined();
     });
 
+    it("does not classify manual smoke runs as task starvation", () => {
+      const sessions = [
+        ...Array.from({ length: 3 }, (_, i) =>
+          session({
+            runId: `manual-${i}`,
+            triggerSource: "manual",
+            knowledge: defaultKnowledge(),
+            verification: { ...defaultVerification(), hasCommit: false, filesChanged: 0 },
+            crossProject: { projectsTouched: [], findingsPerProject: {}, crossProjectRefs: 0 },
+          }),
+        ),
+        ...Array.from({ length: 7 }, (_, i) =>
+          productiveSession({ runId: `pk-${i}` }),
+        ),
+      ];
+      const checks = analyzeHealth(sessions);
+      expect(checks.find((c) => c.id === "task_starvation")).toBeUndefined();
+    });
+
     it("does not classify as task starvation if projects touched", () => {
       const sessions = [
         ...Array.from({ length: 3 }, (_, i) =>

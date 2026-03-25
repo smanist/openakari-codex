@@ -76,9 +76,14 @@
   Done when: `README.md`, `docs/getting-started.md`, and `infra/scheduler/README.md` present `AGENTS.md` and Codex/OpenAI-first examples without removing legacy backend compatibility notes.
   Priority: medium
 
-- [ ] Investigate session duration anomaly [detected: 2026-03-25]
+- [x] Investigate session duration anomaly [detected: 2026-03-25] [skill: diagnose] [zero-resource]
   Why: anomaly-detection:durationMs — Duration 1213s exceeds P95 threshold 1193s
-  Done when: Duration outlier explained or performance issue resolved
+  Done when: Duration outlier explained and anomaly logic updated to avoid borderline P95 alerts.
   Priority: high
-ns)
-  Priority: high
+  Evidence: `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-03-25.md`
+  Evidence: `infra/scheduler/src/anomaly-detection.ts`
+
+- [ ] Re-run scheduler health checks after fixes [fleet-eligible] [skill: analyze] [zero-resource]
+  Why: Confirm health monitoring no longer produces false positives for manual smoke runs and zero-cost budget-project sessions.
+  Done when: A short note in `projects/akari/README.md` records the output of health + warning escalation over the most recent ≥20 sessions, with no `task_starvation` due to `triggerSource:\"manual\"` and no `ledger_inconsistent` recurrence when `costUsd: 0`.
+  Priority: medium

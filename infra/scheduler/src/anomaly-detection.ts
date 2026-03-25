@@ -267,10 +267,13 @@ export function detectAnomalies(
       : percentile(sorted, 100 - o.percentileThreshold);
 
     const absMin = ABSOLUTE_MINIMUMS[metric as keyof typeof ABSOLUTE_MINIMUMS];
+    // Guard against borderline "just above P95" alerts for duration — these are often noise
+    // when the baseline is still stabilizing. Require a meaningful excess over the percentile.
+    const minDelta = metric === "durationMs" && direction === "high" ? 60_000 : 0;
 
     for (const entry of entries) {
       const exceedsPercentile = direction === "high"
-        ? entry.value > pThreshold
+        ? entry.value > (pThreshold + minDelta)
         : entry.value < pThreshold;
 
       const exceedsAbsMin = absMin === undefined || (

@@ -652,7 +652,7 @@ describe("isL2Violation", () => {
     ["session footer", "Incomplete session footer: missing Duration field"],
     ["budget ledger (L0)", "Budget ledger inconsistency: total exceeds limit"],
     ["uncommitted files (L0)", "3 uncommitted file(s) — L0 violation: sessions must commit all work before ending"],
-    ["ledger violation (L0)", "Ledger violation: Resource-consuming work on project(s) test-project but no ledger entry found for today"],
+    ["ledger violation (L0)", "Ledger violation: resource-consuming work (costUsd=$1.0000) but missing same-day ledger entry for 2026-01-01 in project(s): test-project."],
   ])("rejects %s warnings (not L2)", (_name, message) => {
     expect(isL2Violation(message)).toBe(false);
   });

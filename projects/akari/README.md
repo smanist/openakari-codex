@@ -14,6 +14,31 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Scheduler health monitoring: task starvation, duration, ledger)
+
+Diagnosed three health-monitoring signals from `.scheduler/metrics/sessions.jsonl` and applied fixes to reduce false positives:
+- `task_starvation`: excluded `triggerSource:"manual"` smoke runs from starvation classification.
+- `ledger_inconsistent`: fixed post-session verification to only require same-day ledger entries when resources were actually consumed (API cost or `consumes_resources: true` experiments), and to check the relevant project’s `ledger.yaml` rather than any ledger in the repo.
+- `durationMs` anomaly noise: added a 60s “excess above P95” guard for duration percentile anomalies to avoid borderline alerts while baselines stabilize.
+
+Recorded evidence + hypotheses in `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-03-25.md` and updated `projects/akari/TASKS.md` with a follow-up to re-run health checks after ≥20 post-fix sessions.
+
+Verification:
+- `cd infra/scheduler && npx vitest run src/anomaly-detection.test.ts src/health-watchdog.test.ts src/warning-escalation.test.ts src/verify-compliance.test.ts`
+  - `Test Files  4 passed (4)`
+  - `Tests  339 passed (339)`
+
+Session-type: autonomous
+Duration: 15
+Task-selected: Diagnose scheduler health monitoring signals
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 10
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Remove Claude/Cursor surfaces; expose model-only scheduler interface)
 
 Completed the scheduler/runtime cleanup that removes Claude- and Cursor-specific live surfaces and keeps only model selection as the public execution interface.

@@ -283,6 +283,20 @@ describe("detectAnomalies", () => {
       const durAnomaly = anomalies.find((a) => a.sessionRunId === "session-213");
       expect(durAnomaly).toBeUndefined();
     });
+
+    it("does not flag borderline duration sessions just above P95 (<60s excess guard)", () => {
+      // Construct a distribution where the outlier is above P95 and above abs min,
+      // but less than the 60s excess guard above the percentile threshold.
+      const sessions = [
+        ...Array.from({ length: 19 }, (_, i) =>
+          session({ runId: `normal-${i}`, durationMs: 1_150_000 }),
+        ),
+        session({ runId: "borderline", durationMs: 1_195_000 }),
+      ];
+      const anomalies = detectAnomalies(sessions);
+      const durAnomaly = anomalies.find((a) => a.metric === "durationMs");
+      expect(durAnomaly).toBeUndefined();
+    });
   });
 
   // ── Turn count outliers (percentile-based) ──────────────────────────

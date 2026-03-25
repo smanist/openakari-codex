@@ -548,9 +548,9 @@ export async function verifySession(
   }
 
   // 6. Ledger consistency — L0 enforcement for consumes_resources experiments
-  // Check if: (a) costUsd > 0 AND touched budget project, OR
+  // Check if: (a) costUsd > 0 AND touched a budget-tracked project, OR
   //           (b) modified EXPERIMENT.md with consumes_resources: true
-  // In either case, require a ledger entry for the project.
+  // In either case, require a same-day ledger entry in the affected project's ledger.yaml.
   let ledgerConsistent = true;
   let ledgerViolation = false;
   const touchedProjects = new Set<string>();
@@ -609,45 +609,37 @@ export async function verifySession(
   }
 
   // Merge: require ledger for any touched budget project OR resource-consuming experiment project
-  const projectsRequiringLedger = new Set([...touchedProjects, ...resourceProjects]);
+  const apiCostIncurred = typeof costUsd === "number" && costUsd > 0;
+  const projectsRequiringLedger = new Set<string>([
+    ...resourceProjects,
+    ...(apiCostIncurred ? touchedProjects : []),
+  ]);
 
   if (projectsRequiringLedger.size > 0) {
     const today = new Date().toISOString().slice(0, 10);
-    let foundTodayEntry = false;
-    try {
-      const { stdout: changedFiles } = await exec(
-        "git", ["diff", "--name-only", headBefore ?? "HEAD~1", "HEAD"],
-        { cwd },
-      );
-      foundTodayEntry = changedFiles.split("\n").some((f) =>
-        f.trim().endsWith("ledger.yaml"),
-      );
-    } catch { /* best effort */ }
+    const missing: string[] = [];
 
-    if (!foundTodayEntry) {
+    for (const proj of projectsRequiringLedger) {
+      const ledgerPath = join(cwd, "projects", proj, "ledger.yaml");
       try {
-        const { stdout: files } = await exec(
-          "git", ["ls-files", "projects/*/ledger.yaml"],
-          { cwd },
-        );
-        for (const file of files.split("\n").filter((f) => f.trim())) {
-          try {
-            const content = await readFile(join(cwd, file.trim()), "utf-8");
-            if (content.includes(today)) {
-              foundTodayEntry = true;
-              break;
-            }
-          } catch { /* skip */ }
-        }
-      } catch { /* best effort */ }
+        const content = await readFile(ledgerPath, "utf-8");
+        // Schema requires `- date: YYYY-MM-DD` entries. For strictness, require the date string.
+        if (!content.includes(today)) missing.push(proj);
+      } catch {
+        missing.push(proj);
+      }
     }
 
-    ledgerConsistent = foundTodayEntry;
+    ledgerConsistent = missing.length === 0;
     if (!ledgerConsistent) {
       ledgerViolation = true;
-      const projectList = [...projectsRequiringLedger].join(", ");
+      const projectList = [...new Set(missing)].sort().join(", ");
+      const reasonParts: string[] = [];
+      if (apiCostIncurred) reasonParts.push(`costUsd=$${costUsd!.toFixed(4)}`);
+      if (resourceProjects.size > 0) reasonParts.push("consumes_resources experiment modified");
+      const reason = reasonParts.length > 0 ? ` (${reasonParts.join("; ")})` : "";
       warnings.push(
-        `Ledger violation: Resource-consuming work on project(s) ${projectList} but no ledger entry found for today. Per AGENTS.md, budget.yaml projects require ledger entries for all resource-consuming experiments.`,
+        `Ledger violation: resource-consuming work${reason} but missing same-day ledger entry for ${today} in project(s): ${projectList}.`,
       );
     }
   }

@@ -587,6 +587,9 @@ function isGenuineWaste(s: SessionMetrics): boolean {
 function isTaskStarvation(s: SessionMetrics): boolean {
   if (!s.verification) return false;
   if (s.backend === "cursor") return false;
+  // Manual runs are often used as smoke checks and may legitimately produce no commits/files.
+  // Counting them as "task starvation" inflates supply alarms.
+  if (s.triggerSource === "manual") return false;
   // Idle exploration sessions are designed to produce zero output when nothing
   // needs attention. They are not task starvation — they checked and found nothing.
   if (s.isIdle) return false;

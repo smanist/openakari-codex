@@ -53,8 +53,8 @@ const WARNING_META: Record<WarningType, { description: string; recommendation: s
     severity: "medium",
   },
   ledger_inconsistent: {
-    description: "Cost incurred but no ledger entry recorded",
-    recommendation: "Sessions are consuming resources without recording to ledger.yaml. Budget tracking is unreliable — investigate experiment runner ledger integration.",
+    description: "Resource consumption suspected but no same-day ledger entry recorded",
+    recommendation: "A session likely incurred tracked resources (API cost or consumes_resources experiment) but did not record a same-day entry in the relevant project ledger.yaml. Fix verification criteria if this is a false positive; otherwise record the consumption per docs/schemas/budget-ledger.md.",
     severity: "high",
   },
   orphaned_files: {
