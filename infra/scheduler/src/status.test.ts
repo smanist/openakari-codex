@@ -68,6 +68,7 @@ describe("getUnifiedStatus", () => {
     expect(status.experiments).toHaveLength(1);
     expect(status.jobs).toHaveLength(1);
     expect(status.timestamp).toBeDefined();
+    expect(status.summary.daemonState).toBe("stopped");
   });
 
   it("returns empty arrays when nothing is active", () => {
@@ -107,6 +108,17 @@ describe("getUnifiedStatus", () => {
     expect(status.summary.totalJobs).toBe(2);
     expect(status.summary.enabledJobs).toBe(1);
   });
+
+  it("tracks daemon state in the summary", () => {
+    const status = getUnifiedStatus({
+      sessions: [],
+      experiments: [],
+      jobs: [],
+      daemonState: "running",
+    });
+
+    expect(status.summary.daemonState).toBe("running");
+  });
 });
 
 // ── formatUnifiedStatus ──
@@ -115,7 +127,7 @@ describe("formatUnifiedStatus", () => {
   it("formats status with sessions and experiments", () => {
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 1, runningExperiments: 1, totalJobs: 2, enabledJobs: 1 },
+      summary: { activeSessions: 1, runningExperiments: 1, totalJobs: 2, enabledJobs: 1, daemonState: "running" },
       sessions: [makeSession()],
       experiments: [makeExperiment()],
       jobs: [makeJob()],
@@ -125,6 +137,7 @@ describe("formatUnifiedStatus", () => {
 
     expect(output).toContain("Active Sessions: 1");
     expect(output).toContain("Running Experiments: 1");
+    expect(output).toContain("Daemon: running");
     expect(output).toContain("akari-work-cycle");
     expect(output).toContain("sample-project/phase-a-full-scale");
   });
@@ -132,7 +145,7 @@ describe("formatUnifiedStatus", () => {
   it("shows no-activity message when nothing is running", () => {
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 0, runningExperiments: 0, totalJobs: 1, enabledJobs: 1 },
+      summary: { activeSessions: 0, runningExperiments: 0, totalJobs: 1, enabledJobs: 1, daemonState: "stopped" },
       sessions: [],
       experiments: [],
       jobs: [makeJob()],
@@ -147,7 +160,7 @@ describe("formatUnifiedStatus", () => {
   it("formats session elapsed time in human-readable form", () => {
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 1, runningExperiments: 0, totalJobs: 0, enabledJobs: 0 },
+      summary: { activeSessions: 1, runningExperiments: 0, totalJobs: 0, enabledJobs: 0, daemonState: "running" },
       sessions: [makeSession({ elapsedMs: 3_723_000 })], // 1h 2m 3s
       experiments: [],
       jobs: [],
@@ -161,7 +174,7 @@ describe("formatUnifiedStatus", () => {
   it("formats experiment progress percentage", () => {
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 0, runningExperiments: 1, totalJobs: 0, enabledJobs: 0 },
+      summary: { activeSessions: 0, runningExperiments: 1, totalJobs: 0, enabledJobs: 0, daemonState: "running" },
       sessions: [],
       experiments: [makeExperiment({ progress: 72, message: "Evaluating models" })],
       jobs: [],
@@ -176,7 +189,7 @@ describe("formatUnifiedStatus", () => {
   it("includes cost information for sessions", () => {
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 1, runningExperiments: 0, totalJobs: 0, enabledJobs: 0 },
+      summary: { activeSessions: 1, runningExperiments: 0, totalJobs: 0, enabledJobs: 0, daemonState: "running" },
       sessions: [makeSession({ costUsd: 3.75, numTurns: 55 })],
       experiments: [],
       jobs: [],
@@ -192,7 +205,7 @@ describe("formatUnifiedStatus", () => {
     const nextRun = Date.now() + 1800_000; // 30 min from now
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 0, runningExperiments: 0, totalJobs: 1, enabledJobs: 1 },
+      summary: { activeSessions: 0, runningExperiments: 0, totalJobs: 1, enabledJobs: 1, daemonState: "stopped" },
       sessions: [],
       experiments: [],
       jobs: [makeJob({ nextRunAtMs: nextRun, schedule: "0 */1 * * *" })],
@@ -207,7 +220,7 @@ describe("formatUnifiedStatus", () => {
   it("handles experiments without progress or message", () => {
     const status: UnifiedStatus = {
       timestamp: new Date().toISOString(),
-      summary: { activeSessions: 0, runningExperiments: 1, totalJobs: 0, enabledJobs: 0 },
+      summary: { activeSessions: 0, runningExperiments: 1, totalJobs: 0, enabledJobs: 0, daemonState: "running" },
       sessions: [],
       experiments: [makeExperiment({ progress: undefined, message: undefined })],
       jobs: [],

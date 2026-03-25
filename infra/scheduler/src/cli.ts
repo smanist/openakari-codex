@@ -811,7 +811,7 @@ async function cmdStart(): Promise<void> {
         runCount: j.state.runCount,
       }));
 
-      return getUnifiedStatus({ sessions, experiments, jobs });
+      return getUnifiedStatus({ sessions, experiments, jobs, daemonState: "running" });
     },
     pushQueue,
     executePush: async (req) => {
@@ -1045,6 +1045,9 @@ async function cmdStatus(): Promise<void> {
   await store.load();
 
   const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
+  const persistBaseDir = new URL("../../../.scheduler", import.meta.url).pathname;
+  const lockfilePath = getSchedulerLockfilePath(persistBaseDir);
+  const daemonState = checkForExistingInstance(lockfilePath).canStart ? "stopped" : "running";
 
   // Gather sessions (in-memory — only populated when scheduler is running)
   const sessions: StatusSession[] = listSessions().map((s) => ({
@@ -1073,7 +1076,7 @@ async function cmdStatus(): Promise<void> {
     runCount: j.state.runCount,
   }));
 
-  const status = getUnifiedStatus({ sessions, experiments, jobs });
+  const status = getUnifiedStatus({ sessions, experiments, jobs, daemonState });
   console.log(formatUnifiedStatus(status));
 }
 

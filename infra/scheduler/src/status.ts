@@ -40,6 +40,7 @@ export interface StatusSummary {
   runningExperiments: number;
   totalJobs: number;
   enabledJobs: number;
+  daemonState: "running" | "stopped";
 }
 
 export interface UnifiedStatus {
@@ -60,6 +61,7 @@ export interface StatusSources {
   sessions: StatusSession[];
   experiments: StatusExperiment[];
   jobs: StatusJob[];
+  daemonState?: "running" | "stopped";
 }
 
 export function toStatusExperiment(
@@ -94,6 +96,7 @@ export function getUnifiedStatus(sources: StatusSources): UnifiedStatus {
       runningExperiments: activeExperiments.length,
       totalJobs: sources.jobs.length,
       enabledJobs: sources.jobs.filter((j) => j.enabled).length,
+      daemonState: sources.daemonState ?? "stopped",
     },
     sessions: sources.sessions,
     experiments: activeExperiments,
@@ -126,6 +129,7 @@ export function formatUnifiedStatus(status: UnifiedStatus): string {
 
   // Header
   lines.push("=== Unified Status ===");
+  lines.push(`Daemon: ${status.summary.daemonState}`);
   lines.push(`Active Sessions: ${status.summary.activeSessions}  |  Running Experiments: ${status.summary.runningExperiments}  |  Jobs: ${status.summary.enabledJobs}/${status.summary.totalJobs} enabled`);
   lines.push("");
 

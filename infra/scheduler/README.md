@@ -234,6 +234,15 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-03-25 — Show daemon state in `status`
+
+Updated the unified status output to distinguish the scheduler daemon's process state from persisted job configuration. `node dist/cli.js status` now reports `Daemon: running` or `Daemon: stopped` based on `.scheduler/scheduler.pid`, so a stopped daemon no longer looks like an actively scheduling system just because enabled jobs still exist in `.scheduler/jobs.json`.
+
+Verification: `cd infra/scheduler && npm test -- src/status.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  15 passed (15)`
+
 ### 2026-03-25 — Make `stop` complete shutdown in one invocation
 
 Updated `node dist/cli.js stop` to wait briefly for the scheduler to exit after sending `SIGTERM`, and to clean up the lockfile in the same invocation once exit is observed. This avoids the confusing prior behavior where the first `stop` terminated the daemon, a second `stop` removed the stale lockfile, and only a third reported "No running scheduler found."
