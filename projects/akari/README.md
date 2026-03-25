@@ -14,6 +14,17 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Re-verify Codex scheduler turn/output instrumentation — end-to-end)
+
+Selected the high-priority task “Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`” because the last 10 scheduler sessions in `.scheduler/metrics/sessions.jsonl` still report `numTurns: 0` (which makes efficiency metrics like “findings/$” undefined due to `costUsd: 0` and breaks downstream self-observation).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → failed (exit code 7; could not connect to `localhost:8420`)
+
+Next: inspect recent `.scheduler/logs/work-cycle-*.log` output, identify why scheduled Codex runs still emit empty `## output` and `Turns: 0`, then fix + re-run a minimal job to confirm `numTurns > 0`.
+
+Scope classification: STRUCTURAL (verifiable) — infra instrumentation bugfix. Resource signal: avoid LLM calls during dev; rely on existing `.scheduler/logs/*` + fixtures + unit tests; only run a real scheduled job if required for final verification.
+
 ### 2026-03-25 (Re-verify end-to-end Codex job logging after rebuild)
 
 Selected the high-priority follow-up task to re-verify that scheduled Codex-backend runs produce non-empty `.scheduler/logs/*` output and `numTurns > 0` in `.scheduler/metrics/sessions.jsonl`.
