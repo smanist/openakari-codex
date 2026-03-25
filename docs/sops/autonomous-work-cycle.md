@@ -3,7 +3,7 @@ Step-by-step procedure for autonomous agent sessions in the akari repo.
 ## Autonomous Work Cycle
 
 When: Triggered by cron schedule or manual invocation of an autonomous session.
-Requires: akari repo checked out, CLAUDE.md loaded, /orient skill available. Skill classification reference: [docs/skill-classifications.md](../skill-classifications.md).
+Requires: akari repo checked out, AGENTS.md loaded, /orient skill available. Skill classification reference: [docs/skill-classifications.md](../skill-classifications.md).
 
 ### 1. Orient
 
@@ -55,7 +55,7 @@ Note: the `type` field is *what kind of work* (experiment, analysis, implementat
   → Scale down to fit remaining budget, or write to `APPROVAL_QUEUE.md` with cost estimate and budget increase request, end session.
 - **STRUCTURAL (verifiable)**: Infra code changes, new decision records, validator extensions — where correctness can be confirmed by static checks (type checker, tests, validators).
   → Proceed autonomously. Run verification before committing.
-- **STRUCTURAL (non-verifiable)**: New projects, CLAUDE.md edits, schema changes that alter external-facing contracts — where correctness requires human judgment.
+- **STRUCTURAL (non-verifiable)**: New projects, AGENTS.md edits, schema changes that alter external-facing contracts — where correctness requires human judgment.
   → Write to `APPROVAL_QUEUE.md` with rationale, end session.
 - **EXTERNAL (blocking)**: Resource decisions (budget increases, deadline extensions) or governance changes that require human judgment.
   → Write to `APPROVAL_QUEUE.md` with description, end session.
@@ -69,7 +69,7 @@ Note: git push does **not** require approval or an approval queue entry. Session
 ### 4. Execute
 
 - Tag the task `[in-progress: YYYY-MM-DD]` in the project README
-- Work the task following CLAUDE.md conventions
+- Work the task following AGENTS.md conventions
 - **Invoke skills as needed.** During task execution, use any autonomous-capable skill when the task calls for it (e.g., `/design` before planning an experiment, `/lit-review` for literature gaps, `/critique` on a draft artifact). See [docs/skill-classifications.md](../skill-classifications.md) for which skills are autonomous-capable vs. human-triggered. Do not invoke human-triggered skills (`/coordinator`, `/feedback`, `/report`, `/slack-diagnosis`).
 - Log inline per [decisions/0004-inline-logging.md](../../decisions/0004-inline-logging.md)
 - **Commit incrementally.** After completing a logical unit of work (experiment setup, analysis write-up, log archiving, EXPERIMENT.md updates), run `git add && git commit` before proceeding to the next step. Do not defer all commits to Step 6. This prevents losing work if the session times out or exhausts its turn budget. A session that produces 10+ file changes without a single intermediate commit is a workflow failure.
@@ -98,8 +98,8 @@ Note: git push does **not** require approval or an approval queue entry. Session
   - After an intermediate analysis, note in the task description when the next analysis is warranted (e.g., "Next analysis at ~N rows or completion").
   - If fewer than 20% new rows have accumulated since the last analysis, skip the task and select something else.
   - When creating an analysis task for a running experiment, prefer splitting into a preliminary analysis task (satisfiable mid-experiment) and a final analysis task (blocked-by experiment completion).
-- **ADR task bridge**: When writing an ADR with a Migration or Consequences section containing action items not implemented in this session, create tasks in the relevant project's `TASKS.md` before committing the ADR. See CLAUDE.md Decisions section.
-- **Convention propagation**: When modifying a rule that appears in multiple documents (CLAUDE.md, SOPs, decision records, pattern docs, skills), propagate the change to all locations in the same turn.
+- **ADR task bridge**: When writing an ADR with a Migration or Consequences section containing action items not implemented in this session, create tasks in the relevant project's `TASKS.md` before committing the ADR. See AGENTS.md Decisions section.
+- **Convention propagation**: When modifying a rule that appears in multiple documents (AGENTS.md, SOPs, decision records, pattern docs, skills), propagate the change to all locations in the same turn.
 - If task completes: mark done in `TASKS.md` (`[x]`), update `docs/status.md` if the change is significant
 - If task is partially complete: log progress, update task description with remaining work, remove `[in-progress]` tag. **Never mark a task `[x]` with a "(partial)" annotation.** If work is partially done, keep the task `[ ]` and update the description to reflect remaining work, or split into a completed subtask and a new open task. The `[x]` checkbox is binary — the task selector treats it as complete and will never revisit it.
 
@@ -114,19 +114,19 @@ Run the `/compound` skill — the skill auto-detects whether to run **fast** or 
 
 The checks performed (full/deep mode include all; fast mode includes 1, 2, 4, and 9):
 
-1. **Session learnings**: What did this session discover that future sessions should know? Check the git diff for the session's work — if a non-obvious fact, gotcha, or pattern was encountered, does it belong in CLAUDE.md, a skill, or a decision record?
+1. **Session learnings**: What did this session discover that future sessions should know? Check the git diff for the session's work — if a non-obvious fact, gotcha, or pattern was encountered, does it belong in AGENTS.md, a skill, or a decision record?
 2. **Task discovery** (all tiers): If this session completed an experiment or analysis, check whether the findings imply follow-up tasks (failed success criteria, insufficient sample sizes, identified confounds, multi-phase experiments with missing phase tasks). Create tasks with provenance. This is a quick check (~1 turn) that prevents the most common knowledge-loss pattern: experiment findings that imply work but never become tasks.
 3. **Unactioned recommendations** (full/deep only): Scan `projects/*/diagnosis/diagnosis-*.md`, `projects/*/postmortem/postmortem-*.md`, and legacy `projects/*/diagnosis-*.md`, `projects/*/postmortem-*.md` modified in the last 14 days. Also scan completed EXPERIMENT.md files for formal recommendation sections. If any recommendations are directly actionable given the current session's context, apply them. Otherwise note them as tasks.
-4. **Convention drift**: Did this session work around a convention that didn't fit? If a CLAUDE.md rule or skill instruction was unhelpful or misleading, update it.
+4. **Convention drift**: Did this session work around a convention that didn't fit? If an AGENTS.md rule or skill instruction was unhelpful or misleading, update it.
 5. **Research questions** (full/deep only): Extract implicit research questions from experiment findings (unexplained results, untestable hypotheses, aggregate-stratum reversals), cross-session patterns with unknown root causes, and literature gaps. Propose new questions for project "Open questions" sections.
 6. **Gravity candidates** (full/deep only): Did a pattern appear that has now recurred 3+ times? If so, flag it for `/gravity` evaluation in the next session (or apply directly if the migration is trivial).
 7. **Domain knowledge synthesis** (deep only): Check whether any active project has 10+ completed experiments without a `knowledge.md` (or with a stale one). If so, flag domain synthesis as a task candidate. Per `feedback/feedback-domain-knowledge-consolidation.md`.
-8. **Complexity monitoring** (deep only): Check artifact sizes (CLAUDE.md >400 lines, README >200 lines, TASKS.md >150 lines, source files >500 lines) and flag growth. Flagged artifacts get a simplification task created. **Skills use tiered triggers:** >200 lines = flag, >300 lines = create task, >400 lines = mandatory simplify before adding more content (hard gate). Per `feedback/feedback-simplify-skill-deployment-strategy.md` and `feedback/feedback-skill-growth-governance.md`.
+8. **Complexity monitoring** (deep only): Check artifact sizes (AGENTS.md >400 lines, README >200 lines, TASKS.md >150 lines, source files >500 lines) and flag growth. Flagged artifacts get a simplification task created. **Skills use tiered triggers:** >200 lines = flag, >300 lines = create task, >400 lines = mandatory simplify before adding more content (hard gate). Per `feedback/feedback-simplify-skill-deployment-strategy.md` and `feedback/feedback-skill-growth-governance.md`.
 9. **Fleet output audit** (all tiers — fast: spot-check last 5 sessions; full/deep: full audit per `projects/akari/plans/fleet-quality-audit-checklist.md`): Check fleet worker verification pass rate, task completion integrity (D1), and escalation appropriateness (D5). Flag dimensions with <70% pass rate. Per fleet bootstrap plan Step 2.2.
 
 **Scope control**: Fast compound takes 1-2 turns. Full compound should take 2-5 minutes, not dominate the session. Make direct updates only when the change is small and obviously correct (fixing a typo in a convention, adding a gotcha to a skill). For larger changes, add a task to the project's `TASKS.md` instead.
 
-**Output**: Zero or more direct file updates (CLAUDE.md, skills, conventions) plus zero or more new tasks. If no compound actions are warranted, log "Compound (fast): no actions" or "Compound: no actions" and proceed.
+**Output**: Zero or more direct file updates (AGENTS.md, skills, conventions) plus zero or more new tasks. If no compound actions are warranted, log "Compound (fast): no actions" or "Compound: no actions" and proceed.
 
 ### 6. Commit and close
 

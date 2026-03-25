@@ -112,7 +112,6 @@ Run options (manual runs only; overrides are not persisted):
   --message <msg>           Override the job prompt for this run only
   --model <model>           Override the model for this run only
   --cwd <path>              Override the working directory for this run only
-  --backend <backend>       Override backend: codex|openai|claude|cursor|opencode|auto
   --profile <key>           Override agent profile key (e.g. skillCycle)
   --max-duration-ms <ms>    Override max session duration in ms
 
@@ -152,7 +151,6 @@ Add options:
   --message-project <name>  Use the project-scoped work-cycle prompt for <name>
   --model <model>           Model name (e.g. opus, sonnet)
   --cwd <dir>               Working directory for agent session
-  --backend <backend>       Agent backend: codex, openai, cursor, opencode, claude (deprecated), or auto (default: auto)
 `.trim();
 
 function fail(msg: string): never {
@@ -216,7 +214,7 @@ async function recordRunMetrics(opts: {
     jobName: job.name,
     runId: generateRunId(job.id),
     triggerSource: result.triggerSource,
-    backend: (result.backend ?? "codex") as "codex" | "openai" | "claude" | "cursor" | "opencode",
+    backend: (result.backend ?? "codex") as "codex" | "openai" | "opencode",
     durationMs: result.durationMs,
     costUsd: result.costUsd ?? null,
     numTurns: result.numTurns ?? null,
@@ -941,11 +939,6 @@ async function cmdAdd(args: string[]): Promise<void> {
     return fail("Error: --cron or --every is required.");
   }
 
-  const backendOpt = getStringFlag(opts, "backend") as "codex" | "openai" | "claude" | "cursor" | "opencode" | "auto" | undefined;
-  if (backendOpt && !["codex", "openai", "claude", "cursor", "opencode", "auto"].includes(backendOpt)) {
-    return fail("Error: --backend must be codex, openai, claude, cursor, opencode, or auto.");
-  }
-
   const input: JobCreate = {
     name,
     schedule,
@@ -953,7 +946,6 @@ async function cmdAdd(args: string[]): Promise<void> {
       message,
       model: getStringFlag(opts, "model"),
       cwd: getStringFlag(opts, "cwd"),
-      backend: backendOpt,
     },
   };
 
@@ -1019,17 +1011,11 @@ async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
   //   --message <text>
   //   --model <model>
   //   --cwd <path>
-  //   --backend <codex|openai|claude|cursor|opencode|auto>
   //   --profile <AGENT_PROFILES key>
   //   --max-duration-ms <ms>
   //
   // Note: flags are parsed from argv after the job ID: `akari run <id> --max-duration-ms 60000`
   if (extraArgs.length > 0) Object.assign(runOpts, parseFlags(extraArgs));
-
-  const backendOverride = runOpts["backend"] as string | undefined;
-  if (backendOverride && !["codex", "openai", "claude", "cursor", "opencode", "auto"].includes(backendOverride)) {
-    return fail("Error: --backend must be codex, openai, claude, cursor, opencode, or auto.");
-  }
 
   const maxDurationMsOverrideRaw = runOpts["max-duration-ms"];
   const maxDurationMsOverride = typeof maxDurationMsOverrideRaw === "string"
@@ -1046,7 +1032,6 @@ async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
       message: typeof runOpts["message"] === "string" ? runOpts["message"] : job.payload.message,
       model: typeof runOpts["model"] === "string" ? runOpts["model"] : job.payload.model,
       cwd: typeof runOpts["cwd"] === "string" ? runOpts["cwd"] : job.payload.cwd,
-      backend: backendOverride ? backendOverride as typeof job.payload.backend : job.payload.backend,
       profile: typeof runOpts["profile"] === "string" ? runOpts["profile"] : job.payload.profile,
       maxDurationMs: maxDurationMsOverride ?? job.payload.maxDurationMs,
     },
@@ -1064,7 +1049,6 @@ async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
   if (runJob.payload.message !== job.payload.message) overrideParts.push("message");
   if (runJob.payload.model !== job.payload.model) overrideParts.push(`model=${runJob.payload.model}`);
   if (runJob.payload.cwd !== job.payload.cwd) overrideParts.push(`cwd=${runJob.payload.cwd}`);
-  if (runJob.payload.backend !== job.payload.backend) overrideParts.push(`backend=${runJob.payload.backend}`);
   if (runJob.payload.profile !== job.payload.profile && runJob.payload.profile) overrideParts.push(`profile=${runJob.payload.profile}`);
   if (runJob.payload.maxDurationMs !== job.payload.maxDurationMs && runJob.payload.maxDurationMs) overrideParts.push(`maxDurationMs=${runJob.payload.maxDurationMs}`);
 

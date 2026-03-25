@@ -10,6 +10,7 @@
  */
 
 import { SHELL_TOOL_NAMES } from "./sleep-guard.js";
+import type { SDKMessage } from "./sdk.js";
 
 export const STALL_TIMEOUT_MS = 120_000; // 2 minutes
 
@@ -78,12 +79,10 @@ export class StallGuard {
  * Returns concatenated commands if shell tool calls are found, or null.
  */
 export function extractShellCommands(
-  msg: Record<string, unknown>,
+  msg: SDKMessage,
 ): string | null {
   if (msg.type === "assistant") {
-    const message = msg.message as
-      | { content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }> }
-      | undefined;
+    const message = msg.message;
     if (!message?.content) return null;
 
     const shellBlocks = message.content.filter(
@@ -92,12 +91,15 @@ export function extractShellCommands(
     if (shellBlocks.length === 0) return null;
 
     return shellBlocks
-      .map((b) => String(b.input?.["command"] ?? "?"))
+      .map((b) => {
+        const toolBlock = b as { input?: Record<string, unknown> };
+        return String(toolBlock.input?.["command"] ?? "?");
+      })
       .join("; ");
   }
 
   if (msg.type === "tool_use_summary") {
-    const summary = msg.summary as string | undefined;
+    const summary = msg.summary;
     if (!summary) return null;
     const match = summary.match(/^(?:Shell|Bash|bash)\s+`(.*)`$/);
     if (match) return match[1]!;

@@ -324,7 +324,7 @@ const ZERO_RESOURCE_PATTERNS = [
   /\bwrite\b.*\b(documentation|doc|notes?|readme)\b/i,
 ];
 
-/** Patterns indicating governance/CLAUDE.md changes (approval-needed). */
+/** Patterns indicating governance/AGENTS.md changes (approval-needed). */
 const APPROVAL_PATTERNS = [
   /\bCLAUDE\.md\b/,
   /\bgovernance\b/i,

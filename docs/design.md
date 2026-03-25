@@ -23,7 +23,7 @@ This repo is not just storage — it is the agents' shared brain. Human research
 
 **Decisions as consistency anchor.** The `decisions/` directory prevents two agents from independently making incompatible choices. Once a choice is recorded, it is the default until explicitly superseded.
 
-**Schemas as convention.** The log, task, SOP, and decision schemas in CLAUDE.md reduce the space of choices agents must make. Less freedom means less drift.
+**Schemas as convention.** The log, task, SOP, and decision schemas in AGENTS.md reduce the space of choices agents must make. Less freedom means less drift.
 
 ## Principles
 

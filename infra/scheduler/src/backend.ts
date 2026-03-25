@@ -1,18 +1,8 @@
-/** Agent backend abstraction. Supports Codex CLI, OpenAI/Codex transport, Claude Code SDK, Cursor Agent CLI, and opencode CLI. */
+/** Runtime adapter abstraction. Public configuration is model-driven; runtime routing remains internal. */
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import {
-  runQuery as claudeRunQuery,
-  runQuerySupervised as claudeRunQuerySupervised,
-  type QueryOpts,
-  type QueryResult,
-  type SDKMessage,
-} from "./sdk.js";
-import { getBackendPreference } from "./backend-preference.js";
-import { getSessionCostFromDb } from "./opencode-db.js";
-
-// ── Interfaces ───────────────────────────────────────────────────────────────
+import type { QueryOpts, QueryResult, SDKMessage } from "./sdk.js";
 
 export type BackendCapability =
   | "interactive_input"
@@ -20,31 +10,30 @@ export type BackendCapability =
   | "subagents"
   | "native_system_prompt";
 
-export type BackendName = "codex" | "openai" | "claude" | "cursor" | "opencode";
-export type BackendPreference = BackendName | "auto";
+export type BackendName = "codex" | "openai" | "opencode";
+export type RuntimeHint = BackendName | "auto";
+
+export interface ResolveBackendOpts {
+  model?: string;
+  requiredCapabilities?: BackendCapability[];
+  routeHint?: RuntimeHint;
+}
 
 export interface UserInputMessage {
   content: string;
   sessionId?: string;
 }
 
-/** Handle for supervising a running session (watch / ask / stop). */
 export interface SessionHandle {
-  /** Gracefully interrupt the session. */
   interrupt(): Promise<void>;
-  /** Inject a human message into the session when the backend supports it. */
   streamInput?(input: AsyncIterable<UserInputMessage>): Promise<void>;
-  /** Backend that produced this handle. */
   readonly backend: BackendName;
   readonly capabilities: ReadonlySet<BackendCapability>;
   supportsCapability(capability: BackendCapability): boolean;
 }
 
-/** Common options for running a query through any backend. */
 export interface BackendQueryOpts extends QueryOpts {
-  /** For Cursor: prepend this to the prompt since CLI has no system prompt flag. */
   systemPromptText?: string;
-  /** Capabilities the caller requires when selecting a backend in auto mode. */
   requiredCapabilities?: BackendCapability[];
 }
 
@@ -94,57 +83,9 @@ async function materializeUserInput(input: AsyncIterable<UserInputMessage>): Pro
   return { content, sessionId };
 }
 
-// ── Claude Backend (SDK) ─────────────────────────────────────────────────────
+export const CODEX_DEFAULT_MODEL = "gpt-5.2";
+export const OPENCODE_MODEL = "glm5/zai-org/GLM-5-FP8";
 
-class ClaudeBackend implements AgentBackend {
-  readonly name = "claude" as const;
-  readonly capabilities = capabilitySet(
-    "interactive_input",
-    "session_interrupt",
-    "subagents",
-    "native_system_prompt",
-  );
-
-  async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    return claudeRunQuery({
-      ...opts,
-      systemPrompt: opts.systemPrompt ?? { type: "preset", preset: "claude_code" },
-      tools: opts.tools ?? { type: "preset", preset: "claude_code" },
-    });
-  }
-
-  runSupervised(opts: BackendQueryOpts): SupervisedResult {
-    const supervised = claudeRunQuerySupervised({
-      ...opts,
-      systemPrompt: opts.systemPrompt ?? { type: "preset", preset: "claude_code" },
-      tools: opts.tools ?? { type: "preset", preset: "claude_code" },
-    });
-    const handle = makeHandle(
-      "claude",
-      this.capabilities,
-      () => supervised.query.interrupt(),
-      async (input) => {
-        const msg = await materializeUserInput(input);
-        if (!msg) return;
-        await supervised.query.streamInput(
-          (async function* () {
-            yield {
-              type: "user" as const,
-              message: { role: "user" as const, content: msg.content },
-              parent_tool_use_id: null,
-              session_id: msg.sessionId ?? "",
-            };
-          })(),
-        );
-      },
-    );
-    return { handle, result: supervised.result };
-  }
-}
-
-// ── Codex/OpenAI backends (Codex CLI transport) ─────────────────────────────
-
-const CODEX_DEFAULT_MODEL = "gpt-5.2";
 const CODEX_MODEL_ALIASES: Record<string, string> = {
   opus: CODEX_DEFAULT_MODEL,
   sonnet: CODEX_DEFAULT_MODEL,
@@ -157,16 +98,14 @@ export function resolveModelForBackend(
 ): string {
   const requested = model?.trim();
   if (!requested) {
-    return backendName === "codex" || backendName === "openai"
-      ? CODEX_DEFAULT_MODEL
-      : "";
+    return backendName === "opencode" ? OPENCODE_MODEL : CODEX_DEFAULT_MODEL;
   }
 
-  if (backendName === "codex" || backendName === "openai") {
-    return CODEX_MODEL_ALIASES[requested] ?? requested;
+  if (backendName === "opencode") {
+    return requested;
   }
 
-  return requested;
+  return CODEX_MODEL_ALIASES[requested] ?? requested;
 }
 
 export function parseCodexMessage(line: string): SDKMessage | null {
@@ -184,17 +123,12 @@ function parseCodexMessageObject(msg: unknown): SDKMessage | null {
     const parsed = msg as Record<string, unknown>;
     const type = parsed.type;
 
-    // Codex CLI v0.110+ stream-json schema (thread/turn/item events).
-    // Example lines captured from `codex exec --json`:
-    //   {"type":"thread.started","thread_id":"..."}
-    //   {"type":"item.completed","item":{"type":"agent_message","text":"OK"}}
-    //   {"type":"item.started","item":{"type":"command_execution","command":"/bin/zsh -lc ls",...}}
     if (type === "thread.started" && (parsed.thread_id || parsed.threadId || parsed.session_id || parsed.sessionId)) {
       return {
         type: "system",
         subtype: "init",
-        session_id: parsed.thread_id ?? parsed.threadId ?? parsed.session_id ?? parsed.sessionId,
-      } as unknown as SDKMessage;
+        session_id: String(parsed.thread_id ?? parsed.threadId ?? parsed.session_id ?? parsed.sessionId),
+      };
     }
 
     const item = parsed.item as Record<string, unknown> | undefined;
@@ -202,65 +136,66 @@ function parseCodexMessageObject(msg: unknown): SDKMessage | null {
       return {
         type: "assistant",
         message: { role: "assistant", content: [{ type: "text", text: item.text as string }] },
-      } as unknown as SDKMessage;
+      };
     }
 
     if (type === "item.started" && item?.type === "command_execution" && typeof item?.command === "string") {
       const cmd = item.command as string;
-      return { type: "tool_use_summary", summary: `Shell \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\`` } as unknown as SDKMessage;
+      return { type: "tool_use_summary", summary: `Shell \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\`` };
     }
 
     if (type === "item.completed" && item?.type === "command_execution") {
-      return { type: "tool_call_completed" } as unknown as SDKMessage;
+      return { type: "tool_call_completed" };
     }
 
-    if (type === "assistant" && (parsed.message as Record<string, unknown> | undefined)?.content) {
-      return parsed as unknown as SDKMessage;
+    const message = parsed.message as { role?: unknown; content?: unknown } | undefined;
+    if (type === "assistant" && Array.isArray(message?.content)) {
+      return {
+        type: "assistant",
+        message: {
+          role: typeof message.role === "string" ? message.role : undefined,
+          content: message.content as Array<Record<string, unknown>>,
+        },
+      };
     }
 
     if (type === "system" && parsed.subtype === "init") {
       return {
         type: "system",
         subtype: "init",
-        session_id: parsed.session_id ?? parsed.sessionId ?? parsed.id ?? "",
-      } as unknown as SDKMessage;
+        session_id: String(parsed.session_id ?? parsed.sessionId ?? parsed.id ?? ""),
+      };
     }
 
     if (type === "result") {
       return {
         type: "result",
-        subtype: parsed.subtype ?? "success",
-        duration_ms: parsed.duration_ms ?? parsed.durationMs ?? 0,
-        is_error: parsed.is_error ?? false,
-        result: parsed.result ?? parsed.output_text ?? "",
-        session_id: parsed.session_id ?? parsed.sessionId ?? parsed.id ?? "",
-        total_cost_usd: parsed.total_cost_usd ?? 0,
-        num_turns: parsed.num_turns ?? 0,
-      } as unknown as SDKMessage;
+        subtype: typeof parsed.subtype === "string" ? parsed.subtype : "success",
+        duration_ms: typeof parsed.duration_ms === "number" ? parsed.duration_ms : Number(parsed.durationMs ?? 0),
+        is_error: parsed.is_error === true,
+        result: typeof parsed.result === "string" ? parsed.result : String(parsed.output_text ?? ""),
+        session_id: String(parsed.session_id ?? parsed.sessionId ?? parsed.id ?? ""),
+        total_cost_usd: typeof parsed.total_cost_usd === "number" ? parsed.total_cost_usd : 0,
+        num_turns: typeof parsed.num_turns === "number" ? parsed.num_turns : 0,
+      };
     }
 
     if (type === "tool_use" || type === "tool_call") {
       const tool = parsed.tool as Record<string, unknown> | undefined;
       const part = parsed.part as Record<string, unknown> | undefined;
       const partState = (part?.state as Record<string, unknown> | undefined)?.input as Record<string, unknown> | undefined;
-      const toolName = parsed.name ?? parsed.tool_name ?? tool?.name ?? part?.tool ?? "tool";
+      const toolName = String(parsed.name ?? parsed.tool_name ?? tool?.name ?? part?.tool ?? "tool");
       const input = (parsed.input ?? parsed.args ?? partState ?? {}) as Record<string, unknown>;
       let detail = "";
-      if (input.command) {
-        const cmd = String(input.command);
-        detail = ` \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\``;
-      } else if (input.file_path) {
-        detail = ` ${input.file_path}`;
-      } else if (input.path) {
-        detail = ` ${input.path}`;
-      } else if (input.pattern) {
-        detail = ` ${input.pattern}`;
-      }
-      return { type: "tool_use_summary", summary: `${toolName}${detail}` } as unknown as SDKMessage;
+      if (input.command) detail = ` ${String(input.command)}`;
+      else if (input.file_path) detail = ` ${String(input.file_path)}`;
+      else if (input.path) detail = ` ${String(input.path)}`;
+      else if (input.pattern) detail = ` ${String(input.pattern)}`;
+      return { type: "tool_use_summary", summary: `${toolName}${detail}` };
     }
 
     if (type === "tool_call_completed" || (type === "tool_call" && parsed.subtype === "completed")) {
-      return { type: "tool_call_completed" } as unknown as SDKMessage;
+      return { type: "tool_call_completed" };
     }
 
     return null;
@@ -304,21 +239,18 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
   const msg = raw as Record<string, unknown>;
   const type = msg.type;
   if (type === "thread.started") {
-    const threadId = (msg.thread_id ?? msg.threadId ?? msg.session_id ?? msg.sessionId);
+    const threadId = msg.thread_id ?? msg.threadId ?? msg.session_id ?? msg.sessionId;
     if (typeof threadId === "string" && threadId) state.sessionId = threadId;
     return;
   }
-
   if (type === "turn.started") {
     state.turnStartedCount += 1;
     return;
   }
-
   if (type === "turn.completed") {
     state.turnCompletedCount += 1;
     return;
   }
-
   if (type === "item.completed") {
     const item = msg.item as Record<string, unknown> | undefined;
     if (!item || typeof item !== "object") return;
@@ -331,7 +263,6 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
       }
       return;
     }
-
     if (item.type === "command_execution") {
       if (state.toolFallbackTruncated) return;
       if (state.toolFallbackCommandCount >= CODEX_TOOL_FALLBACK_MAX_COMMANDS) {
@@ -346,8 +277,7 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
 
       const header = command ? `$ ${command}` : "$ <command>";
       const body = output.trimEnd();
-      const suffix = (exitCode != null && exitCode !== 0 && !body) ? `\n(exit_code: ${exitCode})` : "";
-
+      const suffix = exitCode != null && exitCode !== 0 && !body ? `\n(exit_code: ${exitCode})` : "";
       let chunk = header;
       if (body) chunk += `\n${body}`;
       if (suffix) chunk += suffix;
@@ -363,26 +293,22 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
         state.toolFallbackText = state.toolFallbackText.slice(0, CODEX_TOOL_FALLBACK_MAX_CHARS) +
           "\n\n[tool output truncated]";
       }
-
-      return;
     }
   }
-
   if (type === "result") {
     if (typeof msg.result === "string" && msg.result) state.reportedText = msg.result;
     if (typeof msg.output_text === "string" && msg.output_text) state.reportedText = msg.output_text;
-    if (typeof msg.is_error === "boolean" && msg.is_error) state.isError = true;
+    if (msg.is_error === true) state.isError = true;
     if (typeof msg.session_id === "string" && msg.session_id) state.sessionId = msg.session_id;
     if (typeof msg.sessionId === "string" && msg.sessionId) state.sessionId = msg.sessionId;
     if (typeof msg.num_turns === "number" && msg.num_turns > 0) state.reportedTurns = msg.num_turns;
-    return;
   }
 }
 
 export function finalizeCodexExecJsonState(state: CodexExecJsonState): { text: string; numTurns: number; sessionId?: string; ok: boolean } {
   const text = (state.reportedText ?? state.assistantText).trim();
   const finalText = text || state.toolFallbackText.trim();
-  const numTurns = (state.reportedTurns && state.reportedTurns > 0)
+  const numTurns = state.reportedTurns && state.reportedTurns > 0
     ? state.reportedTurns
     : (state.turnCompletedCount || state.turnStartedCount || state.assistantMessageCount);
   return { text: finalText, numTurns, sessionId: state.sessionId, ok: !state.isError };
@@ -402,29 +328,28 @@ abstract class BaseCodexBackend implements AgentBackend {
   protected buildExecArgs(opts: BackendQueryOpts): string[] {
     const prompt = this.buildPrompt(opts);
     const model = resolveModelForBackend(this.name, opts.model);
-    const args = [
+    return [
       "exec",
       "--json",
       "-C", opts.cwd,
       "--dangerously-bypass-approvals-and-sandbox",
+      "-m", model,
+      prompt,
     ];
-    args.push("-m", model);
-    args.push(prompt);
-    return args;
   }
 
   protected buildResumeArgs(sessionId: string, prompt: string, opts: BackendQueryOpts): string[] {
     const model = resolveModelForBackend(this.name, opts.model);
-    const args = [
+    return [
       "exec",
       "resume",
       "--json",
       "-C", opts.cwd,
       "--dangerously-bypass-approvals-and-sandbox",
+      "-m", model,
+      sessionId,
+      prompt,
     ];
-    args.push("-m", model);
-    args.push(sessionId, prompt);
-    return args;
   }
 
   protected spawnCodex(
@@ -435,12 +360,10 @@ abstract class BaseCodexBackend implements AgentBackend {
     const start = Date.now();
     const cwd = opts.cwd;
     const codexBin = process.env["CODEX_BIN"] || "codex";
-    console.log(`[${this.name}] Spawning: ${codexBin} ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
-
     const proc = spawn(codexBin, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env },
+      env: { ...process.env, ...(opts.extraEnv ?? {}) },
     });
 
     const streamState = createCodexExecJsonState();
@@ -461,35 +384,8 @@ abstract class BaseCodexBackend implements AgentBackend {
           consumeCodexExecJsonMessage(streamState, raw);
           const msg = parseCodexMessageObject(raw);
           if (!msg) return;
-
           if (onMessage) {
-            try { await onMessage(msg); } catch { /* best-effort */ }
-          }
-
-          if (msg.type === "system" && "subtype" in msg && (msg as Record<string, unknown>).subtype === "init") {
-            streamState.sessionId = (msg as Record<string, unknown>).session_id as string;
-          }
-
-          if (msg.type === "assistant") {
-            const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
-            if (content?.content) {
-              for (const block of content.content) {
-                if (block.type === "text" && block.text) {
-                  // Keep assistant text accumulation for compatibility, but do not use this
-                  // for `numTurns` (Codex CLI emits explicit `turn.*` events).
-                  if (streamState.assistantText) streamState.assistantText += "\n";
-                  streamState.assistantText += block.text;
-                }
-              }
-            }
-          }
-
-          if (msg.type === "result") {
-            const r = msg as unknown as { result?: string; is_error?: boolean; session_id?: string; num_turns?: number };
-            if (r.result) streamState.reportedText = r.result;
-            if (r.is_error) streamState.isError = true;
-            if (r.session_id) streamState.sessionId = r.session_id;
-            if (typeof r.num_turns === "number" && r.num_turns > 0) streamState.reportedTurns = r.num_turns;
+            try { await onMessage(msg); } catch { /* best effort */ }
           }
         });
       }
@@ -500,18 +396,13 @@ abstract class BaseCodexBackend implements AgentBackend {
         });
       }
 
-      proc.on("error", (err) => {
-        reject(new Error(`${this.name} failed to start: ${err.message}`));
-      });
-
+      proc.on("error", (err) => reject(new Error(`${this.name} failed to start: ${err.message}`)));
       proc.on("close", (code) => {
         const durationMs = Date.now() - start;
         const finalized = finalizeCodexExecJsonState(streamState);
         const finalText = finalized.text || stderr.trim();
         if (code !== 0 && !finalText) {
-          reject(new Error(
-            `${this.name} exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`,
-          ));
+          reject(new Error(`${this.name} exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`));
           return;
         }
         resolve({
@@ -529,8 +420,7 @@ abstract class BaseCodexBackend implements AgentBackend {
   }
 
   async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    const { result } = this.spawnCodex(this.buildExecArgs(opts), opts, opts.onMessage);
-    return result;
+    return this.spawnCodex(this.buildExecArgs(opts), opts, opts.onMessage).result;
   }
 
   runSupervised(opts: BackendQueryOpts): SupervisedResult {
@@ -547,19 +437,20 @@ abstract class BaseCodexBackend implements AgentBackend {
         }
       : undefined;
 
-    const handle = makeHandle(
-      this.name,
-      this.capabilities,
-      async () => {
-        if (!proc.killed) {
-          proc.kill("SIGTERM");
-          setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
-        }
-      },
-      streamInput,
-    );
-
-    return { handle, result };
+    return {
+      handle: makeHandle(
+        this.name,
+        this.capabilities,
+        async () => {
+          if (!proc.killed) {
+            proc.kill("SIGTERM");
+            setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
+          }
+        },
+        streamInput,
+      ),
+      result,
+    };
   }
 }
 
@@ -570,269 +461,22 @@ class CodexBackend extends BaseCodexBackend {
 
 class OpenAIBackend extends BaseCodexBackend {
   readonly name = "openai" as const;
-  readonly capabilities = capabilitySet(
-    "interactive_input",
-    "session_interrupt",
-    "subagents",
-    "native_system_prompt",
-  );
+  readonly capabilities = capabilitySet("interactive_input", "session_interrupt", "subagents", "native_system_prompt");
 }
 
-// ── Cursor Backend (CLI) ─────────────────────────────────────────────────────
-
-const CURSOR_DEFAULT_MODEL = "opus-4.6-thinking";
-
-/** Map Claude-compatible short model names to Cursor-specific model IDs.
- *  Profiles use Claude-compatible names (e.g. "opus"); the Cursor backend
- *  translates them here so both backends work from the same profile. */
-const CURSOR_MODEL_MAP: Record<string, string> = {
-  opus: "opus-4.6-thinking",
-};
-
-/** Parse a line of Cursor stream-json output into an SDKMessage-compatible shape. */
-export function parseCursorMessage(line: string): SDKMessage | null {
-  try {
-    const msg = JSON.parse(line);
-
-    // system init
-    if (msg.type === "system" && msg.subtype === "init") {
-      return msg as SDKMessage;
-    }
-
-    // assistant text
-    if (msg.type === "assistant" && msg.message?.content) {
-      return msg as SDKMessage;
-    }
-
-    // result
-    if (msg.type === "result") {
-      return {
-        type: "result",
-        subtype: msg.subtype,
-        duration_ms: msg.duration_ms,
-        is_error: msg.is_error ?? false,
-        result: msg.result ?? "",
-        session_id: msg.session_id ?? "",
-        // Cursor doesn't report cost or turns
-        total_cost_usd: 0,
-        num_turns: 0,
-      } as unknown as SDKMessage;
-    }
-
-    // tool_call — summarize as tool_use_summary for watchers
-    // Cursor format: tool_call.{globToolCall,readToolCall,shellToolCall,fileEditToolCall,grepToolCall,...}
-    if (msg.type === "tool_call" && msg.subtype === "started") {
-      const tc = msg.tool_call ?? {};
-      let summary = "";
-      if (tc.shellToolCall) {
-        summary = `Shell \`${(tc.shellToolCall.args?.command ?? "").slice(0, 80)}\``;
-      } else if (tc.readToolCall) {
-        summary = `Read \`${tc.readToolCall.args?.path ?? "?"}\``;
-      } else if (tc.globToolCall) {
-        summary = `Glob \`${tc.globToolCall.args?.globPattern ?? "?"}\``;
-      } else if (tc.grepToolCall) {
-        summary = `Grep \`${tc.grepToolCall.args?.pattern ?? "?"}\``;
-      } else if (tc.fileEditToolCall) {
-        summary = `Edit \`${tc.fileEditToolCall.args?.filePath ?? tc.fileEditToolCall.args?.path ?? "?"}\``;
-      } else if (tc.writeToolCall) {
-        summary = `Write \`${tc.writeToolCall.args?.filePath ?? tc.writeToolCall.args?.path ?? "?"}\``;
-      } else {
-        // Unknown tool — try to extract a name from the keys
-        const keys = Object.keys(tc).filter(k => k.endsWith("ToolCall"));
-        summary = keys.length > 0 ? keys[0].replace("ToolCall", "") : "tool";
-      }
-      return { type: "tool_use_summary", summary } as unknown as SDKMessage;
-    }
-
-    // tool_call.completed — emit for stall guard to clear timer (ADR R1)
-    if (msg.type === "tool_call" && msg.subtype === "completed") {
-      return { type: "tool_call_completed" } as unknown as SDKMessage;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-class CursorBackend implements AgentBackend {
-  readonly name = "cursor" as const;
-  readonly capabilities = capabilitySet("session_interrupt");
-
-  private buildPrompt(opts: BackendQueryOpts): string {
-    if (opts.systemPromptText) {
-      return `<system_instructions>\n${opts.systemPromptText}\n</system_instructions>\n\n${opts.prompt}`;
-    }
-    return opts.prompt;
-  }
-
-  private buildArgs(opts: BackendQueryOpts): string[] {
-    const rawModel = opts.model ?? CURSOR_DEFAULT_MODEL;
-    const model = CURSOR_MODEL_MAP[rawModel] ?? rawModel;
-    const prompt = this.buildPrompt(opts);
-    return [
-      "-p",
-      "--output-format", "stream-json",
-      "--yolo", "--trust",
-      "--workspace", opts.cwd,
-      "--model", model,
-      prompt,
-    ];
-  }
-
-  private spawnAgent(
-    opts: BackendQueryOpts,
-    onMessage?: (msg: SDKMessage) => void | Promise<void>,
-  ): { proc: ChildProcess; result: Promise<QueryResult> } {
-    const start = Date.now();
-    const args = this.buildArgs(opts);
-    const cwd = opts.cwd;
-
-    console.log(`[cursor] Spawning: agent ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
-
-    const proc = spawn("agent", args, {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env },
-    });
-
-    const result = new Promise<QueryResult>((resolve, reject) => {
-      let text = "";
-      let sessionId: string | undefined;
-      let numTurns = 0;
-      let isError = false;
-      let stderr = "";
-
-      if (proc.stdout) {
-        const rl = createInterface({ input: proc.stdout });
-        rl.on("line", async (line) => {
-          const msg = parseCursorMessage(line);
-          if (!msg) return;
-
-          if (onMessage) {
-            try { await onMessage(msg); } catch { /* best-effort */ }
-          }
-
-          if (msg.type === "system" && "subtype" in msg && (msg as Record<string, unknown>).subtype === "init") {
-            sessionId = (msg as Record<string, unknown>).session_id as string;
-          }
-
-          if (msg.type === "assistant") {
-            numTurns++;
-            const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
-            if (content?.content) {
-              for (const block of content.content) {
-                if (block.type === "text" && block.text) text = block.text;
-              }
-            }
-          }
-
-          if (msg.type === "result") {
-            const r = msg as unknown as { result?: string; is_error?: boolean; session_id?: string };
-            if (r.result) text = r.result;
-            if (r.is_error) isError = true;
-            if (r.session_id) sessionId = r.session_id;
-          }
-        });
-      }
-
-      if (proc.stderr) {
-        proc.stderr.on("data", (chunk: Buffer) => {
-          stderr += chunk.toString();
-        });
-      }
-
-      proc.on("error", (err) => {
-        reject(new Error(`Cursor agent failed to start: ${err.message}`));
-      });
-
-      proc.on("close", (code) => {
-        const durationMs = Date.now() - start;
-        if (code !== 0 && !text) {
-          reject(new Error(
-            `Cursor agent exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`,
-          ));
-          return;
-        }
-        resolve({
-          text,
-          ok: !isError,
-          sessionId,
-          costUsd: undefined,
-          numTurns,
-          durationMs,
-        });
-      });
-    });
-
-    return { proc, result };
-  }
-
-  async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    const { result } = this.spawnAgent(opts, opts.onMessage);
-    return result;
-  }
-
-  runSupervised(opts: BackendQueryOpts): SupervisedResult {
-    const { proc, result } = this.spawnAgent(opts, opts.onMessage);
-    const handle = makeHandle(
-      "cursor",
-      this.capabilities,
-      async () => {
-        if (!proc.killed) {
-          proc.kill("SIGTERM");
-          // Give it a moment, then force kill
-          setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
-        }
-      },
-    );
-
-    return { handle, result };
-  }
-}
-
-// ── opencode Backend (CLI) ─────────────────────────────────────────────────────
-
-/** opencode backend always uses the locally-hosted GLM5 model. */
-const OPENCODE_MODEL = "glm5/zai-org/GLM-5-FP8";
-
-/** Parse a line of opencode stream-json output into an SDKMessage-compatible shape.
- *  opencode --format json outputs NDJSON with types: error, assistant, result, etc. */
 export function parseOpenCodeMessage(line: string): SDKMessage | null {
   try {
     const msg = JSON.parse(line);
-
-    // error
     if (msg.type === "error") {
       const errMsg = msg.error?.data?.message ?? msg.error?.name ?? "Unknown error";
-      return {
-        type: "result",
-        subtype: "error",
-        is_error: true,
-        result: errMsg,
-        session_id: msg.sessionID ?? "",
-        total_cost_usd: 0,
-        num_turns: 0,
-        duration_ms: 0,
-      } as unknown as SDKMessage;
+      return { type: "result", subtype: "error", is_error: true, result: errMsg, session_id: msg.sessionID ?? "", total_cost_usd: 0, num_turns: 0, duration_ms: 0 };
     }
-
-    // text — final output text from opencode
     if (msg.type === "text" && msg.part?.text) {
-      return {
-        type: "assistant",
-        message: {
-          content: [{ type: "text", text: msg.part.text }],
-        },
-      } as unknown as SDKMessage;
+      return { type: "assistant", message: { content: [{ type: "text", text: msg.part.text }] } };
     }
-
-    // assistant text
     if (msg.type === "assistant" && msg.message?.content) {
       return msg as SDKMessage;
     }
-
-    // result
     if (msg.type === "result") {
       return {
         type: "result",
@@ -843,32 +487,19 @@ export function parseOpenCodeMessage(line: string): SDKMessage | null {
         session_id: msg.session_id ?? msg.sessionID ?? "",
         total_cost_usd: msg.total_cost_usd ?? 0,
         num_turns: msg.num_turns ?? 0,
-      } as unknown as SDKMessage;
+      };
     }
-
-    // tool_use — opencode format: part.tool + part.state.input
     if (msg.type === "tool_use") {
       const toolName = msg.part?.tool ?? msg.name ?? "tool";
       const input = msg.part?.state?.input as Record<string, unknown> | undefined;
       let detail = "";
-      if (input) {
-        if (input["command"]) {
-          const cmd = String(input["command"]);
-          detail = ` \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\``;
-        } else if (input["file_path"]) {
-          detail = ` ${input["file_path"]}`;
-        } else if (input["path"]) {
-          detail = ` ${input["path"]}`;
-        } else if (input["pattern"]) {
-          detail = ` ${input["pattern"]}`;
-        } else if (input["url"]) {
-          detail = ` ${input["url"]}`;
-        }
-      }
-      const summary = `${toolName}${detail}`;
-      return { type: "tool_use_summary", summary } as unknown as SDKMessage;
+      if (input?.command) detail = ` ${String(input.command)}`;
+      else if (input?.file_path) detail = ` ${String(input.file_path)}`;
+      else if (input?.path) detail = ` ${String(input.path)}`;
+      else if (input?.pattern) detail = ` ${String(input.pattern)}`;
+      else if (input?.url) detail = ` ${String(input.url)}`;
+      return { type: "tool_use_summary", summary: `${toolName}${detail}` };
     }
-
     return null;
   } catch {
     return null;
@@ -887,7 +518,6 @@ class OpenCodeBackend implements AgentBackend {
   }
 
   private buildArgs(opts: BackendQueryOpts): string[] {
-    // opencode backend always uses GLM5, ignoring job-level model config
     const prompt = this.buildPrompt(opts);
     return [
       "run",
@@ -905,16 +535,12 @@ class OpenCodeBackend implements AgentBackend {
   ): { proc: ChildProcess; result: Promise<QueryResult> } {
     const start = Date.now();
     const args = this.buildArgs(opts);
-    const cwd = opts.cwd;
-
-    console.log(`[opencode] Spawning: opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
-
-    const opencodeBin = process.env.OPENCODE_BIN || "/home/user/.opencode/bin/opencode";
-    const proc = spawn(opencodeBin, args, {
-      cwd,
+    const proc = spawn(process.env.OPENCODE_BIN || "/home/user/.opencode/bin/opencode", args, {
+      cwd: opts.cwd,
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
+        ...(opts.extraEnv ?? {}),
         OPENCODE_PERMISSION: '{"*":"allow"}',
         GIT_CONFIG_COUNT: "1",
         GIT_CONFIG_KEY_0: "gc.auto",
@@ -935,32 +561,27 @@ class OpenCodeBackend implements AgentBackend {
         rl.on("line", async (line) => {
           const msg = parseOpenCodeMessage(line);
           if (!msg) return;
-
           if (onMessage) {
-            try { await onMessage(msg); } catch { /* best-effort */ }
+            try { await onMessage(msg); } catch { /* best effort */ }
           }
 
           if (msg.type === "result") {
-            const r = msg as unknown as {
-              result?: string;
-              is_error?: boolean;
-              session_id?: string;
-              total_cost_usd?: number;
-              num_turns?: number;
-            };
-            if (r.result) text = r.result;
-            if (r.is_error) isError = true;
-            if (r.session_id) sessionId = r.session_id;
-            if (r.total_cost_usd !== undefined) costUsd = r.total_cost_usd;
-            if (r.num_turns !== undefined) numTurns = r.num_turns;
+            const resultMsg = msg as Extract<SDKMessage, { type: "result" }>;
+            if (resultMsg.result) text = resultMsg.result;
+            if (resultMsg.is_error) isError = true;
+            if (resultMsg.session_id) sessionId = resultMsg.session_id;
+            if (typeof resultMsg.total_cost_usd === "number") costUsd = resultMsg.total_cost_usd;
+            if (typeof resultMsg.num_turns === "number") numTurns = resultMsg.num_turns;
           }
 
           if (msg.type === "assistant") {
             numTurns++;
-            const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
-            if (content?.content) {
-              for (const block of content.content) {
-                if (block.type === "text" && block.text) text = block.text;
+            const content = msg.message?.content;
+            if (content) {
+              for (const block of content) {
+                if ((block as { type?: string }).type === "text" && typeof (block as { text?: unknown }).text === "string") {
+                  text = (block as { text: string }).text;
+                }
               }
             }
           }
@@ -973,23 +594,12 @@ class OpenCodeBackend implements AgentBackend {
         });
       }
 
-      proc.on("error", (err) => {
-        reject(new Error(`opencode failed to start: ${err.message}`));
-      });
-
+      proc.on("error", (err) => reject(new Error(`opencode failed to start: ${err.message}`)));
       proc.on("close", (code) => {
         const durationMs = Date.now() - start;
         if (code !== 0 && !text) {
-          reject(new Error(
-            `opencode exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`,
-          ));
+          reject(new Error(`opencode exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`));
           return;
-        }
-        if ((costUsd === undefined || costUsd === 0) && sessionId) {
-          const dbCost = getSessionCostFromDb(sessionId, "glm5/zai-org/GLM-5-FP8");
-          if (dbCost !== null && dbCost > 0) {
-            costUsd = dbCost;
-          }
         }
         resolve({
           text,
@@ -1006,36 +616,32 @@ class OpenCodeBackend implements AgentBackend {
   }
 
   async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    const { result } = this.spawnAgent(opts, opts.onMessage);
-    return result;
+    return this.spawnAgent(opts, opts.onMessage).result;
   }
 
   runSupervised(opts: BackendQueryOpts): SupervisedResult {
     const { proc, result } = this.spawnAgent(opts, opts.onMessage);
-    const handle = makeHandle(
-      "opencode",
-      this.capabilities,
-      async () => {
-        if (!proc.killed) {
-          proc.kill("SIGTERM");
-          setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
-        }
-      },
-    );
-
-    return { handle, result };
+    return {
+      handle: makeHandle(
+        "opencode",
+        this.capabilities,
+        async () => {
+          if (!proc.killed) {
+            proc.kill("SIGTERM");
+            setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
+          }
+        },
+      ),
+      result,
+    };
   }
 }
 
-// ── Error helpers ────────────────────────────────────────────────────────────
-
-/** Strict rate-limit check: matches known API rate-limit / usage-limit error patterns. */
 export function isRateLimitError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return /rate.?limit|overloaded|usage.?limit|too many requests|429|quota|capacity/.test(msg);
 }
 
-/** Billing error check: matches Cursor billing issues (unpaid invoice, payment required). */
 export function isBillingError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return /unpaid invoice|payment required|billing|subscription|insufficient credit/.test(msg);
@@ -1050,69 +656,48 @@ export function backendSupportsCapabilities(
   return requiredCapabilities.every((capability) => backend.capabilities.has(capability));
 }
 
-// ── Backend resolution ───────────────────────────────────────────────────────
-
-/** Returns the configured default backend preference.
- *  Precedence: persisted preference > AGENT_BACKEND env var > "auto".
- *  Reads process.env at call time so .env loading in cli.ts takes effect. */
-export function getDefaultBackend(): BackendPreference {
-  const persisted = getBackendPreference();
-  if (persisted) return persisted;
-  return (process.env["AGENT_BACKEND"] as BackendPreference) ?? "auto";
-}
-
 const codexBackend = new CodexBackend();
 const openaiBackend = new OpenAIBackend();
-const claudeBackend = new ClaudeBackend();
-const cursorBackend = new CursorBackend();
 const opencodeBackend = new OpenCodeBackend();
 
-/** Get the appropriate backend for the given preference.
- *  Auto mode is capability-aware: prefer codex and escalate to openai only
- *  when the caller needs capabilities codex does not provide. */
-export function resolveBackend(
-  preference?: BackendPreference,
-  requiredCapabilities?: BackendCapability[],
-): AgentBackend {
-  const pref = preference ?? getDefaultBackend();
-  switch (pref) {
+function runtimeHintForModel(model?: string): RuntimeHint {
+  const normalized = model?.trim().toLowerCase();
+  if (!normalized) return "auto";
+  if (normalized.includes("glm5") || normalized.includes("glm-5") || normalized.includes("zai-org/glm")) {
+    return "opencode";
+  }
+  return "auto";
+}
+
+export function resolveBackend(opts: ResolveBackendOpts = {}): AgentBackend {
+  const hint = opts.routeHint && opts.routeHint !== "auto" ? opts.routeHint : runtimeHintForModel(opts.model);
+  switch (hint) {
     case "codex":
       return codexBackend;
     case "openai":
       return openaiBackend;
-    case "claude":
-      return claudeBackend;
-    case "cursor":
-      return cursorBackend;
     case "opencode":
       return opencodeBackend;
     case "auto":
-      if (backendSupportsCapabilities("codex", requiredCapabilities)) return codexBackend;
-      if (backendSupportsCapabilities("openai", requiredCapabilities)) return openaiBackend;
+    default:
+      if (runtimeHintForModel(opts.model) === "opencode") return opencodeBackend;
+      if (backendSupportsCapabilities("codex", opts.requiredCapabilities)) return codexBackend;
+      if (backendSupportsCapabilities("openai", opts.requiredCapabilities)) return openaiBackend;
       return codexBackend;
   }
 }
 
-/** Get a specific backend by name (no fallback wrapping). */
 export function getBackend(name: BackendName): AgentBackend {
   switch (name) {
     case "codex":
       return codexBackend;
     case "openai":
       return openaiBackend;
-    case "claude":
-      return claudeBackend;
-    case "cursor":
-      return cursorBackend;
     case "opencode":
       return opencodeBackend;
   }
 }
 
-/** Get the effective backend name for skill gating purposes. */
-export function getEffectiveBackendName(
-  preference?: BackendPreference,
-  requiredCapabilities?: BackendCapability[],
-): BackendName {
-  return resolveBackend(preference, requiredCapabilities).name;
+export function getEffectiveBackendName(opts: ResolveBackendOpts = {}): BackendName {
+  return resolveBackend(opts).name;
 }

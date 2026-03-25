@@ -14,6 +14,7 @@ import { recordInteraction, type InteractionRecord } from "./metrics.js";
 import { listSkills, formatSkillList, readSkillContent } from "./skills.js";
 import { persistSession, unpersistSession } from "./session-persistence.js";
 import { addWatcher } from "./session.js";
+import type { SDKMessage } from "./sdk.js";
 import {
   parseQuestionMarker,
   setPendingQuestion,
@@ -24,32 +25,43 @@ import {
 
 const PLAN_MAX_CHARS = 3000;
 
-/** Read the newest plan file from .claude/plans/ in the given repo directory.
- *  Returns file content (truncated to 3000 chars) or null if no plans exist. */
+/** Read the newest repo-native plan file in the given repo directory.
+ *  Scans the repo `plans/` directory and project-local `plans/` directories,
+ *  returning truncated content or null. */
 export async function readPlanFile(repoDir: string): Promise<string | null> {
-  const plansDir = join(repoDir, ".claude", "plans");
-  let entries: string[];
+  const candidateDirs = [join(repoDir, "plans")];
   try {
-    entries = await readdir(plansDir);
+    const projectsDir = join(repoDir, "projects");
+    const projects = await readdir(projectsDir, { withFileTypes: true });
+    for (const entry of projects) {
+      if (entry.isDirectory()) candidateDirs.push(join(projectsDir, entry.name, "plans"));
+    }
   } catch {
-    return null;
+    // No projects dir or unreadable — continue with repo plans only.
   }
 
-  const mdFiles = entries.filter((f) => f.endsWith(".md"));
-  if (mdFiles.length === 0) return null;
-
-  // Find newest by mtime
-  let newest = mdFiles[0];
+  let newestPath: string | null = null;
   let newestMtime = 0;
-  for (const f of mdFiles) {
-    const s = await stat(join(plansDir, f));
-    if (s.mtimeMs > newestMtime) {
-      newestMtime = s.mtimeMs;
-      newest = f;
+  for (const plansDir of candidateDirs) {
+    let entries: string[];
+    try {
+      entries = await readdir(plansDir);
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.endsWith(".md")) continue;
+      const planPath = join(plansDir, entry);
+      const planStat = await stat(planPath);
+      if (planStat.mtimeMs > newestMtime) {
+        newestMtime = planStat.mtimeMs;
+        newestPath = planPath;
+      }
     }
   }
 
-  let content = await readFile(join(plansDir, newest), "utf-8");
+  if (!newestPath) return null;
+  let content = await readFile(newestPath, "utf-8");
   if (content.length > PLAN_MAX_CHARS) {
     content = content.slice(0, PLAN_MAX_CHARS);
   }
@@ -69,7 +81,7 @@ interface ProgressHandlerOpts {
   stripTags?: (text: string) => string;
   /** If true, detect EnterPlanMode/ExitPlanMode tool calls and notify. */
   detectPlanMode?: boolean;
-  /** Repo directory — needed to read plan files on ExitPlanMode. */
+  /** Repo directory needed to read plan files on ExitPlanMode. */
   repoDir?: string;
   /** Called when ExitPlanMode is detected. Use to auto-approve in headless sessions. */
   onExitPlanMode?: (planText: string | null) => Promise<void>;
@@ -87,20 +99,21 @@ export function buildProgressHandler(opts: ProgressHandlerOpts) {
   const flusher = createToolBatchFlusher((line) => opts.onProgress(line), 2000);
   const doSecurity = opts.securityCheck ?? true;
 
-  const handler = async (msg: Record<string, unknown>) => {
+  const handler = async (msg: SDKMessage) => {
     const type = msg.type as string;
-    console.log(`[${opts.label}] message: type=${type}`);
+    console.log("[" + opts.label + "] message: type=" + type);
 
     // Security interception
-    if (doSecurity && type === "assistant") {
+    if (doSecurity && msg.type === "assistant") {
       const content = msg.message as { content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }> } | undefined;
       if (content?.content) {
         for (const block of content.content) {
           if (block.type === "tool_use" && SHELL_TOOL_NAMES.has(block.name ?? "") && block.input?.command) {
-            try { validateShellCommand(String(block.input.command)); }
-            catch (err) {
+            try {
+              validateShellCommand(String(block.input.command));
+            } catch (err) {
               const reason = err instanceof SecurityError ? err.message : "dangerous command";
-              console.error(`[security] ${opts.label} blocked: ${reason}`);
+              console.error("[security] " + opts.label + " blocked: " + reason);
               await opts.onSecurityBlock?.(String(block.input.command), reason);
             }
           }
@@ -108,32 +121,32 @@ export function buildProgressHandler(opts: ProgressHandlerOpts) {
       }
     }
 
-    if (type === "tool_use_summary") {
-      const summary = msg.summary as string | undefined;
+    if (msg.type === "tool_use_summary") {
+      const summary = msg.summary;
       if (summary) flusher.push(summary);
       return;
     }
 
-    if (type === "assistant") {
+    if (msg.type === "assistant") {
       await flusher.flush();
 
       const content = msg.message as { content?: Array<{ type: string; text?: string; name?: string; input?: Record<string, unknown> }> } | undefined;
       if (!content?.content) return;
       const blocks = content.content;
 
-      // Plan mode detection: notify on EnterPlanMode/ExitPlanMode tool calls
+      // Plan mode detection: notify on EnterPlanMode/ExitPlanMode tool calls.
       if (opts.detectPlanMode) {
         for (const block of blocks) {
           if (block.type === "tool_use" && block.name === "EnterPlanMode") {
-            await opts.onProgress(":clipboard: *Entering plan mode — exploring before making changes…*");
+            await opts.onProgress(":clipboard: *Entering plan mode - exploring before making changes...*");
           }
           if (block.type === "tool_use" && block.name === "ExitPlanMode") {
             const planText = opts.repoDir ? await readPlanFile(opts.repoDir) : null;
             if (planText) {
-              await opts.onProgress(`:page_facing_up: *Plan:*\n\n${planText}`);
+              await opts.onProgress(":page_facing_up: *Plan:*\n\n" + planText);
             }
-            await opts.onProgress(":arrow_forward: *Exiting plan mode — proceeding with implementation…*");
-            // Auto-approve callback for headless sessions
+            await opts.onProgress(":arrow_forward: *Exiting plan mode - proceeding with implementation...*");
+            // Auto-approve callback for headless sessions.
             if (opts.onExitPlanMode) {
               await opts.onExitPlanMode(planText);
             }
@@ -145,11 +158,11 @@ export function buildProgressHandler(opts: ProgressHandlerOpts) {
         if (block.type === "text" && block.text?.trim()) {
           const text = opts.stripTags ? opts.stripTags(block.text) : block.text.trim();
 
-          // Question marker detection for human input during sessions
+          // Question marker detection for human input during sessions.
           if (opts.detectQuestions && text) {
             const parsed = parseQuestionMarker(text);
             if (parsed && opts.threadKey && opts.onQuestionDetected) {
-              console.log(`[${opts.label}] Question marker detected: ${parsed.questionId}`);
+              console.log("[" + opts.label + "] Question marker detected: " + parsed.questionId);
               await opts.onQuestionDetected(opts.threadKey, {
                 questionId: parsed.questionId,
                 skillName: parsed.skillName ?? "unknown",
@@ -168,7 +181,7 @@ export function buildProgressHandler(opts: ProgressHandlerOpts) {
 
       const summaries = summarizeToolUses(blocks);
       if (summaries.length > 0) {
-        await opts.onProgress(`:gear: ${summaries.join(", ")}`);
+        await opts.onProgress(":gear: " + summaries.join(", "));
       }
     }
   };
@@ -196,7 +209,7 @@ function logInteraction(
     detail,
     ...extras,
   }).catch((err) => {
-    console.error(`[event-agents] Failed to log interaction: ${err}`);
+    console.error("[event-agents] Failed to log interaction: " + String(err));
   });
 }
 
@@ -215,6 +228,93 @@ export interface ValidateExperimentOpts {
   experimentOnly?: boolean;
 }
 
+const REQUIRED_SECTIONS_BY_TYPE_STATUS: Record<string, Record<string, string[]>> = {
+  experiment: {
+    planned: ["Design", "Config"],
+    running: ["Design", "Config"],
+    completed: ["Design", "Config", "Results", "Findings", "Reproducibility"],
+    failed: ["Design", "Failure"],
+    abandoned: ["Design", "Failure"],
+  },
+  implementation: {
+    planned: ["Specification"],
+    running: ["Specification"],
+    completed: ["Specification", "Changes", "Verification"],
+    failed: ["Specification", "Failure"],
+    abandoned: ["Specification", "Failure"],
+  },
+  bugfix: {
+    planned: ["Problem"],
+    running: ["Problem"],
+    completed: ["Problem", "Root Cause", "Fix", "Verification"],
+    failed: ["Problem", "Failure"],
+    abandoned: ["Problem", "Failure"],
+  },
+  analysis: {
+    planned: ["Question"],
+    running: ["Question"],
+    completed: ["Question", "Method", "Findings"],
+    failed: ["Question", "Failure"],
+    abandoned: ["Question", "Failure"],
+  },
+};
+
+function parseFrontmatterFields(text: string): { frontmatter: Record<string, string>; body: string } {
+  if (!text.startsWith("---")) {
+    return { frontmatter: {}, body: text };
+  }
+  const end = text.indexOf("---", 3);
+  if (end === -1) {
+    return { frontmatter: {}, body: text };
+  }
+  const block = text.slice(3, end).trim();
+  const body = text.slice(end + 3).trim();
+  const frontmatter: Record<string, string> = {};
+  for (const line of block.split("\n")) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    if (key) frontmatter[key] = value;
+  }
+  return { frontmatter, body };
+}
+
+function parseSectionNames(body: string): Set<string> {
+  const sections = new Set<string>();
+  for (const line of body.split("\n")) {
+    const match = /^##\s+(.+)$/.exec(line.trim());
+    if (match) sections.add(match[1].trim());
+  }
+  return sections;
+}
+
+async function validateExperimentDirFallback(experimentDir: string): Promise<{ ok: boolean; output: string }> {
+  const experimentPath = join(experimentDir, "EXPERIMENT.md");
+  let text = "";
+  try {
+    text = await readFile(experimentPath, "utf-8");
+  } catch {
+    return { ok: false, output: "EXPERIMENT.md not found" };
+  }
+
+  const { frontmatter, body } = parseFrontmatterFields(text);
+  const taskType = frontmatter["type"] || "experiment";
+  const status = frontmatter["status"] || "";
+  const requiredSections = REQUIRED_SECTIONS_BY_TYPE_STATUS[taskType]?.[status] ?? [];
+  const presentSections = parseSectionNames(body);
+  const missingSections = requiredSections.filter((section) => !presentSections.has(section));
+
+  if (missingSections.length > 0) {
+    return {
+      ok: false,
+      output: `Missing sections for type '${taskType}', status '${status}': ${missingSections.join(", ")}`,
+    };
+  }
+
+  return { ok: true, output: "PASS" };
+}
+
 /** Run the experiment validator on a directory. Returns { ok, output }. */
 export async function validateExperimentDir(
   experimentDir: string,
@@ -231,6 +331,9 @@ export async function validateExperimentDir(
   } catch (err) {
     const e = err as { stdout?: string; stderr?: string; code?: number };
     const output = (e.stdout ?? "").trim() || (e.stderr ?? "").trim() || "validation failed";
+    if (output.includes("No module named 'yaml'")) {
+      return validateExperimentDirFallback(experimentDir);
+    }
     return { ok: false, output };
   }
 }
@@ -528,14 +631,14 @@ export function buildDeepWorkPrompt(
 
   parts.push(
     `You are an autonomous research agent starting a deep work session.`,
-    `Your cwd is the akari repo root. Follow CLAUDE.md conventions.`,
+    `Your cwd is the akari repo root. Follow AGENTS.md conventions.`,
     `You have access to all project skills: ${skillList}. Use them when relevant to the task.`,
     ``,
     `## Planning`,
     `For non-trivial tasks, use EnterPlanMode to explore the codebase and design an approach before making changes. Use ExitPlanMode when your plan is ready — the plan will be posted to the Slack thread for visibility. You may then proceed with implementation without waiting for approval.`,
     ``,
     `## Session discipline`,
-    `Do NOT run /orient. This is a task-specific deep work session triggered by a user request, not a scheduled autonomous work cycle. The CLAUDE.md rule "every autonomous session begins with /orient" does not apply here. Begin working on the task immediately.`,
+    `Do NOT run /orient. This is a task-specific deep work session triggered by a user request, not a scheduled autonomous work cycle. The AGENTS.md rule "every autonomous session begins with /orient" does not apply here. Begin working on the task immediately.`,
     ``,
     `**Approval gates:** Because a human explicitly requested this task, \`[approval-needed]\` tags do NOT block you. The user's request constitutes implicit approval. Execute the work as described. Only true safety gates (e.g., "do not push to remote") still apply.`,
     ``,
@@ -700,7 +803,7 @@ export async function spawnDeepWork(
   // Without this, opencode deep work sessions use the default 20-min/256-turn
   // limits instead of the intended 15-min/128-turn limits.
   // See diagnosis-deep-work-timeout-loop-2026-02-28.
-  const backend = resolveBackend(undefined, ["interactive_input"]);
+  const backend = resolveBackend({ requiredCapabilities: ["interactive_input"] });
   const profile = resolveDeepWorkProfile(backend.name);
 
   const { sessionId, handle, result } = spawnAgent({

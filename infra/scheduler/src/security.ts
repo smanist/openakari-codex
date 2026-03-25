@@ -2,6 +2,7 @@
 
 import { resolve, relative } from "node:path";
 import { readFile } from "node:fs/promises";
+import type { SDKMessage } from "./sdk.js";
 
 // ── Path safety ──────────────────────────────────────────────────────────────
 
@@ -35,12 +36,8 @@ export function validatePathSegment(segment: string, label: string): void {
 
 // ── Command validation ───────────────────────────────────────────────────────
 
-/** Executables explicitly allowed — checked before the blocklist to prevent accidental blocking.
- *  Cursor Agent CLI (`agent`, `cursor-agent`) and `cursor` are used by the CursorBackend
- *  and must remain accessible from Slack bot sessions. */
-const ALLOWED_EXECUTABLES = new Set([
-  "cursor", "cursor-agent", "agent",
-]);
+/** Executables explicitly allowed — checked before the blocklist to prevent accidental blocking. */
+const ALLOWED_EXECUTABLES = new Set<string>();
 
 /** Executables that must never be invoked from Slack. */
 const BLOCKED_EXECUTABLES = new Set([
@@ -79,7 +76,7 @@ const BLOCKED_EXECUTABLES = new Set([
   "pip", "pip3", "gem", "cargo",
   // npm/yarn/pnpm handled separately (run/test/start OK, install blocked)
   // Agent/scheduler recursion
-  "claude",
+  "claude", "cursor", "cursor-agent", "agent",
 ]);
 
 /** Dangerous pm2 subcommands that would stop the scheduler itself. */
@@ -163,7 +160,7 @@ export function validateCommand(command: string[], opts?: { allowShells?: boolea
 // ── Shell command validation (for Bash tool strings) ─────────────────────────
 
 /**
- * Validate a shell command string (as received by Claude Code's Bash tool).
+ * Validate a shell command string (as received by a shell-capable tool).
  * Extracts executables from the command and checks against the blocklist.
  * Throws SecurityError if the command contains dangerous executables.
  */
@@ -176,7 +173,7 @@ const SHELL_TOOL_NAMES = new Set(["Bash", "Shell", "bash"]);
  * Used by L0 enforcement in agent.ts to terminate sessions that attempt self-termination.
  */
 export function checkMessageForPm2Violation(
-  msg: { type?: string; message?: { content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }> } },
+  msg: SDKMessage,
 ): string | null {
   if (msg.type !== "assistant" || !msg.message?.content) return null;
 

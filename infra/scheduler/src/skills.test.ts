@@ -187,7 +187,7 @@ describe("readSkillContent", () => {
   });
 
   it("reads SKILL.md content for a valid skill", async () => {
-    const skillsDir = join(tempDir, ".claude", "skills", "test-skill");
+    const skillsDir = join(tempDir, ".agents", "skills", "test-skill");
     await mkdir(skillsDir, { recursive: true });
     await writeFile(
       join(skillsDir, "SKILL.md"),
@@ -211,7 +211,7 @@ This is a test skill.`
   });
 
   it("returns null when SKILL.md file does not exist", async () => {
-    const skillsDir = join(tempDir, ".claude", "skills", "empty-skill");
+    const skillsDir = join(tempDir, ".agents", "skills", "empty-skill");
     await mkdir(skillsDir, { recursive: true });
 
     const content = await readSkillContent(tempDir, "empty-skill");
@@ -219,7 +219,7 @@ This is a test skill.`
   });
 
   it("truncates content to 8000 chars", async () => {
-    const skillsDir = join(tempDir, ".claude", "skills", "big-skill");
+    const skillsDir = join(tempDir, ".agents", "skills", "big-skill");
     await mkdir(skillsDir, { recursive: true });
     const longContent = "x".repeat(10_000);
     await writeFile(join(skillsDir, "SKILL.md"), longContent);
@@ -229,7 +229,7 @@ This is a test skill.`
     expect(content!.length).toBeLessThanOrEqual(8000);
   });
 
-  it("reads from .agents/skills when .claude/skills is absent", async () => {
+  it("reads from .agents/skills", async () => {
     const skillsDir = join(tempDir, ".agents", "skills", "codex-skill");
     await mkdir(skillsDir, { recursive: true });
     await writeFile(
@@ -247,12 +247,9 @@ Use the .agents copy.`,
     expect(content).toContain("# Codex Skill");
   });
 
-  it("prefers .agents/skills over .claude/skills when both define the same skill", async () => {
-    const claudeDir = join(tempDir, ".claude", "skills", "shared-skill");
+  it("reads the single live .agents/skills root", async () => {
     const agentsDir = join(tempDir, ".agents", "skills", "shared-skill");
-    await mkdir(claudeDir, { recursive: true });
     await mkdir(agentsDir, { recursive: true });
-    await writeFile(join(claudeDir, "SKILL.md"), "# Claude copy");
     await writeFile(join(agentsDir, "SKILL.md"), "# Agents copy");
 
     const content = await readSkillContent(tempDir, "shared-skill");
@@ -326,7 +323,7 @@ describe("listSkills — interview field", () => {
   });
 
   it("parses interview: true from frontmatter", async () => {
-    const skillDir = join(tempDir, ".claude", "skills", "interview-skill");
+    const skillDir = join(tempDir, ".agents", "skills", "interview-skill");
     await mkdir(skillDir, { recursive: true });
     await writeFile(
       join(skillDir, "SKILL.md"),
@@ -355,7 +352,7 @@ Do the work.`,
   });
 
   it("parses interview: false (missing) as false", async () => {
-    const skillDir = join(tempDir, ".claude", "skills", "normal-skill");
+    const skillDir = join(tempDir, ".agents", "skills", "normal-skill");
     await mkdir(skillDir, { recursive: true });
     await writeFile(
       join(skillDir, "SKILL.md"),
@@ -403,19 +400,9 @@ Ask one question.`,
     expect(skill!.interviewPrompt).toContain("Ask one question.");
   });
 
-  it("prefers the .agents/skills copy when both skill roots define the same name", async () => {
-    const claudeDir = join(tempDir, ".claude", "skills", "shared-skill");
+  it("uses the .agents/skills copy for skill metadata", async () => {
     const agentsDir = join(tempDir, ".agents", "skills", "shared-skill");
-    await mkdir(claudeDir, { recursive: true });
     await mkdir(agentsDir, { recursive: true });
-    await writeFile(
-      join(claudeDir, "SKILL.md"),
-      `---
-name: shared-skill
-description: "Claude description"
----
-# Shared Skill`,
-    );
     await writeFile(
       join(agentsDir, "SKILL.md"),
       `---
@@ -444,7 +431,7 @@ describe("readInterviewPrompt", () => {
   });
 
   it("reads interview prompt from SKILL.md", async () => {
-    const skillDir = join(tempDir, ".claude", "skills", "my-skill");
+    const skillDir = join(tempDir, ".agents", "skills", "my-skill");
     await mkdir(skillDir, { recursive: true });
     await writeFile(
       join(skillDir, "SKILL.md"),
@@ -471,7 +458,7 @@ Execute the plan.`,
   });
 
   it("returns null for skill without interview section", async () => {
-    const skillDir = join(tempDir, ".claude", "skills", "no-interview");
+    const skillDir = join(tempDir, ".agents", "skills", "no-interview");
     await mkdir(skillDir, { recursive: true });
     await writeFile(
       join(skillDir, "SKILL.md"),
@@ -497,14 +484,14 @@ describe("canRunSkill", () => {
   it("allows low-complexity skill on any backend", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "low" };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "cursor")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
   });
 
   it("allows medium-complexity skill on any backend", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium" };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
   it("blocks high-complexity skill on opencode backend", () => {
@@ -513,7 +500,7 @@ describe("canRunSkill", () => {
       canRun: false,
       reason: "/test has complexity \"high\" but opencode cannot run it",
     });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
   it("blocks opus-only skill on opencode backend", () => {
@@ -522,8 +509,8 @@ describe("canRunSkill", () => {
       canRun: false,
       reason: "/test has complexity \"opus-only\" but opencode cannot run it",
     });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "cursor")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
   });
 
   it("blocks skill with model-minimum: opus on opencode", () => {
@@ -532,13 +519,13 @@ describe("canRunSkill", () => {
       canRun: false,
       reason: "/test requires opus but opencode provides lower capability",
     });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
   it("allows skill with model-minimum: glm-5 on any backend", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "glm-5" };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
   it("blocks skill with model-minimum: gpt-5 on opencode", () => {
@@ -547,20 +534,20 @@ describe("canRunSkill", () => {
       canRun: false,
       reason: "/test requires gpt-5 but opencode provides lower capability",
     });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
     expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
   it("allows skill with model-minimum: fast-model on opencode", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "fast-model" as any };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
   });
 
   it("allows skill without complexity or modelMinimum on any backend", () => {
     const skill: SkillInfo = { name: "test", description: "test", interview: false };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
-    expect(canRunSkill(skill, "claude")).toEqual({ canRun: true });
+    expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 });
 

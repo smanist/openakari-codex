@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir, rename, access } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { Store, Job, JobCreate, Schedule } from "./types.js";
 import { computeNextRunAtMs } from "./schedule.js";
+import { OPENCODE_MODEL } from "./backend.js";
 
 /** Deterministic fingerprint of a schedule for change detection. */
 function scheduleFingerprint(s: Schedule): string {
@@ -19,6 +20,38 @@ const DEFAULT_STORE_PATH = new URL(
 
 function emptyStore(): Store {
   return { version: 1, jobs: [] };
+}
+
+type LegacyJobPayload = Job["payload"] & {
+  backend?: string;
+};
+
+function normalizeLegacyPayload(payload: LegacyJobPayload): Job["payload"] {
+  const normalized = { ...payload } as LegacyJobPayload;
+  const legacyBackend = typeof normalized.backend === "string" ? normalized.backend : undefined;
+  delete normalized.backend;
+
+  if (!normalized.model && legacyBackend === "opencode") {
+    normalized.model = OPENCODE_MODEL;
+  }
+
+  return normalized;
+}
+
+function normalizeStore(raw: Store): { store: Store; dirty: boolean } {
+  let dirty = false;
+  const jobs = raw.jobs.map((job) => {
+    const payload = normalizeLegacyPayload(job.payload as LegacyJobPayload);
+    if ("backend" in (job.payload as LegacyJobPayload)) dirty = true;
+    if ("backend" in (job.payload as LegacyJobPayload)) {
+      return { ...job, payload };
+    }
+    return job;
+  });
+  return {
+    store: dirty ? { ...raw, jobs } : raw,
+    dirty,
+  };
 }
 
 function generateId(): string {
@@ -45,16 +78,23 @@ export class JobStore {
   }
 
   async load(): Promise<Store> {
+    let dirty = false;
     try {
       const raw = await readFile(this.storePath, "utf-8");
-      this.data = JSON.parse(raw) as Store;
+      const parsed = JSON.parse(raw) as Store;
+      const normalized = normalizeStore(parsed);
+      this.data = normalized.store;
+      dirty = normalized.dirty;
     } catch {
       // If main file missing, try recovering from .tmp
       const tmpPath = this.storePath + ".tmp";
       try {
         await access(tmpPath);
         const raw = await readFile(tmpPath, "utf-8");
-        this.data = JSON.parse(raw) as Store;
+        const parsed = JSON.parse(raw) as Store;
+        const normalized = normalizeStore(parsed);
+        this.data = normalized.store;
+        dirty = normalized.dirty;
         // Promote .tmp to main file
         await rename(tmpPath, this.storePath);
       } catch {
@@ -63,6 +103,9 @@ export class JobStore {
     }
     // Reconcile: recompute nextRunAtMs for enabled jobs whose schedule changed
     if (await this.reconcileSchedules()) {
+      dirty = true;
+    }
+    if (dirty) {
       await this.save();
     }
     return this.data;

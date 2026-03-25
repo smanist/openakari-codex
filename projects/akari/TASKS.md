@@ -75,3 +75,10 @@
   Why: The repo now has Codex-facing artifacts, but the docs still teach a Claude-first mental model.
   Done when: `README.md`, `docs/getting-started.md`, and `infra/scheduler/README.md` present `AGENTS.md` and Codex/OpenAI-first examples without removing legacy backend compatibility notes.
   Priority: medium
+
+- [ ] Investigate session duration anomaly [detected: 2026-03-25]
+  Why: anomaly-detection:durationMs — Duration 1213s exceeds P95 threshold 1193s
+  Done when: Duration outlier explained or performance issue resolved
+  Priority: high
+ns)
+  Priority: high

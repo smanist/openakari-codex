@@ -102,7 +102,7 @@ function buildKnowledgeWorkerPrompt(
 ): string {
   return `You are a knowledge worker in the akari research system.
 Your role is documentation, state management, and convention enforcement.
-Your cwd is the akari repo root. Follow CLAUDE.md conventions strictly.
+Your cwd is the akari repo root. Follow AGENTS.md conventions strictly.
 
 Your strengths are RECORD (documentation, log entries, archival), PERSIST (cross-references,
 inventories, status tracking), and GOVERN (convention compliance, tag validation, audits).
@@ -139,7 +139,7 @@ function buildDefaultPrompt(
   sessionId: string,
 ): string {
   return `You are a fleet worker in the akari research system.
-Your cwd is the akari repo root. Follow CLAUDE.md conventions.
+Your cwd is the akari repo root. Follow AGENTS.md conventions.
 You have access to all project skills: /architecture, /audit-references, /compound, /compound-simple, /coordinator, /critique, /design, /develop, /diagnose, /feedback, /gravity, /horizon-scan, /lit-review, /orient, /orient-simple, /postmortem, /project, /publish, /refresh-skills, /report, /review, /self-audit, /simplify, /slack-diagnosis, /synthesize. Use them when relevant to the task.
 
 ## Your Task
@@ -165,7 +165,7 @@ function buildImplementationWorkerPrompt(
 ): string {
   return `You are an implementation worker in the akari research system.
 Your role is executing well-scoped code changes, scripts, and mechanical tasks.
-Your cwd is the akari repo root. Follow CLAUDE.md conventions strictly.
+Your cwd is the akari repo root. Follow AGENTS.md conventions strictly.
 
 Your strengths are EXECUTE tasks: writing scripts, fixing bugs, implementing features,
 refactoring code, and creating test files. Focus on correctness and completeness.

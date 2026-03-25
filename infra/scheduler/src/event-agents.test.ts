@@ -20,7 +20,7 @@ describe("readPlanFile", () => {
   });
 
   it("returns newest plan file content", async () => {
-    const plansDir = join(tempDir, ".claude", "plans");
+    const plansDir = join(tempDir, "plans");
     await mkdir(plansDir, { recursive: true });
 
     // Create two plan files with different mtimes
@@ -35,13 +35,13 @@ describe("readPlanFile", () => {
   });
 
   it("returns null when no plan files exist", async () => {
-    // No .claude/plans/ directory at all
+    // No plans directory at all
     const result = await readPlanFile(tempDir);
     expect(result).toBeNull();
   });
 
   it("returns null when plans directory is empty", async () => {
-    const plansDir = join(tempDir, ".claude", "plans");
+    const plansDir = join(tempDir, "plans");
     await mkdir(plansDir, { recursive: true });
 
     const result = await readPlanFile(tempDir);
@@ -49,7 +49,7 @@ describe("readPlanFile", () => {
   });
 
   it("truncates content to 3000 chars", async () => {
-    const plansDir = join(tempDir, ".claude", "plans");
+    const plansDir = join(tempDir, "plans");
     await mkdir(plansDir, { recursive: true });
 
     const longContent = "x".repeat(5000);
@@ -94,7 +94,7 @@ describe("buildProgressHandler plan mode detection", () => {
   it("detects ExitPlanMode tool call and reads plan file", async () => {
     // Create a temp dir with a plan file
     const tempDir = await mkdtemp(join(tmpdir(), "akari-test-"));
-    const plansDir = join(tempDir, ".claude", "plans");
+    const plansDir = join(tempDir, "plans");
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, "test-plan.md"), "# My Plan\nStep 1: Do stuff");
 
@@ -132,7 +132,7 @@ describe("buildProgressHandler plan mode detection", () => {
 
   it("calls onExitPlanMode callback with plan text when ExitPlanMode detected", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "akari-test-"));
-    const plansDir = join(tempDir, ".claude", "plans");
+    const plansDir = join(tempDir, "plans");
     await mkdir(plansDir, { recursive: true });
     await writeFile(join(plansDir, "auto-plan.md"), "# Auto Plan\nStep 1: Implement");
 
@@ -439,11 +439,11 @@ describe("spawnDeepWork backend profile override", () => {
     expect(profile.label).toBe("deep-work");
   });
 
-  it("resolveDeepWorkProfile returns default profile for claude backend", async () => {
+  it("resolveDeepWorkProfile returns default profile for codex backend", async () => {
     const { resolveDeepWorkProfile } = await import("./event-agents.js");
     const { AGENT_PROFILES } = await import("./agent.js");
 
-    const profile = resolveDeepWorkProfile("claude");
+    const profile = resolveDeepWorkProfile("codex");
     expect(profile.maxTurns).toBe(AGENT_PROFILES.deepWork.maxTurns);
     expect(profile.maxDurationMs).toBe(AGENT_PROFILES.deepWork.maxDurationMs);
   });

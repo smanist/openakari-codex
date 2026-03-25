@@ -14,8 +14,7 @@ This file is a lightweight, human-readable status snapshot for the `openakari-co
 
 ## Where to start
 
-- Operating manual: `AGENTS.md` (Codex) and `CLAUDE.md` (Claude-style backends).
+- Operating manual: `AGENTS.md`.
 - Getting started: `docs/getting-started.md`.
 - Conventions: `docs/conventions/`.
 - Schemas: `docs/schemas/`.
-

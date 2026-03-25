@@ -3,7 +3,7 @@ Reference classification of all skills by invocation context: which skills auton
 # Skill Classifications
 
 Last updated: 2026-03-24
-Source of truth: mirrored skill frontmatter and descriptions in `.agents/skills/*/SKILL.md` and `.claude/skills/*/SKILL.md`.
+Source of truth: skill frontmatter and descriptions in `.agents/skills/*/SKILL.md`.
 
 ## How to use this document
 
@@ -51,7 +51,7 @@ Skills that autonomous sessions can invoke during task execution. Listed by func
 | `/architecture` | no | Analyze, redesign, and refactor infrastructure. Auto mode supports autonomous diagnosis. |
 | `/refresh-skills` | no | Audit skills against current codebase state. |
 | `/develop` | no | TDD workflow for infrastructure features and bug fixes. |
-| `/self-audit` | yes | Check recent session compliance with CLAUDE.md conventions. All inputs are repo-resident (git history, project files). |
+| `/self-audit` | yes | Check recent session compliance with AGENTS.md conventions. All inputs are repo-resident (git history, project files). |
 
 ### System evolution
 | Skill | Auto-invocable | Description |

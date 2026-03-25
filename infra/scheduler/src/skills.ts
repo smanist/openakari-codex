@@ -21,14 +21,9 @@ export interface SkillInfo {
   modelMinimum?: SkillModelMinimum;
 }
 
-/** Skill roots in precedence order.
- *  `.agents/skills` contains Codex-adapted copies; `.claude/skills` remains the
- *  fallback for existing repo tooling and mirrors. */
+/** Repo-local live skill root. */
 function skillDirs(repoDir: string): string[] {
-  return [
-    join(repoDir, ".agents", "skills"),
-    join(repoDir, ".claude", "skills"),
-  ];
+  return [join(repoDir, ".agents", "skills")];
 }
 
 const MAX_SKILL_CONTENT_CHARS = 8000;
@@ -257,8 +252,7 @@ export function isFleetEligibleSkill(skill: SkillInfo): boolean {
 /** Backend capability tiers. Higher values can run more complex skills. */
 const BACKEND_TIER: Record<string, number> = {
   codex: 3,     // GPT-5-class: can run all current repo skills
-  claude: 3,    // Opus-class: can run all skills
-  cursor: 3,    // Opus-class: can run all skills
+  openai: 3,    // GPT-5-class fallback route
   opencode: 1,  // GLM-5: can run medium/low only
 };
 

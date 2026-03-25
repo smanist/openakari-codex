@@ -34,11 +34,9 @@ describe("validateCommand", () => {
     expect(() => validateCommand(["journalctl", "-u", "akari", "--no-pager", "-n", "50"])).not.toThrow();
   });
 
-  it("allows cursor, cursor-agent, and agent commands", () => {
-    expect(() => validateCommand(["cursor", "--version"])).not.toThrow();
-    expect(() => validateCommand(["cursor-agent", "--version"])).not.toThrow();
-    expect(() => validateCommand(["agent", "--help"])).not.toThrow();
-    expect(() => validateCommand(["agent", "-p", "--output-format", "stream-json"])).not.toThrow();
+  it("allows codex commands", () => {
+    expect(() => validateCommand(["codex", "--help"])).not.toThrow();
+    expect(() => validateCommand(["codex", "exec", "--json"])).not.toThrow();
   });
 
   it("rejects empty command", () => {
@@ -75,11 +73,9 @@ describe("validateShellCommand", () => {
     expect(() => validateShellCommand("journalctl -u akari --no-pager -n 50")).not.toThrow();
   });
 
-  it("allows cursor, cursor-agent, and agent shell commands", () => {
-    expect(() => validateShellCommand("cursor --version")).not.toThrow();
-    expect(() => validateShellCommand("cursor-agent --version")).not.toThrow();
-    expect(() => validateShellCommand("agent --help")).not.toThrow();
-    expect(() => validateShellCommand("agent -p --output-format stream-json --model gpt-5.4 'prompt'")).not.toThrow();
+  it("allows codex shell commands", () => {
+    expect(() => validateShellCommand("codex --help")).not.toThrow();
+    expect(() => validateShellCommand("codex exec --json 'prompt'")).not.toThrow();
   });
 
   it("rejects empty shell command", () => {

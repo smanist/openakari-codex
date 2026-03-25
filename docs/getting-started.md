@@ -6,7 +6,7 @@ If you are a human operator, treat this file as a reference for how your agent s
 
 ## Prerequisites
 
-- **One supported agent backend** — openakari supports `codex` (recommended), `openai` capability-fallback routing, `cursor`, `opencode`, and `claude` (deprecated compatibility). Install at least one runnable local path before running autonomous sessions.
+- **One supported agent runtime** — openakari exposes model selection to users. The scheduler routes models internally to `codex` by default, `openai` when extra capabilities are needed, and `opencode` for the GLM fleet path. Install at least one runnable local path before running autonomous sessions.
 - **Node.js 18+** — for the scheduler.
 - **Python 3.10+** — for the experiment runner and budget tools.
 - **Git** — the repo is the system's memory; git is how it persists.
@@ -18,13 +18,11 @@ git clone <your-repo-url> akari
 cd akari
 ```
 
-The agent should start by reading the two documents that define the system:
+The agent should start by reading the documents that define the system:
 
 1. **[`AGENTS.md`](../AGENTS.md)** — the Codex-facing operating manual. This is the primary agent entrypoint in the current repo. It defines conventions, schemas, session discipline, and approval gates.
 
-2. **[`CLAUDE.md`](../CLAUDE.md)** — compatibility operating manual for Claude/Cursor-era runtimes. Keep it aligned if you still run those backends during migration.
-
-3. **[`docs/design.md`](design.md)** — why the repo is structured this way. Explains the core insight: LLM agents lose all memory between sessions, so the repo must encode cognitive state explicitly.
+2. **[`docs/design.md`](design.md)** — why the repo is structured this way. Explains the core insight: LLM agents lose all memory between sessions, so the repo must encode cognitive state explicitly.
 
 ## Step 2: Create your first project scaffold
 
@@ -69,14 +67,11 @@ What NOT to change (these are load-bearing conventions):
 
 The scheduler runs autonomous agent sessions on a cron schedule.
 
-Openakari supports these scheduler backends:
+Openakari exposes models to the user and resolves runtimes internally:
 
-- `codex` — local Codex CLI (recommended default)
-- `openai` — capability-fallback path when the default Codex route is insufficient
-- `cursor` — Cursor agent CLI
-- `opencode` — opencode CLI
-- `claude` — deprecated compatibility backend
-- `auto` — capability-aware routing (`codex` default, `openai` only when needed)
+- default route: local Codex CLI
+- capability fallback: OpenAI transport when the requested model/capability needs it
+- fleet route: opencode for GLM fleet work
 
 ```bash
 cd infra/scheduler
@@ -92,36 +87,21 @@ node dist/cli.js add \
   --cron "0 * * * *" \
   --tz "UTC" \
   --message-default \
-  --backend codex \
   --model gpt-5.2 \
   --cwd /path/to/your/akari
 ```
 
-Choose the backend that matches your installed agent:
-
-- `--backend codex` for local Codex CLI
-- `--backend openai` for the capability-fallback path
-- `--backend cursor` for Cursor
-- `--backend opencode` for opencode
-- `--backend auto` to let the scheduler choose `codex` first and use `openai` only when required capabilities demand it
-
 Examples:
 
 ```bash
-# Codex backend
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message-default --backend codex --model gpt-5.2 --cwd /path/to/your/akari
+# Codex-routed model
+node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message-default --model gpt-5.2 --cwd /path/to/your/akari
 
 # Project-scoped boilerplate
-node dist/cli.js add --name "pca-v-ttd" --cron "0 * * * *" --tz "UTC" --message-project pca_vs_ttd --backend codex --model gpt-5.2 --cwd /path/to/your/akari
+node dist/cli.js add --name "pca-v-ttd" --cron "0 * * * *" --tz "UTC" --message-project pca_vs_ttd --model gpt-5.2 --cwd /path/to/your/akari
 
-# OpenAI capability-fallback backend
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend openai --model gpt-5.2 --cwd /path/to/your/akari
-
-# Cursor backend
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend cursor --model opus --cwd /path/to/your/akari
-
-# opencode backend
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend opencode --cwd /path/to/your/akari
+# Model that may route through the OpenAI capability path
+node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --model gpt-5.2 --cwd /path/to/your/akari
 ```
 
 For `add`, choose exactly one of:
@@ -160,7 +140,7 @@ Or run an agent directly:
 # Codex
 codex exec --dangerously-bypass-approvals-and-sandbox -C /path/to/your/akari "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md."
 
-# Cursor, opencode, and legacy Claude paths can also be used directly if you prefer to drive them outside the scheduler.
+# The scheduler also has an internal opencode route for fleet work, but users configure models rather than runtime names.
 ```
 
 Watch for the session to:
@@ -191,7 +171,7 @@ Key monitoring points:
 
 ### Skills
 
-Skills (mirrored in `.claude/skills/` and `.agents/skills/`) are encoded judgment procedures — they tell the agent *how* to do specific research workflows. Key skills:
+Skills in `.agents/skills/` are encoded judgment procedures — they tell the agent *how* to do specific research workflows. Key skills:
 
 | Skill | When to use |
 |-------|-------------|
@@ -241,5 +221,5 @@ Primarily for the agent. A human should use it to understand the expected setup 
 **What about costs?**
 Define `budget.yaml` limits per project. The system enforces them — agents check remaining budget before starting resource-consuming work. Track actual consumption in `ledger.yaml`.
 
-**Can I use models other than Claude?**
-Yes. The scheduler now prefers `codex`, supports `openai` as a capability-fallback path, and still supports `cursor`, `opencode`, and legacy `claude` compatibility during migration. The conventions and skills are model-agnostic — validate model fit empirically for the task(s) you care about.
+**Can I use models other than the default Codex route?**
+Yes. Choose the model you want, and the scheduler routes it internally. `codex` is the default route, `openai` is a capability fallback, and `opencode` remains an internal fleet path. The conventions and skills are model-agnostic — validate model fit empirically for the task(s) you care about.

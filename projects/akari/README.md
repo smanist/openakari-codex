@@ -14,6 +14,27 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Remove Claude/Cursor surfaces; expose model-only scheduler interface)
+
+Completed the scheduler/runtime cleanup that removes Claude- and Cursor-specific live surfaces and keeps only model selection as the public execution interface.
+
+Implemented:
+- Removed Claude/Cursor runtime code from `infra/scheduler/src/backend.ts`, deleted `team-session.ts`, deleted the legacy backend-preference module, and replaced the Anthropic SDK wrapper with transport-neutral scheduler-local types in `infra/scheduler/src/sdk.ts`.
+- Dropped public `backend` selection from live job payloads and runtime control paths, added legacy payload normalization in `infra/scheduler/src/store.ts`, and added `.scheduler/backend-preference.json` → `.scheduler/model-preference.json` migration in `infra/scheduler/src/model-preference.ts`.
+- Updated Slack and CLI surfaces to use `/akari model ...` and model preference/state instead of backend preference/state.
+- Collapsed skill discovery to `.agents/skills/` only and changed event-agent plan discovery to repo-native `plans/` roots instead of `.claude/plans/`.
+- Removed deprecated repo clutter: `CLAUDE.md`, `.claude/`, `.cursor/`, plus the Anthropic dependency from `infra/scheduler/package.json`.
+- Updated live docs (`docs/status.md`, `docs/getting-started.md`, `docs/repo-as-interface.md`, `docs/sops/autonomous-work-cycle.md`, `docs/skill-classifications.md`, `docs/design.md`, `infra/scheduler/README.md`, `infra/experiment-validator/README.md`) to present `AGENTS.md` and model-only routing as current behavior.
+
+Discovery recorded inline:
+- `src/event-agents.ts` had a parse-breaking JSDoc line containing the literal text `projects/*/plans/`; the embedded `*/` prematurely terminated the comment and cascaded into false syntax errors. Fixed by rewriting the comment to avoid `*/` inside it.
+- Local Python validation could fail with `ModuleNotFoundError: No module named 'yaml'`; added a scheduler-side fallback validator so `validateExperimentDir()` remains usable for experiment-only checks and tests without ambient `PyYAML`.
+
+Verification:
+- `cd infra/scheduler && npx tsc --noEmit` → passed
+- `cd infra/scheduler && npm test -- src/event-agents.test.ts src/autofix-experiment.test.ts` → `Test Files  2 passed (2)`, `Tests  47 passed (47)`
+- Full `cd infra/scheduler && npm test` rerun executed after the model-only/type cleanup to re-verify the scheduler suite end to end.
+
 ### 2026-03-25 (Re-verify Codex work-cycle metrics/logging — include manual runs)
 
 Claimed and completed the high-priority task “Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`” by (a) fixing a gap in the `akari run <job-id>` path (manual runs didn’t write `.scheduler/metrics/sessions.jsonl`), and (b) re-running the `work-cycle` job end-to-end to confirm both log output and turn-count metrics are non-empty.

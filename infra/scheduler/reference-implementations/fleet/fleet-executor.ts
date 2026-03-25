@@ -66,7 +66,7 @@ export async function executeFleetWorker(
       prompt: opts.prompt,
       cwd: opts.cwd,
       sessionId: opts.sessionId,
-      backend: "opencode",
+      routeHint: "opencode",
       onMessage: opts.onTurnIncrement
         ? (msg) => {
             if (msg.type === "assistant" || msg.type === "result") {

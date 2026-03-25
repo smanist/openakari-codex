@@ -1,5 +1,7 @@
 /** L0 enforcement: detect and block sleep commands exceeding the 30-second limit (ADR 0017). */
 
+import type { SDKMessage } from "./sdk.js";
+
 const MAX_SLEEP_SECONDS = 30;
 
 /** Tool names that execute shell commands across different backends. */
@@ -59,11 +61,7 @@ export function detectSleepViolation(command: string): number | null {
  * Returns the violating command and duration, or null if no violation.
  */
 export function checkMessageForSleepViolation(
-  msg: {
-    type?: string;
-    message?: { content?: Array<{ type: string; name?: string; input?: Record<string, unknown> }> };
-    summary?: string;
-  },
+  msg: SDKMessage,
 ): { command: string; seconds: number } | null {
   // Cursor/opencode-style summaries (and Codex CLI mapped summaries).
   if (msg.type === "tool_use_summary" && typeof msg.summary === "string") {

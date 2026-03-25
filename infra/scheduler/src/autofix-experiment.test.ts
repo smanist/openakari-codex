@@ -52,7 +52,7 @@ const mockedRecordInteraction = vi.mocked(recordInteraction);
 function mockAgentFixed() {
   mockedSpawnAgent.mockReturnValue({
     sessionId: "autofix-test-123",
-    handle: { interrupt: vi.fn(), backend: "claude" as never },
+    handle: { interrupt: vi.fn(), backend: "codex" as never },
     result: Promise.resolve({
       text: "## Diagnosis\nFixed the config.\n## Action\nUpdated config.yaml.\n[AUTOFIX:fixed]",
       costUsd: 0.50,
@@ -72,6 +72,25 @@ describe("autoFixExperiment relaunch", () => {
     // Create a fake experiment dir structure: projects/<project>/experiments/<id>
     experimentDir = join(tempDir, "projects", "test-project", "experiments", "test-exp");
     await mkdir(experimentDir, { recursive: true });
+    await writeFile(
+      join(experimentDir, "EXPERIMENT.md"),
+      [
+        "---",
+        "id: test-exp",
+        "status: planned",
+        "date: 2026-03-25",
+        "project: test-project",
+        "type: experiment",
+        "consumes_resources: true",
+        "---",
+        "",
+        "## Design",
+        "Test design.",
+        "",
+        "## Config",
+        "Test config.",
+      ].join("\n"),
+    );
     vi.clearAllMocks();
   });
 

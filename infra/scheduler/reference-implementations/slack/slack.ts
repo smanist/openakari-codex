@@ -39,14 +39,13 @@ import {
   isLivingMessageEnabled,
 } from "./living-message.js";
 import { uploadFiles, type FileUpload, type ImageUpload, type UploadResult } from "./slack-files.js";
-import { getDefaultBackend } from "./backend.js";
-import type { BackendPreference } from "./backend.js";
+import { getEffectiveBackendName } from "./backend.js";
 import {
-  getBackendPreference,
-  setBackendPreference,
-  clearBackendPreference,
-  initBackendPreference,
-} from "./backend-preference.js";
+  getModelPreference,
+  setModelPreference,
+  clearModelPreference,
+  initModelPreference,
+} from "./model-preference.js";
 import {
   initChannelModes,
   getChannelMode,
@@ -158,7 +157,7 @@ export async function startSlackBot(opts: {
   fleetSchedulerRef = opts.fleetScheduler ?? null;
 
   initChannelModes();
-  initBackendPreference();
+  initModelPreference();
 
   app = new App({
     token: env.botToken,
@@ -716,10 +715,11 @@ export const dmImages = dmFiles;
 export const dmThreadImages = dmThreadFiles;
 
 /** Build the startup message text. Exported for testing. */
-export function startupMessage(opts: { totalJobs: number; enabledJobs: number; nextRun: string; backend: string }): string {
+export function startupMessage(opts: { totalJobs: number; enabledJobs: number; nextRun: string; model: string; runtime: string }): string {
   return (
     `:rocket: *Akari scheduler started*\n` +
-    `Backend: ${opts.backend}\n` +
+    `Model: ${opts.model}\n` +
+    `Runtime: ${opts.runtime}\n` +
     `Jobs: ${opts.totalJobs} total, ${opts.enabledJobs} enabled\n` +
     `Next run: ${opts.nextRun}`
   );
@@ -733,11 +733,13 @@ export async function notifyBotStarted(): Promise<void> {
   const nextMs = storeRef.getNextWakeMs();
   const nextStr = nextMs ? new Date(nextMs).toISOString() : "none";
 
+  const preferredModel = getModelPreference();
   await dm(startupMessage({
     totalJobs: jobs.length,
     enabledJobs: enabled.length,
     nextRun: nextStr,
-    backend: getDefaultBackend(),
+    model: preferredModel ?? "default",
+    runtime: getEffectiveBackendName({ model: preferredModel ?? undefined }),
   }));
 }
 
@@ -831,17 +833,23 @@ export async function notifyEvolution(description: string): Promise<void> {
 }
 
 /** Build the message text for a graceful restart notification. Exported for testing. */
-export function gracefulRestartMessage(runningSessions: number, backend?: string): string {
+export function gracefulRestartMessage(runningSessions: number, model?: string, runtime?: string): string {
   const detail = runningSessions > 0
     ? `Draining ${runningSessions} running session(s) before exit.`
     : `No sessions running — restarting immediately.`;
-  const backendLine = backend ? `\nBackend: ${backend}` : "";
-  return `:arrows_counterclockwise: *Graceful restart requested*\n${detail}${backendLine}`;
+  const modelLine = model ? `\nModel: ${model}` : "";
+  const runtimeLine = runtime ? `\nRuntime: ${runtime}` : "";
+  return `:arrows_counterclockwise: *Graceful restart requested*\n${detail}${modelLine}${runtimeLine}`;
 }
 
 /** Notify that a graceful restart was triggered via /api/restart (ADR 0018). */
 export async function notifyGracefulRestart(runningSessions: number): Promise<void> {
-  await dm(gracefulRestartMessage(runningSessions, getDefaultBackend()));
+  const preferredModel = getModelPreference();
+  await dm(gracefulRestartMessage(
+    runningSessions,
+    preferredModel ?? "default",
+    getEffectiveBackendName({ model: preferredModel ?? undefined }),
+  ));
 }
 
 // --- App Home ---
@@ -896,9 +904,9 @@ export async function handleAkariCommand(input: AkariCommandInput): Promise<Akar
         `• \`/akari mode off\` — remove this channel from Akari\n` +
         `• \`/akari max-turns N\` — limit bot replies per thread to N turns\n` +
         `• \`/akari max-turns off\` — remove the turn limit\n` +
-        `• \`/akari backend <codex|openai|cursor|opencode|claude|auto>\` — switch agent backend\n` +
-        `• \`/akari backend reset\` — reset to default (auto with env fallback)\n` +
-        `• \`/akari status\` — show this channel's current mode and backend\n` +
+        `• \`/akari model <name>\` — set the preferred chat/deep-work model\n` +
+        `• \`/akari model reset\` — reset to default model routing\n` +
+        `• \`/akari status\` — show this channel's current mode and model\n` +
         `• \`/akari help\` — this message\n\n` +
         `*Thread commands* (type in-thread or @mention):\n` +
         `• \`active on\` — respond to all messages in this thread\n` +
@@ -940,48 +948,41 @@ export async function handleAkariCommand(input: AkariCommandInput): Promise<Akar
   if (subcommand === "status") {
     const mode = getChannelMode(input.channelId);
     const turnsLimit = getMaxTurns(input.channelId);
-    const backend = getDefaultBackend();
-    const persisted = getBackendPreference();
+    const model = getModelPreference();
+    const runtime = getEffectiveBackendName({ model: model ?? undefined });
     const turnsInfo = turnsLimit !== null ? ` Turn limit: *${turnsLimit}* per thread.` : "";
-    const backendInfo = persisted
-      ? ` Backend: *${backend}* (persisted).`
-      : ` Backend: *${backend}* (env default).`;
+    const modelInfo = model
+      ? ` Model: *${model}* (persisted). Runtime: *${runtime}*.`
+      : ` Model: *default* (profile-driven). Runtime: *${runtime}*.`;
     if (mode) {
-      return { text: `:information_source: This channel is in *${mode}* mode.${turnsInfo}${backendInfo}` };
+      return { text: `:information_source: This channel is in *${mode}* mode.${turnsInfo}${modelInfo}` };
     }
-    return { text: `:information_source: This channel has no mode configured.${turnsInfo}${backendInfo} Use \`/akari mode dev\` or \`/akari mode chat\` to set one.` };
+    return { text: `:information_source: This channel has no mode configured.${turnsInfo}${modelInfo} Use \`/akari mode dev\` or \`/akari mode chat\` to set one.` };
   }
 
-  if (subcommand === "backend") {
+  if (subcommand === "model") {
     if (!isDesignatedUser(input.userId)) {
-      return { text: `:no_entry: Only the designated Akari operator can change the backend.` };
+      return { text: `:no_entry: Only the designated Akari operator can change the preferred model.` };
     }
 
-    const backendArg = args[1]?.toLowerCase();
-    if (!backendArg) {
-      const current = getDefaultBackend();
-      const persisted = getBackendPreference();
-      if (persisted) {
-        return { text: `:information_source: Current backend: *${current}* (persisted). Use \`/akari backend <codex|openai|cursor|opencode|claude|auto>\` to change.` };
+    const modelArg = args.slice(1).join(" ").trim();
+    if (!modelArg) {
+      const current = getModelPreference();
+      const runtime = getEffectiveBackendName({ model: current ?? undefined });
+      if (current) {
+        return { text: `:information_source: Current model: *${current}* (persisted). Runtime resolves to *${runtime}*. Use \`/akari model <name>\` to change it.` };
       }
-      return { text: `:information_source: Current backend: *${current}* (env default). Use \`/akari backend <codex|openai|cursor|opencode|claude|auto>\` to persist a preference.` };
+      return { text: `:information_source: Current model: *default* (profile-driven). Runtime resolves to *${runtime}*. Use \`/akari model <name>\` to persist a preference.` };
     }
 
-    if (backendArg === "reset" || backendArg === "default" || backendArg === "clear") {
-      await clearBackendPreference();
-      return { text: `:white_check_mark: Backend preference reset to default. Will use AGENT_BACKEND env var or auto.` };
+    if (modelArg === "reset" || modelArg === "default" || modelArg === "clear") {
+      await clearModelPreference();
+      return { text: `:white_check_mark: Model preference reset to default routing.` };
     }
 
-    const validBackends: BackendPreference[] = ["codex", "openai", "claude", "cursor", "opencode", "auto"];
-    if (!validBackends.includes(backendArg as BackendPreference)) {
-      return { text: `:warning: Unknown backend \`${backendArg}\`. Use \`codex\`, \`openai\`, \`cursor\`, \`opencode\`, \`claude\`, or \`auto\`.` };
-    }
-
-    await setBackendPreference(backendArg as BackendPreference);
-    const description = backendArg === "auto"
-      ? "capability-aware routing (codex default, openai only when needed)"
-      : backendArg;
-    return { text: `:white_check_mark: Backend set to *${backendArg}* — ${description}.` };
+    await setModelPreference(modelArg);
+    const runtime = getEffectiveBackendName({ model: modelArg });
+    return { text: `:white_check_mark: Model set to *${modelArg}*. Runtime resolves to *${runtime}*.` };
   }
 
   if (subcommand === "mode") {

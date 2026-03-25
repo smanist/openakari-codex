@@ -38,7 +38,7 @@ import { recordInteraction } from "./metrics.js";
 import { detectEvidenceGrading } from "./interaction-audit.js";
 import { validateExperimentDir, spawnDeepWork } from "./event-agents.js";
 import { listSkills, detectSkillInvocation, canRunSkill, isFleetEligibleSkill, type SkillInfo } from "./skills.js";
-import { getBackendPreference } from "./backend-preference.js";
+import { getModelPreference } from "./model-preference.js";
 import { getEffectiveBackendName } from "./backend.js";
 import {
   type PendingAction,
@@ -1915,8 +1915,8 @@ Continue the work from where it left off. Use the thread context to understand w
       const matchedSkill = skills.find(s => s.name === skillMatch.skillName);
 
       // Gate skills that exceed backend capability
-      const preference = await getBackendPreference();
-      const backendName = getEffectiveBackendName(preference ?? undefined);
+      const preference = await getModelPreference();
+      const backendName = getEffectiveBackendName({ model: preference ?? undefined });
       const gateResult = canRunSkill(matchedSkill!, backendName);
       if (!gateResult.canRun) {
         addMessage(conv, "user", message);

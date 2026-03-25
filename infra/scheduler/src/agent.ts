@@ -1,7 +1,7 @@
-/** Unified agent spawning — single entry point for all agent sessions (work, chat, autofix, team). */
+/** Unified agent spawning — single entry point for all agent sessions (work, chat, autofix). */
 
-import { resolveBackend, type BackendQueryOpts, type SessionHandle, type BackendPreference, type BackendCapability } from "./backend.js";
-import type { QueryOpts } from "./sdk.js";
+import { resolveBackend, type BackendQueryOpts, type SessionHandle, type BackendName, type BackendCapability } from "./backend.js";
+import type { QueryOpts, SDKMessage } from "./sdk.js";
 import {
   registerSession,
   unregisterSession,
@@ -67,21 +67,17 @@ export interface SpawnAgentOpts {
   profile: AgentProfile;
   prompt: string;
   cwd: string;
-  backend?: BackendPreference;
+  routeHint?: BackendName | "auto";
   requiredCapabilities?: BackendCapability[];
   jobId?: string;
   jobName?: string;
   /** Pre-generated session ID. If omitted, one is generated from profile label + timestamp. */
   sessionId?: string;
-  /** Custom subagents available via the Task tool (from buildTeamAgents). */
-  agents?: QueryOpts["agents"];
-  /** SDK lifecycle hooks for team events (from buildTeamHooks). */
-  hooks?: QueryOpts["hooks"];
   /** Tools the agent is not allowed to use (e.g. EnterPlanMode in headless sessions). */
   disallowedTools?: string[];
-  /** Extra environment variables to inject (e.g. experimental feature flags for Agent Teams). */
+  /** Extra environment variables to inject. */
   extraEnv?: Record<string, string>;
-  onMessage?: (msg: Record<string, unknown>) => void | Promise<void>;
+  onMessage?: (msg: SDKMessage) => void | Promise<void>;
 }
 
 export interface AgentResult {
@@ -168,7 +164,11 @@ export function spawnAgent(opts: SpawnAgentOpts): {
   }
 
   const sessionId = opts.sessionId ?? `${opts.profile.label}-${Date.now().toString(36)}`;
-  const backend = resolveBackend(opts.backend, opts.requiredCapabilities);
+  const backend = resolveBackend({
+    model: opts.profile.model,
+    requiredCapabilities: opts.requiredCapabilities,
+    routeHint: opts.routeHint,
+  });
 
   console.log(`[agent] Spawning [${sessionId}]: backend=${backend.name}, model=${opts.profile.model}, maxTurns=${opts.profile.maxTurns ?? "unlimited"}, prompt="${opts.prompt.slice(0, 80)}..."`);
 
@@ -182,12 +182,10 @@ export function spawnAgent(opts: SpawnAgentOpts): {
     maxTurns: opts.profile.maxTurns,
     requiredCapabilities: opts.requiredCapabilities,
     disallowedTools: opts.disallowedTools,
-    agents: opts.agents,
-    hooks: opts.hooks,
     extraEnv: opts.extraEnv,
     onMessage: async (msg) => {
       // Forward to caller's handler
-      await opts.onMessage?.(msg as Record<string, unknown>);
+      await opts.onMessage?.(msg);
 
       // Track turns incrementally so the count is accurate even for backends
       // (like Cursor) that don't report num_turns in their result message.
@@ -222,7 +220,7 @@ export function spawnAgent(opts: SpawnAgentOpts): {
       // tool_use_summary for non-shell tools does NOT clear the timer — parallel
       // tool calls (e.g. Shell + Read in same turn) would otherwise reset it.
       if (!stallViolation) {
-        const shellCmd = extractShellCommands(msg as Record<string, unknown>);
+        const shellCmd = extractShellCommands(msg);
         if (shellCmd) {
           stallGuard.onShellToolUse(shellCmd);
         } else if ((msg as { type?: string }).type === "tool_call_completed" ||

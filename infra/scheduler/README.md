@@ -14,13 +14,13 @@ CLI (cli.ts)
  └── start (daemon)         → SchedulerService (service.ts)
                                 ├── poll loop (30s)
                                 ├── computeNextRunAtMs (schedule.ts)
-                                └── executeJob (executor.ts) → backend adapter → codex/openai/cursor/opencode
+                                └── executeJob (executor.ts) → runtime adapter → codex/openai/opencode
 ```
 
 - **types.ts**: Job schema (schedule, payload, state)
 - **schedule.ts**: Cron expression → next run time (via croner library)
 - **store.ts**: JSON file persistence for job definitions and state
-- **executor.ts**: Spawns the selected agent backend for unattended execution
+- **executor.ts**: Spawns the selected runtime for unattended execution
 - **service.ts**: Timer loop that checks for due jobs and runs them
 - **cli.ts**: CLI entry point for managing jobs and running the daemon
 
@@ -99,36 +99,27 @@ Jobs are persisted to `.scheduler/jobs.json` relative to the scheduler directory
 - Payload (message, model, working directory)
 - State (next run, last run, status, error, run count)
 
-## Agent backends
+## Runtime routing
 
-The scheduler supports multiple agent backends, configurable per-job or globally:
+The scheduler exposes model selection to users and keeps runtime selection internal:
 
-| Backend | How | Model default | Supervision | Cost tracking |
-|---------|-----|---------------|-------------|---------------|
-| `codex` | local Codex CLI (`codex exec --json`) | `gpt-5.2` | work-session default; best-effort stop | no |
-| `openai` | Codex/OpenAI transport path for capability escape hatches | `gpt-5.2` | capability escape path; best-effort ask/stop | no |
-| `claude` | Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`) | per job config | full (watch/ask/stop) | yes |
-| `cursor` | Cursor Agent CLI (`agent -p --output-format stream-json`) | `opus-4.6-thinking` | partial (watch/stop only, no ask) | no |
-| `opencode` | opencode CLI (GLM-5 fleet path) | `glm5/zai-org/GLM-5-FP8` | partial (watch/stop only, no ask) | local DB estimate |
+| Internal runtime | How | Typical use | Default model |
+|------------------|-----|-------------|---------------|
+| `codex` | local Codex CLI (`codex exec --json`) | default work sessions | `gpt-5.2` |
+| `openai` | Codex/OpenAI transport path for capability escape hatches | capability fallback | `gpt-5.2` |
+| `opencode` | opencode CLI (GLM-5 fleet path) | fleet worker execution | `glm5/zai-org/GLM-5-FP8` |
 
 **Configuration:**
 
-- **Per-job**: `--backend codex|openai|cursor|opencode|claude|auto` when adding a job
-- **Global**: `AGENT_BACKEND=codex|openai|cursor|opencode|claude|auto` env var (default: `auto`)
-- **`auto` mode**: capability-aware routing. Default route is `codex`; `openai` is selected only when the caller requires capabilities the default codex path does not provide.
+- **Per-job**: `--model <model>` when adding a job
+- **Global**: persisted model preference in `.scheduler/model-preference.json`
+- **Routing**: `codex` is the default route; `openai` is selected only when the caller requires capabilities the default Codex path does not provide.
 
-`claude` remains as a deprecated compatibility backend during migration. New defaults and examples should use `codex` unless a capability-specific `openai` path is required.
-
-The Cursor, Codex, and opencode-style CLI backends do not share a native Claude-style preset interface, so prompts are backend-shaped at the adapter layer. Cursor and opencode sessions do not report API cost; codex/openai paths currently rely on CLI transport rather than raw Responses API integration.
+The runtime route is an implementation detail. `opencode` remains internal for fleet execution rather than a user-selectable surface. Codex/openai paths currently rely on CLI transport rather than raw Responses API integration.
 
 ## Skill discovery
 
-Scheduler skill enumeration reads repo-local skill directories in this order:
-
-1. `.agents/skills/`
-2. `.claude/skills/`
-
-When the same skill exists in both places, the `.agents/skills/` copy wins. This allows Codex-adapted skill text to coexist with the Claude/Cursor mirror while preserving a single discovered skill set for prompts and chat routing.
+Scheduler skill enumeration reads `.agents/skills/`.
 
 ## Slack integration (reference only)
 

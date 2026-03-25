@@ -455,7 +455,7 @@ recent papers. Focus on:
 ## Output rules
 - If you find a genuinely relevant paper or development:
   - Create a literature note in projects/${topic.project}/literature/ following the
-    literature note schema in CLAUDE.md
+    literature note schema in AGENTS.md
   - Verify the URL (fetch the page, confirm title and at least one author match)
   - Add a brief log entry to the project README under ## Log
   - Commit your changes
@@ -467,7 +467,7 @@ Type: Convention compliance audit
 Project: ${topic.project}
 
 ## What to do
-Read the project's README.md and TASKS.md. Check for compliance with CLAUDE.md conventions:
+Read the project's README.md and TASKS.md. Check for compliance with AGENTS.md conventions:
 - README has required sections (Status, Mission, Done when, Context, Log, Open questions)
 - Tasks follow the task schema (imperative verb, Done when, fleet routing tag)
 - Log entries follow the log entry schema (### YYYY-MM-DD header, Sources line)
@@ -542,7 +542,7 @@ export function buildIdlePrompt(
     : "- Do NOT modify TASKS.md (except removing resolved [blocked-by] tags for stale-blocker-check)";
 
   return `You are a fleet worker in the akari research system performing idle exploration.
-Your cwd is the akari repo root. Follow CLAUDE.md conventions.
+Your cwd is the akari repo root. Follow AGENTS.md conventions.
 
 ${taskSection}
 

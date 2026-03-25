@@ -11,6 +11,8 @@ const exec = promisify(execFile);
 const PENDING_FILE = ".pending-evolution.json";
 const FAILED_FILE = ".failed-evolution.json";
 const STATE_FILE = ".evolution-state.json";
+const TSC_BIN = new URL("../node_modules/typescript/bin/tsc", import.meta.url).pathname;
+const VITEST_BIN = new URL("../node_modules/vitest/vitest.mjs", import.meta.url).pathname;
 
 /** Max times the same evolution (by content hash) will be attempted before giving up. */
 export const MAX_ATTEMPTS = 3;
@@ -203,7 +205,7 @@ export async function applyEvolution(
 
   // Redundant type check (agent already ran this)
   try {
-    await exec("npx", ["tsc", "--noEmit"], { cwd: schedulerDir, timeout: 60_000 });
+    await exec(process.execPath, [TSC_BIN, "--noEmit"], { cwd: schedulerDir, timeout: 60_000 });
   } catch (err) {
     console.error(`[evolution] tsc --noEmit failed:`, err instanceof Error ? err.message : err);
     await movePendingToFailed(pendingPath, failedPath);
@@ -215,7 +217,7 @@ export async function applyEvolution(
   // Exclude evolution.test.ts to prevent recursive vitest invocation:
   // that test calls applyEvolution() which would spawn another vitest run.
   try {
-    await exec("npx", ["vitest", "run", "--exclude", "**/evolution.test.ts", "--exclude", "dist/**", "--exclude", "node_modules/**"], {
+    await exec(process.execPath, [VITEST_BIN, "run", "--exclude", "**/evolution.test.ts", "--exclude", "dist/**", "--exclude", "node_modules/**"], {
       cwd: schedulerDir,
       timeout: 120_000,
       env: { ...process.env, AKARI_EVOLUTION_IN_PROGRESS: "1" },
@@ -229,7 +231,7 @@ export async function applyEvolution(
 
   // Full build
   try {
-    await exec("npx", ["tsc"], { cwd: schedulerDir, timeout: 60_000 });
+    await exec(process.execPath, [TSC_BIN], { cwd: schedulerDir, timeout: 60_000 });
   } catch (err) {
     console.error(`[evolution] tsc build failed:`, err instanceof Error ? err.message : err);
     await movePendingToFailed(pendingPath, failedPath);

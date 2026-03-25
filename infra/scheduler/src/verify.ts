@@ -223,7 +223,7 @@ export interface VerificationResult {
   warnings: string[];
   /** True if resource-consuming experiment was created without run.sh or scheduler registration. */
   fireAndForgetViolation: boolean;
-  /** True if session ended with uncommitted files (L0 enforcement per CLAUDE.md). */
+  /** True if session ended with uncommitted files (L0 enforcement per AGENTS.md). */
   uncommittedFilesViolation: boolean;
   /** True if consumes_resources experiment was modified without ledger entry (L0 enforcement). */
   ledgerViolation: boolean;
@@ -330,7 +330,7 @@ function hasEvidenceForExternalBlocker(projectName: string, cwd: string): boolea
 }
 
 /** Check for [blocked-by: external:] tags without supporting evidence.
- * Per CLAUDE.md and ADR 0040, external blockers must be accompanied by:
+ * Per AGENTS.md and ADR 0040, external blockers must be accompanied by:
  * - A diagnosis file in projects/<project>/diagnosis/, OR
  * - An EXPERIMENT.md with status: failed documenting the external block, OR
  * - An execution log or error output referenced in the task
@@ -380,7 +380,7 @@ export async function verifySession(
   let l2ChecksPerformed = 0;
 
   // 1. Uncommitted files — classify into orphaned work vs expected untracked
-  // L0 enforcement: uncommitted files are a verification failure (per CLAUDE.md)
+  // L0 enforcement: uncommitted files are a verification failure (per AGENTS.md)
   let uncommittedFiles: string[] = [];
   let orphanedFiles: string[] = [];
   let uncommittedFilesViolation = false;
@@ -512,7 +512,7 @@ export async function verifySession(
     } catch { /* best effort */ }
   }
   if (!hasLogEntry && hasCommit) {
-    warnings.push("Missing log entry violation (L0): Session made commits but no project README log entry detected. Per CLAUDE.md, every session must append a log entry to a project README.");
+    warnings.push("Missing log entry violation (L0): Session made commits but no project README log entry detected. Per AGENTS.md, every session must append a log entry to a project README.");
   }
 
   // 5. Session summary footer completeness — check modified READMEs for required fields
@@ -647,7 +647,7 @@ export async function verifySession(
       ledgerViolation = true;
       const projectList = [...projectsRequiringLedger].join(", ");
       warnings.push(
-        `Ledger violation: Resource-consuming work on project(s) ${projectList} but no ledger entry found for today. Per CLAUDE.md, budget.yaml projects require ledger entries for all resource-consuming experiments.`,
+        `Ledger violation: Resource-consuming work on project(s) ${projectList} but no ledger entry found for today. Per AGENTS.md, budget.yaml projects require ledger entries for all resource-consuming experiments.`,
       );
     }
   }
@@ -758,7 +758,7 @@ export async function verifySession(
             if (!checkLiteratureVerified(content)) {
               literatureVerificationViolation = true;
               warnings.push(
-                `Literature verification violation (L0): ${file} is a new literature note without a Verified: field. Per CLAUDE.md, literature notes must include "Verified: YYYY-MM-DD" or "Verified: false".`,
+                `Literature verification violation (L0): ${file} is a new literature note without a Verified: field. Per AGENTS.md, literature notes must include "Verified: YYYY-MM-DD" or "Verified: false".`,
               );
             }
           } catch { /* file read error */ }
@@ -776,7 +776,7 @@ export async function verifySession(
             if (!checkModelSelectionRationale(scriptContent, expContent)) {
               modelSelectionRationaleViolation = true;
               warnings.push(
-                `Model selection rationale violation (L0): ${file} uses LLM/VLM APIs but ${expMdPath} Config section does not document model selection rationale. Per CLAUDE.md, consult docs/model-capability-limits.md and document the choice.`,
+                `Model selection rationale violation (L0): ${file} uses LLM/VLM APIs but ${expMdPath} Config section does not document model selection rationale. Per AGENTS.md, consult docs/model-capability-limits.md and document the choice.`,
               );
             }
           } catch { /* file read error or no EXPERIMENT.md */ }
@@ -863,7 +863,7 @@ export async function verifySession(
             findingsProvenanceViolation = true;
             for (const v of provenanceViolations) {
               warnings.push(
-                `Findings provenance violation (L0): ${expFile.trim()} — ${v}. Per CLAUDE.md, every numerical claim must include script+data provenance or inline arithmetic.`,
+                `Findings provenance violation (L0): ${expFile.trim()} — ${v}. Per AGENTS.md, every numerical claim must include script+data provenance or inline arithmetic.`,
               );
             }
           }
@@ -2471,7 +2471,7 @@ export function checkModelSelectionRationale(
 
 /**
  * Check findings provenance in EXPERIMENT.md.
- * Per CLAUDE.md, every numerical claim in a Findings section must include either
+ * Per AGENTS.md, every numerical claim in a Findings section must include either
  * (a) a script + data file reference, or (b) inline arithmetic from referenced data.
  * Pure function — no I/O.
  *

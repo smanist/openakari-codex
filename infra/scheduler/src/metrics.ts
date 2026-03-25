@@ -46,7 +46,7 @@ export interface KnowledgeMetrics {
   logEntryFindings: number;
   infraCodeChanges: number;
   bugfixVerifications: number;
-  /** Changes to governance/compound files: CLAUDE.md, skills, decisions, patterns, SOPs. */
+  /** Changes to governance/compound files: AGENTS.md, skills, decisions, patterns, SOPs. */
   compoundActions: number;
   /** Organizational changes: TASKS.md, APPROVAL_QUEUE.md, budget, ledger, docs, log archives, completed-tasks. Excludes compound action files. */
   structuralChanges: number;

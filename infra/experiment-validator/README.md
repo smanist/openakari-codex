@@ -1,6 +1,6 @@
 # Experiment Validator
 
-Validates experiment directories for completeness and integrity per the EXPERIMENT.md schema defined in CLAUDE.md.
+Validates experiment directories for completeness and integrity per the EXPERIMENT.md schema defined in AGENTS.md.
 
 ## Usage
 

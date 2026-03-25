@@ -11,11 +11,11 @@ describe("mergeEnvContent", () => {
   });
 
   it("overwrites existing keys (the PM2 cache fix)", () => {
-    // Simulates PM2 passing a stale AGENT_BACKEND=opencode in process.env,
-    // and the .env file having AGENT_BACKEND=auto
-    const target: Record<string, string> = { AGENT_BACKEND: "opencode" };
-    mergeEnvContent(target, "AGENT_BACKEND=auto\n");
-    expect(target.AGENT_BACKEND).toBe("auto");
+    // Simulates PM2 passing a stale scheduler env var in process.env,
+    // and the .env file overriding it during restart.
+    const target: Record<string, string> = { DEFAULT_MODEL: "glm5/zai-org/GLM-5-FP8" };
+    mergeEnvContent(target, "DEFAULT_MODEL=gpt-5.2\n");
+    expect(target.DEFAULT_MODEL).toBe("gpt-5.2");
   });
 
   it("skips comments and empty lines", () => {

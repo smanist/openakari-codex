@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { Job } from "./types.js";
 import { resolveBackend } from "./backend.js";
 import { spawnAgent, AGENT_PROFILES, generateSessionId, resolveProfileForBackend } from "./agent.js";
+import type { SDKMessage } from "./sdk.js";
 import { notifySessionStarted, notifySessionComplete } from "./slack.js";
 import { getPendingApprovals } from "./notify.js";
 import { countMetrics } from "./metrics.js";
@@ -40,7 +41,6 @@ export async function checkUncommittedFileThreshold(cwd: string): Promise<void> 
 import { decideTiers, injectTierDirectives, wasFullOrient } from "./orient-tier.js";
 import { injectConventionModules } from "./convention-modules.js";
 import { enqueuePushAndWait } from "./rebase-push.js";
-import { buildTeamSession } from "./team-session.js";
 
 const LOGS_DIR = new URL("../../../.scheduler/logs", import.meta.url).pathname;
 
@@ -53,7 +53,7 @@ export interface ExecutionResult {
   logFile?: string;
   costUsd?: number;
   numTurns?: number;
-  backend?: "codex" | "openai" | "claude" | "cursor" | "opencode";
+  backend?: "codex" | "openai" | "opencode";
   timedOut?: boolean;
   sessionId?: string;
   triggerSource?: "scheduler" | "slack" | "manual" | "fleet";
@@ -76,11 +76,14 @@ export async function executeJob(
 ): Promise<ExecutionResult> {
   const start = Date.now();
   const cwd = job.payload.cwd ?? process.cwd();
-  const backend = resolveBackend(job.payload.backend, job.payload.requiredCapabilities);
+  const backend = resolveBackend({
+    model: job.payload.model,
+    requiredCapabilities: job.payload.requiredCapabilities,
+  });
 
   let threadInfo: { channel: string; threadTs: string } | null = null;
 
-  console.log(`[executor] Running job ${job.name} with ${backend.name} backend`);
+  console.log(`[executor] Running job ${job.name} with ${backend.name} runtime`);
 
   // Pre-session: auto-commit orphaned artifacts so the agent starts with a clean working tree.
   // Best-effort — errors are logged but do not block the session.
@@ -140,35 +143,18 @@ export async function executeJob(
       console.log(`[executor] Role directive: ${injectedRole}${roleProject ? ` (project: ${roleProject})` : ""}`);
     }
 
-    // Agent Teams: enable for Opus supervisor sessions on Claude backend.
-    // Provides analyst + builder subagents via the Task tool for parallel work.
-    // See analysis/agent-teams-re-evaluation-2026-03-04.md.
-    const isOpusSupervisor = backend.name === "claude" &&
-      (profile.label === "work-session" || profile.label === "deep-work");
-    const teamConfig = isOpusSupervisor ? buildTeamSession() : null;
-    if (teamConfig) {
-      console.log(`[executor] Agent Teams enabled: ${Object.keys(teamConfig.agents).join(", ")}`);
-      prompt += "\n\nYou have analyst and builder teammate agents available via the Task tool. " +
-        "Use them when parallel work would be beneficial — e.g., spawn an analyst to review " +
-        "findings while you plan next steps, or a builder to implement code while you audit.";
-    }
-
     const { result } = spawnAgent({
       profile,
       prompt,
       cwd,
       sessionId,
-      backend: job.payload.backend,
       requiredCapabilities: job.payload.requiredCapabilities,
       jobId: job.id,
       jobName: job.name,
-      agents: teamConfig?.agents,
-      hooks: teamConfig?.hooks,
-      extraEnv: teamConfig ? { CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1" } : undefined,
       onMessage: (msg) => {
         // Stream assistant text to stdout for live monitoring
-        if ((msg as { type?: string }).type === "assistant") {
-          const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
+        if (msg.type === "assistant") {
+          const content = msg.message;
           if (content?.content) {
             for (const block of content.content) {
               if (block.type === "text" && block.text) process.stdout.write(block.text);
@@ -189,7 +175,7 @@ export async function executeJob(
       await mkdir(LOGS_DIR, { recursive: true });
       await writeFile(
         logFile,
-        `# ${job.name} — ${new Date().toISOString()}\n# Backend: ${backend.name}\n# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}\n\n## output\n${agentResult.text}\n`,
+        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${backend.name}\n# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}\n\n## output\n${agentResult.text}\n`,
       );
     } catch { /* best-effort logging */ }
 

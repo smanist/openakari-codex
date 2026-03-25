@@ -29,8 +29,6 @@ export interface JobPayload {
   model?: string;
   /** Working directory for the agent session */
   cwd?: string;
-  /** Agent backend: codex, openai, claude (deprecated compatibility), cursor, opencode, or auto. */
-  backend?: "codex" | "openai" | "claude" | "cursor" | "opencode" | "auto";
   /** Backend capabilities required when auto-selecting a backend. */
   requiredCapabilities?: BackendCapability[];
   /** Maximum session duration in milliseconds. Default: 3,600,000 (60 min). */
@@ -144,8 +142,8 @@ export interface FleetWorkerResult {
   numTurns?: number;
   /** Whether the session timed out. */
   timedOut?: boolean;
-  /** Backend used (always "opencode" for fleet workers currently). */
-  backend?: "codex" | "openai" | "claude" | "cursor" | "opencode";
+  /** Internal runtime used (always "opencode" for fleet workers currently). */
+  backend?: "codex" | "openai" | "opencode";
   /** Per-model token usage and cost breakdown. */
   modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
   /** Per-tool invocation counts. */

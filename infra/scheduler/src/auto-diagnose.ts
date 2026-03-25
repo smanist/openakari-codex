@@ -83,7 +83,7 @@ export function buildDiagnosisPrompt(input: DiagnosisPromptInput): string {
 
   sections.push(
     `You are an autonomous research agent starting a diagnosis session triggered by the health monitoring system.`,
-    `Your cwd is the akari repo root. Follow CLAUDE.md conventions.`,
+    `Your cwd is the akari repo root. Follow AGENTS.md conventions.`,
     ``,
     `## Context`,
     `The scheduler's health monitoring detected anomaly patterns that warrant investigation.`,

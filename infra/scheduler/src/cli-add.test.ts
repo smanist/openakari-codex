@@ -49,9 +49,9 @@ describe("scheduler add message helpers", () => {
 
 describe("parseFlags", () => {
   it("supports boolean flags without consuming the next flag", () => {
-    expect(parseFlags(["--message-default", "--backend", "codex"])).toEqual({
+    expect(parseFlags(["--message-default", "--model", "gpt-5.2"])).toEqual({
       "message-default": true,
-      backend: "codex",
+      model: "gpt-5.2",
     });
   });
 });
