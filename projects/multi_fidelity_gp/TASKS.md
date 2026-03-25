@@ -38,3 +38,13 @@
   Why: The practical question is when residual correction meaningfully helps under sparse high-fidelity sampling.
   Done when: At least three high-fidelity training-set sizes are evaluated and the resulting accuracy and calibration trends are documented.
   Priority: medium
+
+- [ ] Report latent vs observation uncertainty metrics in holdout evaluation [fleet-eligible] [skill: execute]
+  Why: After LML-grid hyperparameters + `include_noise=True`, 95% interval coverage became 1.0 for both GP models; separating latent vs observation uncertainty should clarify whether uncertainty is conservative or mis-specified.
+  Done when: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` includes both latent and observation NLL/coverage/width for the GP-based models (clearly labeled).
+  Priority: medium
+
+- [ ] Decide which uncertainty definition to optimize for calibration [requires-opus] [skill: analyze]
+  Why: The project currently mixes modeling choices (noise variance, observation vs latent uncertainty) with calibration metrics; we need an explicit target so “calibrated uncertainty” is well-defined.
+  Done when: A short note in `projects/multi_fidelity_gp/README.md` (Context or a new section) states whether calibration targets latent or observation uncertainty (and why), and the holdout evaluation reflects that choice.
+  Priority: medium

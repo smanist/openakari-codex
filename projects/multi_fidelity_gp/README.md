@@ -117,6 +117,49 @@ Budget-remaining: n/a
 
 Sources: none (evaluation)
 
+### 2026-03-25 — Hyperparameter selection improved for calibrated uncertainty
+
+Claimed and completed the task “Improve GP hyperparameter selection for calibrated uncertainty” (addressing severe uncertainty undercoverage from the heuristic hyperparameters in the initial holdout evaluation).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"3f3e9f0ed9907808","taskId":"255d402990b2","taskText":"Improve GP hyperparameter selection for calibrated uncertainty","project":"multi_fidelity_gp","agentId":"work-session-mn6eryly","claimedAt":1774465319400,"expiresAt":1774468019400}}`
+
+Changes:
+- Updated `projects/multi_fidelity_gp/experiments/residual-gp/gp.py` to support GP hyperparameter selection via log marginal likelihood grid search (`hyperparam_selection="lml_grid"`) and optionally include fitted observation noise in predictive std (`include_noise=True`).
+- Updated `projects/multi_fidelity_gp/experiments/residual-gp/models.py` to use the LML-grid selection by default and report observation uncertainty for probabilistic metrics.
+- Re-ran holdout evaluation and updated `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` / `results.json` + EXPERIMENT findings.
+- Marked the task complete in `projects/multi_fidelity_gp/TASKS.md` and added follow-up tasks to separate latent vs observation uncertainty metrics.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+- `python projects/multi_fidelity_gp/experiments/residual-gp/demo.py` ->
+  - `Residual-GP demo (synthetic benchmark)`
+  - `- Train points: 12, test points: 80`
+  - `- Low-fidelity-only RMSE: 0.486761`
+  - `- High-fidelity-only GP RMSE: 0.002392`
+  - `- Residual correction GP RMSE: 0.004678`
+
+Findings (see `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`):
+- RMSE: low-fidelity `0.486761`, high-fidelity GP `0.002392`, residual correction `0.004678`
+- 95% interval coverage: low-fidelity `0.000000` (deterministic), high-fidelity GP `1.000000`, residual correction `1.000000`
+
+Compound (fast): 1 action — added two follow-up tasks about latent vs observation uncertainty definitions/metrics.
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Improve GP hyperparameter selection for calibrated uncertainty
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 10
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (hyperparameter selection + re-eval)
+
 ## Open questions
 
 - Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (coverage closer to 0.95) rather than marginal likelihood alone?
@@ -124,4 +167,4 @@ Sources: none (evaluation)
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?
 - How sensitive are the findings to the amount and placement of high-fidelity training data?
 - Which uncertainty metric is most decision-relevant for this benchmark: interval coverage, negative log likelihood, or sharpness at matched coverage?
-- Is the severe undercoverage (≪95%) in the initial GP uncertainty metrics primarily a hyperparameter-selection issue (e.g., length scale too large) or a modeling/metric mismatch (latent vs predictive variance)?
+- Was the initial severe undercoverage (≪95%) primarily a hyperparameter-selection issue, a modeling/metric mismatch (latent vs observation uncertainty), or both? After switching to LML-grid hyperparameters + `include_noise=True`, coverage jumped to 1.0, suggesting the uncertainty definition/target may still be mis-specified.
