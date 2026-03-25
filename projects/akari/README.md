@@ -14,6 +14,35 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Re-verify Codex work-cycle metrics/logging — include manual runs)
+
+Claimed and completed the high-priority task “Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`” by (a) fixing a gap in the `akari run <job-id>` path (manual runs didn’t write `.scheduler/metrics/sessions.jsonl`), and (b) re-running the `work-cycle` job end-to-end to confirm both log output and turn-count metrics are non-empty.
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"4a3f74e72bd235f9","taskId":"68d77e543be2","taskText":"Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`","project":"akari","agentId":"work-session-mn66gnu2",...}}`
+
+Fix (verifiable):
+- `infra/scheduler/src/cli.ts`: `cmdRun()` now records structured session metrics (same fields as daemon runs), enabling E2E verification without waiting for the next cron tick.
+
+Verification:
+- `cd infra/scheduler && npm test` → `68 passed` (1756 tests)
+- E2E run: `cd infra/scheduler && node dist/cli.js run ufbtd1yr --profile chat --max-duration-ms 120000 --message "Reply with exactly: PING"` → `1 turns` and wrote:
+  - Log: `.scheduler/logs/work-cycle-2026-03-25T15-23-15-092Z.log` (non-empty `## output`, `Turns: 1`)
+  - Metrics row: `.scheduler/metrics/sessions.jsonl` at `timestamp:"2026-03-25T15:23:17.280Z"` with `numTurns:1`
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 30
+Task-selected: Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 3
+Compound-actions: none
+Resources-consumed: codex-cli (2 manual `akari run` invocations; cost untracked)
+Budget-remaining: n/a
+
 ### 2026-03-25 (New project: multi-fidelity GP correction)
 
 Created `projects/multi_fidelity_gp/` via `/project scaffold` for a human-initiated research project on one-dimensional multi-fidelity regression. Mission: measure how much a Gaussian-process residual correction can improve a fixed low-fidelity approximation when only limited high-fidelity data are available, using a synthetic benchmark with holdout high-fidelity evaluation.

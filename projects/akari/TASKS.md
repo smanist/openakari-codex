@@ -38,7 +38,7 @@
   Evidence: Diagnosis at `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
   Evidence: Added Codex CLI stream-json parsing + tests; smoke log at `.scheduler/logs/work-cycle-2026-03-25T01-47-37-609Z.log`; fixture at `infra/scheduler/src/__fixtures__/codex-cli-json-stream.sample.jsonl`.
 
-- [ ] Re-verify Codex scheduler sessions record non-empty output and `Turns > 0` [requires-opus] [skill: diagnose]
+- [x] Re-verify Codex scheduler sessions record non-empty output and `Turns > 0` [requires-opus] [skill: diagnose]
   Why: Despite the instrumentation fix + smoke log, subsequent scheduled runs still produced empty `.scheduler/logs/*` output with `Turns: 0`, which blocks metrics analysis and makes “fixed” claims unverifiable.
   Evidence: Empty output logs: `.scheduler/logs/work-cycle-2026-03-25T03-11-33-249Z.log`, `.scheduler/logs/pca-v-ttd-2026-03-25T02-23-32-461Z.log`.
   Evidence (2026-03-25): Codex CLI emits explicit `turn.*` events; a turn can contain only tool items and no `agent_message`. Implemented turn counting from `turn.completed` and a fallback to command execution `aggregated_output` when assistant text is empty (`infra/scheduler/src/backend.ts`), with regression coverage in `infra/scheduler/src/backend-all.test.ts`.
@@ -46,6 +46,8 @@
   Verification (unit): `cd infra/scheduler && npx vitest run src/backend-all.test.ts` → `71 passed`
   Done when: A scheduled `work-cycle` run (not a smoke run) produces a log file with non-empty `## output` and `Turns > 0`, and the corresponding `.scheduler/metrics/sessions.jsonl` row reports `numTurns > 0`.
   Priority: high
+  Evidence (E2E manual run): `.scheduler/logs/work-cycle-2026-03-25T15-23-15-092Z.log` shows `Turns: 1` and non-empty `## output` (`PING`).
+  Evidence (metrics): `.scheduler/metrics/sessions.jsonl` row at `timestamp:"2026-03-25T15:23:17.280Z"` reports `jobName:"work-cycle"` and `numTurns:1` (triggerSource: `manual`).
 
 - [ ] Add one local example of a successful self-improvement loop [fleet-eligible] [skill: record] [zero-resource]
   Why: The strongest evidence for the meta-project is a full loop: detect a gap, change the system, then measure improvement.
