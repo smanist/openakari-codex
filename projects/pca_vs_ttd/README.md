@@ -12,6 +12,33 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (Benchmark report v1: recommendation + non-draft)
+
+Claimed and completed the task “Finalize the benchmark report narrative and recommendation” by updating `projects/pca_vs_ttd/benchmark_report.md` to a non-draft status (`Status: v1`) and adding a “Recommendation (comparison rule)” section that explicitly covers:
+- full trade-off curve overlay (plots)
+- matched-compression slices (primary comparison rule)
+- matched-quality slices (secondary view)
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://127.0.0.1:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"db9e24213781fd05","taskId":"1b9ea76c2a46","taskText":"Finalize the benchmark report narrative and recommendation","project":"pca_vs_ttd","agentId":"work-session-mn5gvuxp","claimedAt":1774408547221,"expiresAt":1774411247221}}`
+
+Verification:
+- `rg -n "^Status:" projects/pca_vs_ttd/benchmark_report.md` → `3:Status: v1`
+- `rg -n "^## Recommendation" projects/pca_vs_ttd/benchmark_report.md` → `79:## Recommendation (comparison rule)`
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Finalize the benchmark report narrative and recommendation
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: llm_api_calls 0/0, cpu_hours 0.1/0.1 (ledger empty)
+
 ### 2026-03-25 (Hyperparameter trade-off sweep v1)
 
 Claimed and completed the mission-gap task “Run a hyperparameter trade-off study for PCA and TTD” by running a first sweep (PCA `k ∈ {0,1,2,4,8,16}`; TTD `r1=r2 ∈ {4,8,12,16,23}`) and generating the standard curve artifacts under `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/`.
@@ -160,4 +187,4 @@ Budget-remaining: cpu_hours unknown/0.1 (no ledger.yaml)
 
 - How to devise the synthesized dataset to differentiate the performance of the two algorithms.
 - Which set of metrics are the most concise to showcase the trade-off in PCA vs. TTD?
-- For a fair PCA vs TTD comparison, should baselines match compression ratio (bytes/floats) or reconstruction quality (e.g., rel Frobenius / PSNR)?
+- For matched-compression / matched-quality slices, should the report interpolate between sweep points, or only compare at discrete hyperparameter settings?

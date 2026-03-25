@@ -1,6 +1,6 @@
 # PCA vs TTD — benchmark report (synthetic dataset v1)
 
-Status: draft
+Status: v1
 Date: 2026-03-25
 
 This report consolidates the current PCA vs Tensor-Train Decomposition (TTD) benchmark artifacts for the synthetic 3D “video-like” tensor dataset and summarizes baseline results under the project’s evaluation protocol.
@@ -76,9 +76,23 @@ Matched-compression example near PCA `k=8` (~3.53×):
 
 Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`.
 
-## Next steps
+## Recommendation (comparison rule)
 
-- Decide how the final write-up will present comparisons: full curve overlay, matched-compression slices, or both.
-- (Optional) Expand the TTD sweep to unequal ranks `(r1, r2)` and/or more densely sample around the “matched compression” region.
-- Update the sweep scope proposal (and closed-form compression formulas) live in:
-- `projects/pca_vs_ttd/baseline_comparison.md`
+For the final benchmark write-up, use **both** of the following views, with a single explicit comparison rule:
+
+1. **Full trade-off overlay (primary figure)**: plot each method’s sweep curve with
+   - x-axis: compression ratio
+   - y-axis: relative Frobenius error (primary), plus a second plot for PSNR (supporting)
+   Provenance: the v1 plots are already generated under `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/`.
+
+2. **Matched-compression slices (primary comparison rule)**: pick a small set of target compression ratios (e.g., the PCA sweep points) and compare methods by the **best achieved reconstruction quality at (approximately) the same compression**.
+   - Example (already computed from the v1 sweep summary): near PCA `k=8` (~3.53×), TTD `r1=r2=23` (~3.63×) achieves lower rel-Fro error and higher PSNR than PCA `k=8`. Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`.
+
+3. **Matched-quality slices (secondary view)**: pick one or two target quality thresholds (e.g., rel-Fro error levels) and compare methods by **maximum compression achieved at (approximately) the same quality**.
+
+This makes the headline claim mechanically checkable from the artifacts (“At matched compression, which method reconstructs better?”) while still showing the full curve for context.
+
+## Optional follow-ups
+
+- Expand the TTD sweep to unequal ranks `(r1, r2)` and/or more densely sample around the “matched compression” region.
+- Keep the sweep scope proposal and closed-form compression formulas in sync in `projects/pca_vs_ttd/baseline_comparison.md`.
