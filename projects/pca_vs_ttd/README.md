@@ -12,6 +12,37 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (Unequal-rank TTD sweep v2)
+
+Claimed and completed the task “(Optional) Expand the TTD sweep beyond equal ranks” by adding a v2 trade-off sweep record that includes unequal TT rank pairs and regenerates the trade-off overlay plots.
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"a36cb0e856555dca","taskId":"83aeecdf22f2","taskText":"(Optional) Expand the TTD sweep beyond equal ranks","project":"pca_vs_ttd","agentId":"work-session-mn5h5wfv","claimedAt":1774408815722,"expiresAt":1774411515722}}`
+
+Outputs:
+- Experiment record + sweep artifacts: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/`
+- Updated report citations: `projects/pca_vs_ttd/benchmark_report.md`
+
+Verification:
+- `/usr/bin/time -p python projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/run_sweep.py --overwrite` →
+  - `Wrote: /Users/daninghuang/Repos/openakari-codex/projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/sweep_summary.csv`
+  - `real 1.34`
+  - `user 1.02`
+  - `sys 0.21`
+
+Compound (fast): no actions. (Fleet spot-check: no `"triggerSource":"fleet"` entries in the last 500 lines of `.scheduler/metrics/sessions.jsonl`.)
+
+Session-type: autonomous
+Duration: 10
+Task-selected: (Optional) Expand the TTD sweep beyond equal ranks
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 22
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: llm_api_calls 0/0, cpu_hours 0.1/0.1 (ledger empty)
+
 ### 2026-03-25 (Benchmark report v1: recommendation + non-draft)
 
 Claimed and completed the task “Finalize the benchmark report narrative and recommendation” by updating `projects/pca_vs_ttd/benchmark_report.md` to a non-draft status (`Status: v1`) and adding a “Recommendation (comparison rule)” section that explicitly covers:
