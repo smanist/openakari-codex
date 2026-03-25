@@ -173,6 +173,35 @@ export function parseCodexMessage(line: string): SDKMessage | null {
   try {
     const msg = JSON.parse(line);
 
+    // Codex CLI v0.110+ stream-json schema (thread/turn/item events).
+    // Example lines captured from `codex exec --json`:
+    //   {"type":"thread.started","thread_id":"..."}
+    //   {"type":"item.completed","item":{"type":"agent_message","text":"OK"}}
+    //   {"type":"item.started","item":{"type":"command_execution","command":"/bin/zsh -lc ls",...}}
+    if (msg.type === "thread.started" && (msg.thread_id || msg.threadId || msg.session_id || msg.sessionId)) {
+      return {
+        type: "system",
+        subtype: "init",
+        session_id: msg.thread_id ?? msg.threadId ?? msg.session_id ?? msg.sessionId,
+      } as unknown as SDKMessage;
+    }
+
+    if (msg.type === "item.completed" && msg.item?.type === "agent_message" && typeof msg.item?.text === "string") {
+      return {
+        type: "assistant",
+        message: { role: "assistant", content: [{ type: "text", text: msg.item.text }] },
+      } as unknown as SDKMessage;
+    }
+
+    if (msg.type === "item.started" && msg.item?.type === "command_execution" && typeof msg.item?.command === "string") {
+      const cmd = msg.item.command as string;
+      return { type: "tool_use_summary", summary: `Shell \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\`` } as unknown as SDKMessage;
+    }
+
+    if (msg.type === "item.completed" && msg.item?.type === "command_execution") {
+      return { type: "tool_call_completed" } as unknown as SDKMessage;
+    }
+
     if (msg.type === "assistant" && msg.message?.content) {
       return msg as SDKMessage;
     }
@@ -307,7 +336,10 @@ abstract class BaseCodexBackend implements AgentBackend {
             const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
             if (content?.content) {
               for (const block of content.content) {
-                if (block.type === "text" && block.text) text = block.text;
+                if (block.type === "text" && block.text) {
+                  if (text) text += "\n";
+                  text += block.text;
+                }
               }
             }
           }

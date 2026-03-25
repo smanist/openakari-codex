@@ -181,6 +181,44 @@ describe("parseCodexMessage", () => {
     expect(msg?.type).toBe("assistant");
   });
 
+  it("parses Codex CLI thread.started into system init", () => {
+    const line = JSON.stringify({
+      type: "thread.started",
+      thread_id: "thread-123",
+    });
+    const msg = parseCodexMessage(line);
+    expect(msg).not.toBeNull();
+    expect(msg?.type).toBe("system");
+  });
+
+  it("parses Codex CLI agent_message items into assistant messages", () => {
+    const line = JSON.stringify({
+      type: "item.completed",
+      item: { id: "item_0", type: "agent_message", text: "OK" },
+    });
+    const msg = parseCodexMessage(line);
+    expect(msg).not.toBeNull();
+    expect(msg?.type).toBe("assistant");
+  });
+
+  it("parses Codex CLI command_execution items into tool events", () => {
+    const startLine = JSON.stringify({
+      type: "item.started",
+      item: { id: "item_1", type: "command_execution", command: "/bin/zsh -lc ls" },
+    });
+    const started = parseCodexMessage(startLine);
+    expect(started).not.toBeNull();
+    expect(started?.type).toBe("tool_use_summary");
+
+    const doneLine = JSON.stringify({
+      type: "item.completed",
+      item: { id: "item_1", type: "command_execution", command: "/bin/zsh -lc ls", status: "completed", exit_code: 0 },
+    });
+    const completed = parseCodexMessage(doneLine);
+    expect(completed).not.toBeNull();
+    expect(completed?.type).toBe("tool_call_completed");
+  });
+
   it("parses session init events with session_id", () => {
     const line = JSON.stringify({
       type: "system",

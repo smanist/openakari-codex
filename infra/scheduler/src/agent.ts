@@ -5,6 +5,7 @@ import type { QueryOpts } from "./sdk.js";
 import {
   registerSession,
   unregisterSession,
+  getSession,
   bufferMessage,
   summarizeMessage,
   updateSessionStats,
@@ -276,13 +277,17 @@ export function spawnAgent(opts: SpawnAgentOpts): {
   const result = supervised.result
     .then((r): AgentResult => {
       clearTimeout(timer);
+      const tracked = getSession(sessionId);
+      const trackedTurns = tracked?.numTurns ?? 0;
+      const resolvedTurns = (typeof r.numTurns === "number" && r.numTurns > 0) ? r.numTurns : trackedTurns;
+      const resolvedCost = (typeof r.costUsd === "number" && r.costUsd > 0) ? r.costUsd : (tracked?.costUsd ?? 0);
       unregisterSession(sessionId);
-      console.log(`[agent] Complete [${sessionId}]: ${r.text.length} chars, ${r.numTurns ?? "?"} turns, ${r.durationMs}ms, $${r.costUsd?.toFixed(4) ?? "n/a"}`);
+      console.log(`[agent] Complete [${sessionId}]: ${r.text.length} chars, ${resolvedTurns} turns, ${r.durationMs}ms, $${resolvedCost.toFixed(4)}`);
       stallGuard.dispose();
       return {
         text: r.text,
-        costUsd: r.costUsd ?? 0,
-        numTurns: r.numTurns ?? 0,
+        costUsd: resolvedCost,
+        numTurns: resolvedTurns,
         durationMs: r.durationMs,
         timedOut,
         modelUsage: r.modelUsage,

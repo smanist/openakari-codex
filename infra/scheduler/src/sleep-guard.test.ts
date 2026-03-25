@@ -74,6 +74,13 @@ describe("checkMessageForSleepViolation", () => {
     expect(result!.seconds).toBe(expectedSeconds);
   });
 
+  it("detects sleep in tool_use_summary events (Cursor/opencode/Codex CLI mapping)", () => {
+    const msg = { type: "tool_use_summary", summary: "Shell `sleep 120 && echo done`" };
+    const result = checkMessageForSleepViolation(msg);
+    expect(result).not.toBeNull();
+    expect(result!.seconds).toBe(120);
+  });
+
   it.each([
     [
       "ignores non-shell tool_use blocks",

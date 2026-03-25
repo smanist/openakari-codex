@@ -27,6 +27,17 @@ Recent `work-cycle` sessions running on the `codex` backend produce an operation
 - The unified agent wrapper does not fall back to incrementally-tracked turns when the backend result lacks them:
   - `infra/scheduler/src/agent.ts` tracks turns via `incrementSessionTurns(sessionId)` on each `msg.type === "assistant"`, but the returned `AgentResult.numTurns` is taken from the backend’s `QueryResult.numTurns` (`r.numTurns ?? 0`).
 
+## Evidence (confirmed Codex CLI stream schema)
+
+On this deployment (`codex-cli 0.110.0`), `codex exec --json` emits *thread/turn/item* events rather than Claude-SDK-shaped `{type:"assistant", message:{content:[...]}}` lines. Representative lines include:
+
+- `{"type":"thread.started","thread_id":"..."}`
+- `{"type":"item.completed","item":{"type":"agent_message","text":"OK"}}`
+- `{"type":"item.started","item":{"type":"command_execution","command":"/bin/zsh -lc ls",...}}`
+- `{"type":"item.completed","item":{"type":"command_execution",...}}`
+
+A sanitized sample is recorded at `infra/scheduler/src/__fixtures__/codex-cli-json-stream.sample.jsonl`.
+
 ## Likely root cause
 
 The Codex CLI `--json` stream schema is not being parsed correctly by `parseCodexMessage()` / `spawnCodex()` for this deployment, so:
