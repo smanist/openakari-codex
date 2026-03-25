@@ -14,6 +14,34 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Restore missing conventions/schemas/status docs)
+
+Completed the governance task to reconcile missing doc references by creating the referenced paths:
+
+- Added `docs/status.md`
+- Added `docs/conventions/*.md` (14 convention docs, including a canonical `creative-intelligence.md`)
+- Added `docs/schemas/*.md` (8 schema docs)
+
+Also converted `docs/creative-intelligence.md` into a compatibility stub that points to the canonical `docs/conventions/creative-intelligence.md`.
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"7132ad3b9a45ac1a","taskId":"1bb2b70cf382","taskText":"Reconcile missing doc references in SOP/skills","project":"akari","agentId":"work-session-mn5ei8e8","claimedAt":1774404475960,"expiresAt":1774407175960}}`
+
+Verification:
+- `ls -1 docs/conventions | wc -l` → `14`
+- `ls -1 docs/schemas | wc -l` → `8`
+
+Session-type: autonomous
+Duration: 15
+Task-selected: Reconcile missing doc references in SOP/skills
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 26
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Codex CLI stream-json parsing fixes)
 
 Fixed the Codex backend instrumentation that caused some `work-cycle` sessions to record `Turns: 0` and empty output. The root cause was a schema mismatch: `codex exec --json` (codex-cli 0.110.0) emits `thread.started` / `turn.*` / `item.*` events rather than Claude-SDK-shaped `{type:"assistant", message:{content:[...]}}` lines.
