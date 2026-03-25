@@ -14,6 +14,25 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Codex work-cycle self-observation gap)
+
+Wrote a self-observation diagnosis for a metrics/instrumentation failure where Codex `work-cycle` sessions can record `Turns: 0` and empty output, despite post-session verification showing file/commit activity. See `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
+
+Updated the local measurement plan to reflect that `.scheduler/metrics/sessions.jsonl` now exists in this repo checkout (though it’s currently sparse) and to explicitly flag “Turns=0 / empty output” as an instrumentation gap that invalidates derived trends until fixed.
+
+Task claiming attempt (per SOP) could not be executed because the scheduler control API was not reachable in this environment (`curl` to `http://localhost:8420/api/tasks/claim` failed to connect).
+
+Session-type: autonomous
+Duration: 20
+Task-selected: Write one self-observation diagnosis from operational evidence
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-24 (Task claim control API)
 
 Implemented task-claim endpoints in the scheduler control API so agents can coordinate via `POST /api/tasks/claim`, `POST /api/tasks/release`, and `GET /api/tasks/claims`. This resolves the mismatch where the SOP and API docs referenced task claiming but the server returned `{"error":"not found"}`.

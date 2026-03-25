@@ -43,8 +43,8 @@ Variables:
 Method:
 1. Ensure session metrics exist.
    - Preferred: `.scheduler/metrics/sessions.jsonl` populated by the scheduler’s post-session metrics recorder.
-   - Observation: As of 2026-03-24 in this repo checkout, `.scheduler/metrics/` is not present (so JSONL-based metrics are not yet computable without enabling the recorder).
-   - If missing, run at least one scheduler job to create it, then re-run this baseline.
+   - Observation (updated 2026-03-25): this repo now has `.scheduler/metrics/sessions.jsonl` (currently sparse), but Codex work-cycle logs can still show `Turns: 0` and an empty `## output` section for non-idle runs (see `.scheduler/logs/work-cycle-2026-03-24T21-53-48-340Z.log`). Treat JSONL-derived trends as suspect until turn/output instrumentation is reliable.
+   - If missing or too sparse, run additional scheduler jobs to create more rows, then re-run this baseline.
 2. Compute the rolling-window metrics from JSONL:
    - `tail -n 50 .scheduler/metrics/sessions.jsonl | jq -s '.[-10:] | map(select(.isIdle|not))'`
    - Then compute M1–M5 as above (prefer the `knowledge` and `verification` fields).
@@ -54,6 +54,7 @@ Method:
 
 Validity threats:
 - **Missing or partial metrics**: this repo may not yet have `.scheduler/metrics/sessions.jsonl`; until it exists, M1–M5 rely on manual extraction from README logs and will be noisier.
+- **Instrumentation gaps**: if `.scheduler/logs/work-cycle-*.log` reports `Turns: 0` / empty output for non-idle sessions, treat the recorder output as incomplete until the upstream capture path is fixed.
 - **Backend measurement mismatch**: token/cost accounting differs across `codex`/`openai`/`opencode`; do not compare findings/$ across backends unless `costUsd` is populated consistently.
 - **Proxy drift**: “warningCount” and approval-queue events are only proxies for human intervention; prefer explicit supervision logs when available.
 

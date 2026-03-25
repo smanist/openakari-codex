@@ -18,10 +18,17 @@
   Done when: A short analysis computes intervention events per session over at least 2 time windows and records the result.
   Priority: medium
 
-- [ ] Write one self-observation diagnosis from operational evidence [requires-opus] [skill: diagnose] [zero-resource]
+- [x] Write one self-observation diagnosis from operational evidence [requires-opus] [skill: diagnose] [zero-resource]
   Why: The meta-project only becomes real when the system diagnoses its own failure modes from its own logs and artifacts.
   Done when: One diagnosis file identifies a concrete self-observation failure, cites evidence, and proposes a fix or follow-up task.
   Priority: medium
+  Evidence: Implemented in `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
+
+- [ ] Fix Codex work-cycle turn/output instrumentation [requires-opus] [skill: execute] [zero-resource]
+  Why: Some Codex `work-cycle` runs record `Turns: 0` and empty output, which makes self-observation and metrics analysis unreliable.
+  Done when: A regression test fixture for Codex `--json` output passes, and `work-cycle` logs show `Turns > 0` and non-empty output for a non-idle session.
+  Priority: medium
+  Evidence: Diagnosis at `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
 
 - [ ] Add one local example of a successful self-improvement loop [fleet-eligible] [skill: record] [zero-resource]
   Why: The strongest evidence for the meta-project is a full loop: detect a gap, change the system, then measure improvement.
