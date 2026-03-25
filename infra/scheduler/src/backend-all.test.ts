@@ -9,6 +9,9 @@ import {
   getBackend,
   parseOpenCodeMessage,
   parseCodexMessage,
+  createCodexExecJsonState,
+  consumeCodexExecJsonMessage,
+  finalizeCodexExecJsonState,
   isBillingError,
   isRateLimitError,
   getEffectiveBackendName,
@@ -245,6 +248,58 @@ describe("parseCodexMessage", () => {
 
   it("returns null for invalid JSON", () => {
     expect(parseCodexMessage("not json")).toBeNull();
+  });
+});
+
+describe("Codex CLI json accumulation", () => {
+  it("counts turns from turn.completed and falls back to tool output when assistant text is empty", () => {
+    const state = createCodexExecJsonState();
+    const lines = [
+      { type: "thread.started", thread_id: "thread-123" },
+      { type: "turn.started" },
+      { type: "item.started", item: { id: "item_0", type: "command_execution", command: "/bin/zsh -lc echo hi" } },
+      {
+        type: "item.completed",
+        item: { id: "item_0", type: "command_execution", command: "/bin/zsh -lc echo hi", aggregated_output: "hi\n", exit_code: 0 },
+      },
+      { type: "turn.completed", usage: { input_tokens: 1, output_tokens: 1 } },
+    ];
+    for (const line of lines) consumeCodexExecJsonMessage(state, line);
+    const finalized = finalizeCodexExecJsonState(state);
+    expect(finalized.sessionId).toBe("thread-123");
+    expect(finalized.numTurns).toBe(1);
+    expect(finalized.text).toContain("echo hi");
+    expect(finalized.text).toContain("hi");
+  });
+
+  it("uses Codex CLI turn events for numTurns even when multiple agent_message items appear in one turn", () => {
+    const state = createCodexExecJsonState();
+    const lines = [
+      { type: "thread.started", thread_id: "thread-123" },
+      { type: "turn.started" },
+      { type: "item.completed", item: { id: "item_0", type: "agent_message", text: "A" } },
+      { type: "item.completed", item: { id: "item_1", type: "agent_message", text: "B" } },
+      { type: "turn.completed", usage: { input_tokens: 1, output_tokens: 1 } },
+    ];
+    for (const line of lines) consumeCodexExecJsonMessage(state, line);
+    const finalized = finalizeCodexExecJsonState(state);
+    expect(finalized.numTurns).toBe(1);
+    expect(finalized.text).toBe("A\nB");
+  });
+
+  it("prefers reported result turns/text when present", () => {
+    const state = createCodexExecJsonState();
+    const lines = [
+      { type: "thread.started", thread_id: "thread-123" },
+      { type: "turn.started" },
+      { type: "turn.completed", usage: { input_tokens: 1, output_tokens: 1 } },
+      { type: "result", result: "Done", num_turns: 3, session_id: "session-abc", is_error: false },
+    ];
+    for (const line of lines) consumeCodexExecJsonMessage(state, line);
+    const finalized = finalizeCodexExecJsonState(state);
+    expect(finalized.sessionId).toBe("session-abc");
+    expect(finalized.numTurns).toBe(3);
+    expect(finalized.text).toBe("Done");
   });
 });
 

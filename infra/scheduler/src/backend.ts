@@ -172,64 +172,79 @@ export function resolveModelForBackend(
 export function parseCodexMessage(line: string): SDKMessage | null {
   try {
     const msg = JSON.parse(line);
+    return parseCodexMessageObject(msg);
+  } catch {
+    return null;
+  }
+}
+
+function parseCodexMessageObject(msg: unknown): SDKMessage | null {
+  try {
+    if (!msg || typeof msg !== "object") return null;
+    const parsed = msg as Record<string, unknown>;
+    const type = parsed.type;
 
     // Codex CLI v0.110+ stream-json schema (thread/turn/item events).
     // Example lines captured from `codex exec --json`:
     //   {"type":"thread.started","thread_id":"..."}
     //   {"type":"item.completed","item":{"type":"agent_message","text":"OK"}}
     //   {"type":"item.started","item":{"type":"command_execution","command":"/bin/zsh -lc ls",...}}
-    if (msg.type === "thread.started" && (msg.thread_id || msg.threadId || msg.session_id || msg.sessionId)) {
+    if (type === "thread.started" && (parsed.thread_id || parsed.threadId || parsed.session_id || parsed.sessionId)) {
       return {
         type: "system",
         subtype: "init",
-        session_id: msg.thread_id ?? msg.threadId ?? msg.session_id ?? msg.sessionId,
+        session_id: parsed.thread_id ?? parsed.threadId ?? parsed.session_id ?? parsed.sessionId,
       } as unknown as SDKMessage;
     }
 
-    if (msg.type === "item.completed" && msg.item?.type === "agent_message" && typeof msg.item?.text === "string") {
+    const item = parsed.item as Record<string, unknown> | undefined;
+    if (type === "item.completed" && item?.type === "agent_message" && typeof item?.text === "string") {
       return {
         type: "assistant",
-        message: { role: "assistant", content: [{ type: "text", text: msg.item.text }] },
+        message: { role: "assistant", content: [{ type: "text", text: item.text as string }] },
       } as unknown as SDKMessage;
     }
 
-    if (msg.type === "item.started" && msg.item?.type === "command_execution" && typeof msg.item?.command === "string") {
-      const cmd = msg.item.command as string;
+    if (type === "item.started" && item?.type === "command_execution" && typeof item?.command === "string") {
+      const cmd = item.command as string;
       return { type: "tool_use_summary", summary: `Shell \`${cmd.length > 80 ? cmd.slice(0, 80) + "..." : cmd}\`` } as unknown as SDKMessage;
     }
 
-    if (msg.type === "item.completed" && msg.item?.type === "command_execution") {
+    if (type === "item.completed" && item?.type === "command_execution") {
       return { type: "tool_call_completed" } as unknown as SDKMessage;
     }
 
-    if (msg.type === "assistant" && msg.message?.content) {
-      return msg as SDKMessage;
+    if (type === "assistant" && (parsed.message as Record<string, unknown> | undefined)?.content) {
+      return parsed as unknown as SDKMessage;
     }
 
-    if (msg.type === "system" && msg.subtype === "init") {
+    if (type === "system" && parsed.subtype === "init") {
       return {
         type: "system",
         subtype: "init",
-        session_id: msg.session_id ?? msg.sessionId ?? msg.id ?? "",
+        session_id: parsed.session_id ?? parsed.sessionId ?? parsed.id ?? "",
       } as unknown as SDKMessage;
     }
 
-    if (msg.type === "result") {
+    if (type === "result") {
       return {
         type: "result",
-        subtype: msg.subtype ?? "success",
-        duration_ms: msg.duration_ms ?? msg.durationMs ?? 0,
-        is_error: msg.is_error ?? false,
-        result: msg.result ?? msg.output_text ?? "",
-        session_id: msg.session_id ?? msg.sessionId ?? msg.id ?? "",
-        total_cost_usd: msg.total_cost_usd ?? 0,
-        num_turns: msg.num_turns ?? 0,
+        subtype: parsed.subtype ?? "success",
+        duration_ms: parsed.duration_ms ?? parsed.durationMs ?? 0,
+        is_error: parsed.is_error ?? false,
+        result: parsed.result ?? parsed.output_text ?? "",
+        session_id: parsed.session_id ?? parsed.sessionId ?? parsed.id ?? "",
+        total_cost_usd: parsed.total_cost_usd ?? 0,
+        num_turns: parsed.num_turns ?? 0,
       } as unknown as SDKMessage;
     }
 
-    if (msg.type === "tool_use" || msg.type === "tool_call") {
-      const toolName = msg.name ?? msg.tool_name ?? msg.tool?.name ?? msg.part?.tool ?? "tool";
-      const input = msg.input ?? msg.args ?? msg.part?.state?.input ?? {};
+    if (type === "tool_use" || type === "tool_call") {
+      const tool = parsed.tool as Record<string, unknown> | undefined;
+      const part = parsed.part as Record<string, unknown> | undefined;
+      const partState = (part?.state as Record<string, unknown> | undefined)?.input as Record<string, unknown> | undefined;
+      const toolName = parsed.name ?? parsed.tool_name ?? tool?.name ?? part?.tool ?? "tool";
+      const input = (parsed.input ?? parsed.args ?? partState ?? {}) as Record<string, unknown>;
       let detail = "";
       if (input.command) {
         const cmd = String(input.command);
@@ -244,7 +259,7 @@ export function parseCodexMessage(line: string): SDKMessage | null {
       return { type: "tool_use_summary", summary: `${toolName}${detail}` } as unknown as SDKMessage;
     }
 
-    if (msg.type === "tool_call_completed" || (msg.type === "tool_call" && msg.subtype === "completed")) {
+    if (type === "tool_call_completed" || (type === "tool_call" && parsed.subtype === "completed")) {
       return { type: "tool_call_completed" } as unknown as SDKMessage;
     }
 
@@ -252,6 +267,125 @@ export function parseCodexMessage(line: string): SDKMessage | null {
   } catch {
     return null;
   }
+}
+
+export type CodexExecJsonState = {
+  sessionId?: string;
+  assistantText: string;
+  assistantMessageCount: number;
+  turnStartedCount: number;
+  turnCompletedCount: number;
+  reportedTurns?: number;
+  reportedText?: string;
+  toolFallbackText: string;
+  toolFallbackCommandCount: number;
+  toolFallbackTruncated: boolean;
+  isError: boolean;
+};
+
+const CODEX_TOOL_FALLBACK_MAX_CHARS = 20_000;
+const CODEX_TOOL_FALLBACK_MAX_COMMANDS = 25;
+
+export function createCodexExecJsonState(): CodexExecJsonState {
+  return {
+    assistantText: "",
+    assistantMessageCount: 0,
+    turnStartedCount: 0,
+    turnCompletedCount: 0,
+    toolFallbackText: "",
+    toolFallbackCommandCount: 0,
+    toolFallbackTruncated: false,
+    isError: false,
+  };
+}
+
+export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unknown): void {
+  if (!raw || typeof raw !== "object") return;
+  const msg = raw as Record<string, unknown>;
+  const type = msg.type;
+  if (type === "thread.started") {
+    const threadId = (msg.thread_id ?? msg.threadId ?? msg.session_id ?? msg.sessionId);
+    if (typeof threadId === "string" && threadId) state.sessionId = threadId;
+    return;
+  }
+
+  if (type === "turn.started") {
+    state.turnStartedCount += 1;
+    return;
+  }
+
+  if (type === "turn.completed") {
+    state.turnCompletedCount += 1;
+    return;
+  }
+
+  if (type === "item.completed") {
+    const item = msg.item as Record<string, unknown> | undefined;
+    if (!item || typeof item !== "object") return;
+    if (item.type === "agent_message" && typeof item.text === "string") {
+      state.assistantMessageCount += 1;
+      const text = item.text.trimEnd();
+      if (text) {
+        if (state.assistantText) state.assistantText += "\n";
+        state.assistantText += text;
+      }
+      return;
+    }
+
+    if (item.type === "command_execution") {
+      if (state.toolFallbackTruncated) return;
+      if (state.toolFallbackCommandCount >= CODEX_TOOL_FALLBACK_MAX_COMMANDS) {
+        state.toolFallbackTruncated = true;
+        state.toolFallbackText += "\n\n[tool output truncated: too many commands]";
+        return;
+      }
+
+      const command = typeof item.command === "string" ? item.command : "";
+      const output = typeof item.aggregated_output === "string" ? item.aggregated_output : "";
+      const exitCode = typeof item.exit_code === "number" ? item.exit_code : null;
+
+      const header = command ? `$ ${command}` : "$ <command>";
+      const body = output.trimEnd();
+      const suffix = (exitCode != null && exitCode !== 0 && !body) ? `\n(exit_code: ${exitCode})` : "";
+
+      let chunk = header;
+      if (body) chunk += `\n${body}`;
+      if (suffix) chunk += suffix;
+
+      if (chunk.trim()) {
+        if (state.toolFallbackText) state.toolFallbackText += "\n\n";
+        state.toolFallbackText += chunk;
+        state.toolFallbackCommandCount += 1;
+      }
+
+      if (state.toolFallbackText.length > CODEX_TOOL_FALLBACK_MAX_CHARS) {
+        state.toolFallbackTruncated = true;
+        state.toolFallbackText = state.toolFallbackText.slice(0, CODEX_TOOL_FALLBACK_MAX_CHARS) +
+          "\n\n[tool output truncated]";
+      }
+
+      return;
+    }
+  }
+
+  if (type === "result") {
+    if (typeof msg.result === "string" && msg.result) state.reportedText = msg.result;
+    if (typeof msg.output_text === "string" && msg.output_text) state.reportedText = msg.output_text;
+    if (typeof msg.is_error === "boolean" && msg.is_error) state.isError = true;
+    if (typeof msg.session_id === "string" && msg.session_id) state.sessionId = msg.session_id;
+    if (typeof msg.sessionId === "string" && msg.sessionId) state.sessionId = msg.sessionId;
+    if (typeof msg.num_turns === "number" && msg.num_turns > 0) state.reportedTurns = msg.num_turns;
+    return;
+  }
+}
+
+export function finalizeCodexExecJsonState(state: CodexExecJsonState): { text: string; numTurns: number; sessionId?: string; ok: boolean } {
+  const text = (state.reportedText ?? state.assistantText).trim();
+  const finalText = text || state.toolFallbackText.trim();
+  const numTurns = (state.reportedTurns && state.reportedTurns > 0)
+    ? state.reportedTurns
+    : (state.turnCompletedCount || state.turnStartedCount || state.assistantMessageCount);
+  return { text: finalText, numTurns, sessionId: state.sessionId, ok: !state.isError };
 }
 
 abstract class BaseCodexBackend implements AgentBackend {
@@ -309,18 +443,23 @@ abstract class BaseCodexBackend implements AgentBackend {
       env: { ...process.env },
     });
 
-    let sessionId: string | undefined;
+    const streamState = createCodexExecJsonState();
 
     const result = new Promise<QueryResult>((resolve, reject) => {
-      let text = "";
-      let numTurns = 0;
-      let isError = false;
       let stderr = "";
 
       if (proc.stdout) {
         const rl = createInterface({ input: proc.stdout });
         rl.on("line", async (line) => {
-          const msg = parseCodexMessage(line);
+          let raw: unknown;
+          try {
+            raw = JSON.parse(line);
+          } catch {
+            return;
+          }
+
+          consumeCodexExecJsonMessage(streamState, raw);
+          const msg = parseCodexMessageObject(raw);
           if (!msg) return;
 
           if (onMessage) {
@@ -328,17 +467,18 @@ abstract class BaseCodexBackend implements AgentBackend {
           }
 
           if (msg.type === "system" && "subtype" in msg && (msg as Record<string, unknown>).subtype === "init") {
-            sessionId = (msg as Record<string, unknown>).session_id as string;
+            streamState.sessionId = (msg as Record<string, unknown>).session_id as string;
           }
 
           if (msg.type === "assistant") {
-            numTurns++;
             const content = (msg as Record<string, unknown>).message as { content?: Array<{ type: string; text?: string }> } | undefined;
             if (content?.content) {
               for (const block of content.content) {
                 if (block.type === "text" && block.text) {
-                  if (text) text += "\n";
-                  text += block.text;
+                  // Keep assistant text accumulation for compatibility, but do not use this
+                  // for `numTurns` (Codex CLI emits explicit `turn.*` events).
+                  if (streamState.assistantText) streamState.assistantText += "\n";
+                  streamState.assistantText += block.text;
                 }
               }
             }
@@ -346,10 +486,10 @@ abstract class BaseCodexBackend implements AgentBackend {
 
           if (msg.type === "result") {
             const r = msg as unknown as { result?: string; is_error?: boolean; session_id?: string; num_turns?: number };
-            if (r.result) text = r.result;
-            if (r.is_error) isError = true;
-            if (r.session_id) sessionId = r.session_id;
-            if (typeof r.num_turns === "number" && r.num_turns > 0) numTurns = r.num_turns;
+            if (r.result) streamState.reportedText = r.result;
+            if (r.is_error) streamState.isError = true;
+            if (r.session_id) streamState.sessionId = r.session_id;
+            if (typeof r.num_turns === "number" && r.num_turns > 0) streamState.reportedTurns = r.num_turns;
           }
         });
       }
@@ -366,24 +506,26 @@ abstract class BaseCodexBackend implements AgentBackend {
 
       proc.on("close", (code) => {
         const durationMs = Date.now() - start;
-        if (code !== 0 && !text) {
+        const finalized = finalizeCodexExecJsonState(streamState);
+        const finalText = finalized.text || stderr.trim();
+        if (code !== 0 && !finalText) {
           reject(new Error(
             `${this.name} exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`,
           ));
           return;
         }
         resolve({
-          text,
-          ok: !isError,
-          sessionId,
+          text: finalText,
+          ok: finalized.ok,
+          sessionId: finalized.sessionId,
           costUsd: undefined,
-          numTurns,
+          numTurns: finalized.numTurns,
           durationMs,
         });
       });
     });
 
-    return { proc, result, getSessionId: () => sessionId };
+    return { proc, result, getSessionId: () => streamState.sessionId };
   }
 
   async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {

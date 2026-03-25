@@ -45,7 +45,12 @@ The Codex CLI `--json` stream schema is not being parsed correctly by `parseCode
 1. “assistant” events are not recognized (no `msg.message.content`), leading to `numTurns` staying at 0, and
 2. the final “result” payload does not populate `result`/`output_text` as expected (or is never seen), leaving `text` empty.
 
-Separately, even if the system were able to increment turns in-memory, `agent.ts` currently returns the backend-reported turn count rather than the in-memory counter, so the persisted `Turns:` field can still be wrong when a backend doesn’t report turns reliably.
+**Update (same day, based on follow-up evidence):** even when Codex CLI events are successfully parsed, a *turn* can contain only tool items (`item.*` command_execution) and no `item.completed` `agent_message`. In that case:
+
+- `spawnCodex()` previously counted turns only via assistant messages, so `numTurns` stayed at 0 even though `turn.completed` events existed.
+- `agentResult.text` stayed empty because tool output (`item.completed` `command_execution.aggregated_output`) was discarded, leaving `.scheduler/logs/*` with an empty `## output` section.
+
+Fix direction: treat Codex CLI `turn.*` events as the authoritative turn counter and use command execution output as a fallback log payload when assistant text is empty.
 
 ## Fix (immediate)
 

@@ -14,6 +14,13 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Re-verify Codex scheduler `numTurns` instrumentation)
+
+Claimed the high-priority verification task to ensure scheduled runs (not just smoke runs) produce non-empty `## output` logs and report `numTurns > 0` in `.scheduler/metrics/sessions.jsonl`.
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"a58b2b90f4a491a1","taskId":"68d77e543be2","taskText":"Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`","project":"akari","agentId":"work-session-mn5im4qz","claimedAt":1774411307495,"expiresAt":1774414007495}}`
+
 ### 2026-03-25 (Human intervention rate snapshot)
 
 Completed the task to measure a local human intervention rate using the scheduler’s session metrics JSONL.
