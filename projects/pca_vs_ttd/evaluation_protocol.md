@@ -96,6 +96,8 @@ For a hyperparameter sweep, create a single table (CSV preferred) with columns:
 
 2. **Supporting plot**: `compression_ratio` vs `psnr_db` (x log scale, y linear).
 
+Note: this repo’s `.gitignore` ignores `*.png` / `*.jpg` by default; prefer committing plots as `*.pdf` (or `*.svg`) so the artifacts are versioned.
+
 ## Comparison rule (avoid single-point conclusions)
 
 Do not conclude “TTD is better/worse” from one arbitrary hyperparameter point. Prefer:

@@ -44,3 +44,15 @@
   Done when: `projects/pca_vs_ttd/benchmark_report.md` exists summarizing dataset, methods, and results with the agreed protocol.
   Priority: high
   Evidence: `projects/pca_vs_ttd/benchmark_report.md`
+
+### Phase 3: Publishable report
+
+- [ ] Finalize the benchmark report narrative and recommendation [skill: record] [zero-resource]
+  Why: The report is still marked "draft" and should clearly state how to compare methods (full curve overlay vs matched-compression vs matched-quality), with explicit provenance.
+  Done when: `projects/pca_vs_ttd/benchmark_report.md` is updated to a non-draft status and includes a short “Recommendation” section describing the comparison rule and citing the sweep artifacts.
+  Priority: medium
+
+- [ ] (Optional) Expand the TTD sweep beyond equal ranks [skill: execute]
+  Why: Equal-rank `(r, r)` TT is a convenient baseline, but unequal ranks may better match the data’s anisotropy (T vs H vs W) and improve the curve.
+  Done when: `projects/pca_vs_ttd/experiments/` contains an additional sweep record that includes at least 3 unequal-rank settings and updates the trade-off overlay plot.
+  Priority: low

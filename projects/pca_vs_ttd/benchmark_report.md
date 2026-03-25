@@ -9,8 +9,7 @@ This report consolidates the current PCA vs Tensor-Train Decomposition (TTD) ben
 
 - Dataset: synthetic grayscale tensor `(T, H, W) = (32, 64, 64)` (v1)
 - Implementations: PCA baseline and TT-SVD (order-3) TTD baseline
-- Results included here: **single-point** baselines (PCA `k=8`, TTD `r1=r2=8`)
-- Pending: full hyperparameter sweep and trade-off curves (see “Next steps”)
+- Results included here: baseline points + a first hyperparameter sweep trade-off curve (v1)
 
 ## Inputs (provenance)
 
@@ -23,6 +22,11 @@ Evaluation protocol:
 Baseline result files:
 - PCA (`k=8`): `projects/pca_vs_ttd/experiments/pca-baseline/results/pca_baseline_k8.json`
 - TTD (TT-SVD, `ranks=(8,8)`): `projects/pca_vs_ttd/experiments/ttd-baseline/results/ttd_baseline_r8_8.json`
+
+Sweep artifacts (trade-off v1):
+- Experiment record: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/EXPERIMENT.md`
+- Summary table: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`
+- Plots: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_rel_fro_vs_compression.pdf`, `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_psnr_vs_compression.pdf`
 
 ## Methods (summarized)
 
@@ -60,13 +64,21 @@ Dataset shape: `(32, 64, 64)` → `original_floats = 131,072`.
 
 Interpretation (single-point; not a curve conclusion): at these baselines, TTD achieves substantially higher compression (≈7.63× vs PCA) with modestly worse reconstruction (≈1.18× higher rel-Fro error; −1.43 dB PSNR).
 
-## Next steps (trade-off curves)
+## Results (trade-off sweep v1)
 
-The project’s “trade-off analysis” task is to sweep hyperparameters and overlay both methods on the same axes:
+Sweep scope (per `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/EXPERIMENT.md`):
+- PCA: `k ∈ {0, 1, 2, 4, 8, 16}`
+- TTD: `r1=r2 ∈ {4, 8, 12, 16, 23}`
 
-- x-axis: `compression_ratio` (log scale recommended)
-- y-axis: `rel_fro_error` (log scale recommended)
+Matched-compression example near PCA `k=8` (~3.53×):
+- PCA `k=8`: rel Fro error `0.03790`, PSNR `37.63 dB`
+- TTD `r1=r2=23` (~3.63×): rel Fro error `0.02632`, PSNR `40.80 dB`
 
-Initial sweep scope proposal (and closed-form compression formulas) live in:
+Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`.
+
+## Next steps
+
+- Decide how the final write-up will present comparisons: full curve overlay, matched-compression slices, or both.
+- (Optional) Expand the TTD sweep to unequal ranks `(r1, r2)` and/or more densely sample around the “matched compression” region.
+- Update the sweep scope proposal (and closed-form compression formulas) live in:
 - `projects/pca_vs_ttd/baseline_comparison.md`
-
