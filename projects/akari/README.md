@@ -27,6 +27,7 @@ Changes:
 
 Verification:
 - `cd infra/scheduler && npx vitest run src/backend-all.test.ts src/sleep-guard.test.ts`
+- Output: `Test Files  2 passed (2)`, `Tests  97 passed (97)`
 - Smoke run via executor produced a `work-cycle` log with non-empty output and `Turns: 1`: `.scheduler/logs/work-cycle-2026-03-25T01-47-37-609Z.log`.
 
 Note: Task claiming could not be used because the scheduler control API was not reachable (`curl: (7) Failed to connect to localhost port 8420 ...`).
@@ -37,7 +38,7 @@ Task-selected: Fix Codex work-cycle turn/output instrumentation
 Task-completed: yes
 Approvals-created: 0
 Files-changed: 9
-Commits: 2
+Commits: 3
 Compound-actions: none
 Resources-consumed: OpenAI via `codex exec` (cost not captured in scheduler metrics)
 Budget-remaining: n/a
