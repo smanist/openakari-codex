@@ -38,6 +38,12 @@
   Evidence: Diagnosis at `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
   Evidence: Added Codex CLI stream-json parsing + tests; smoke log at `.scheduler/logs/work-cycle-2026-03-25T01-47-37-609Z.log`; fixture at `infra/scheduler/src/__fixtures__/codex-cli-json-stream.sample.jsonl`.
 
+- [ ] Re-verify Codex scheduler sessions record non-empty output and `Turns > 0` [requires-opus] [skill: diagnose] [zero-resource]
+  Why: Despite the instrumentation fix + smoke log, subsequent scheduled runs still produced empty `.scheduler/logs/*` output with `Turns: 0`, which blocks metrics analysis and makes “fixed” claims unverifiable.
+  Evidence: Empty output logs: `.scheduler/logs/work-cycle-2026-03-25T03-11-33-249Z.log`, `.scheduler/logs/pca-v-ttd-2026-03-25T02-23-32-461Z.log`.
+  Done when: A scheduled `work-cycle` run (not a smoke run) produces a log file with non-empty `## output` and `Turns > 0`, and the corresponding `.scheduler/metrics/sessions.jsonl` row reports `numTurns > 0`.
+  Priority: high
+
 - [ ] Add one local example of a successful self-improvement loop [fleet-eligible] [skill: record] [zero-resource]
   Why: The strongest evidence for the meta-project is a full loop: detect a gap, change the system, then measure improvement.
   Done when: README log entry or analysis file records a before/after operational improvement with provenance.
