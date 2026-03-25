@@ -14,6 +14,15 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (New project: multi-fidelity GP correction)
+
+Created `projects/multi_fidelity_gp/` via `/project scaffold` for a human-initiated research project on one-dimensional multi-fidelity regression. Mission: measure how much a Gaussian-process residual correction can improve a fixed low-fidelity approximation when only limited high-fidelity data are available, using a synthetic benchmark with holdout high-fidelity evaluation.
+
+Verification:
+- `git diff --check -- projects/multi_fidelity_gp projects/akari/README.md` -> no output
+
+Sources: `projects/multi_fidelity_gp/README.md`, `projects/multi_fidelity_gp/plans/2026-03-25-initial-benchmark.md`
+
 ### 2026-03-25 (Re-verify Codex scheduler turn/output instrumentation — end-to-end)
 
 Selected the high-priority task “Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`” because the last 10 scheduler sessions in `.scheduler/metrics/sessions.jsonl` still report `numTurns: 0` (which makes efficiency metrics like “findings/$” undefined due to `costUsd: 0` and breaks downstream self-observation).
