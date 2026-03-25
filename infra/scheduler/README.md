@@ -50,6 +50,9 @@ node dist/cli.js run <job-id>
 # Start the daemon (foreground)
 node dist/cli.js start
 
+# Stop the daemon
+node dist/cli.js stop
+
 # Check status
 node dist/cli.js status
 ```
@@ -230,6 +233,15 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-03-25 — Add a `stop` command for the scheduler daemon
+
+Added `node dist/cli.js stop`, which reads `.scheduler/scheduler.pid`, sends `SIGTERM` to the running scheduler, and lets the daemon's existing signal handler perform a graceful shutdown and release the lockfile. This avoids manual PID lookup when the scheduler was started from another terminal.
+
+Verification: `cd infra/scheduler && npm test -- src/cli-stop.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  3 passed (3)`
 
 ### 2026-03-25 — Prevent removed jobs from being resurrected by stale scheduler state
 

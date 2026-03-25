@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** CLI for the akari scheduler. Manages cron jobs and runs the scheduler daemon. */
 
-import { readFileSync, writeFileSync, accessSync } from "node:fs";
+import { readFileSync, writeFileSync, accessSync, existsSync, unlinkSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -9,6 +9,7 @@ import {
   acquireLock,
   releaseLock,
   getSchedulerLockfilePath,
+  isPidAlive,
 } from "./instance-guard.js";
 
 // Load environment variables from two layers:
@@ -90,6 +91,7 @@ akari — Cron scheduler for autonomous agent sessions
 
 Commands:
   start                     Run the scheduler daemon (foreground)
+  stop                      Stop the running scheduler daemon
   add <options>             Add a new scheduled job
   list                      List all jobs
   remove <id>               Remove a job
@@ -183,6 +185,70 @@ export async function waitForActiveSessions(timeoutMs = 300_000): Promise<void> 
   console.warn(`[evolution] Timeout waiting for sessions, proceeding with restart anyway.`);
 }
 
+export interface StopSchedulerOpts {
+  lockfilePath: string;
+  killFn?: (pid: number, signal?: NodeJS.Signals | number) => void;
+  isPidAlive?: (pid: number) => boolean;
+}
+
+export interface StopSchedulerResult {
+  stopped: boolean;
+  pid?: number;
+  message: string;
+}
+
+export async function stopScheduler(opts: StopSchedulerOpts): Promise<StopSchedulerResult> {
+  const killFn = opts.killFn ?? process.kill.bind(process);
+  const isPidAliveFn = opts.isPidAlive ?? isPidAlive;
+
+  if (!existsSync(opts.lockfilePath)) {
+    return { stopped: false, message: "No running scheduler found." };
+  }
+
+  let pid: number;
+  try {
+    const content = readFileSync(opts.lockfilePath, "utf-8").trim();
+    pid = parseInt(content, 10);
+    if (isNaN(pid)) {
+      unlinkSync(opts.lockfilePath);
+      return { stopped: false, message: "Removed invalid scheduler lockfile." };
+    }
+  } catch (err) {
+    return {
+      stopped: false,
+      message: `Failed to read scheduler lockfile: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  if (!isPidAliveFn(pid)) {
+    try {
+      unlinkSync(opts.lockfilePath);
+    } catch {
+      // best-effort stale lock cleanup
+    }
+    return {
+      stopped: false,
+      pid,
+      message: `Removed stale scheduler lockfile for PID ${pid}.`,
+    };
+  }
+
+  try {
+    killFn(pid, "SIGTERM");
+    return {
+      stopped: true,
+      pid,
+      message: `Sent SIGTERM to scheduler PID ${pid}.`,
+    };
+  } catch (err) {
+    return {
+      stopped: false,
+      pid,
+      message: `Failed to stop scheduler PID ${pid}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const cmd = args[0];
@@ -194,6 +260,8 @@ async function main(): Promise<void> {
 
   if (cmd === "start") {
     await cmdStart();
+  } else if (cmd === "stop") {
+    await cmdStop();
   } else if (cmd === "add") {
     await cmdAdd(args.slice(1));
   } else if (cmd === "list") {
@@ -753,6 +821,13 @@ async function cmdStart(): Promise<void> {
 
   // Keep alive
   await new Promise(() => {});
+}
+
+async function cmdStop(): Promise<void> {
+  const persistBaseDir = new URL("../../../.scheduler", import.meta.url).pathname;
+  const lockfilePath = getSchedulerLockfilePath(persistBaseDir);
+  const result = await stopScheduler({ lockfilePath });
+  console.log(result.message);
 }
 
 async function cmdAdd(args: string[]): Promise<void> {
