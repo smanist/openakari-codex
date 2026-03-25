@@ -189,6 +189,9 @@ export interface StopSchedulerOpts {
   lockfilePath: string;
   killFn?: (pid: number, signal?: NodeJS.Signals | number) => void;
   isPidAlive?: (pid: number) => boolean;
+  waitTimeoutMs?: number;
+  pollIntervalMs?: number;
+  sleepFn?: (ms: number) => Promise<void>;
 }
 
 export interface StopSchedulerResult {
@@ -200,6 +203,9 @@ export interface StopSchedulerResult {
 export async function stopScheduler(opts: StopSchedulerOpts): Promise<StopSchedulerResult> {
   const killFn = opts.killFn ?? process.kill.bind(process);
   const isPidAliveFn = opts.isPidAlive ?? isPidAlive;
+  const waitTimeoutMs = opts.waitTimeoutMs ?? 5_000;
+  const pollIntervalMs = opts.pollIntervalMs ?? 100;
+  const sleepFn = opts.sleepFn ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
   if (!existsSync(opts.lockfilePath)) {
     return { stopped: false, message: "No running scheduler found." };
@@ -235,10 +241,39 @@ export async function stopScheduler(opts: StopSchedulerOpts): Promise<StopSchedu
 
   try {
     killFn(pid, "SIGTERM");
+
+    const deadline = Date.now() + waitTimeoutMs;
+    while (Date.now() < deadline) {
+      const alive = isPidAliveFn(pid);
+      const lockExists = existsSync(opts.lockfilePath);
+      if (!alive) {
+        if (lockExists) {
+          try {
+            unlinkSync(opts.lockfilePath);
+          } catch {
+            // best-effort stale lock cleanup after observed exit
+          }
+        }
+        return {
+          stopped: true,
+          pid,
+          message: `Scheduler PID ${pid} stopped.`,
+        };
+      }
+      if (!lockExists) {
+        return {
+          stopped: true,
+          pid,
+          message: `Scheduler PID ${pid} stopped.`,
+        };
+      }
+      await sleepFn(pollIntervalMs);
+    }
+
     return {
       stopped: true,
       pid,
-      message: `Sent SIGTERM to scheduler PID ${pid}.`,
+      message: `Sent SIGTERM to scheduler PID ${pid}; waiting for graceful shutdown.`,
     };
   } catch (err) {
     return {

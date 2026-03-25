@@ -234,6 +234,15 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-03-25 — Make `stop` complete shutdown in one invocation
+
+Updated `node dist/cli.js stop` to wait briefly for the scheduler to exit after sending `SIGTERM`, and to clean up the lockfile in the same invocation once exit is observed. This avoids the confusing prior behavior where the first `stop` terminated the daemon, a second `stop` removed the stale lockfile, and only a third reported "No running scheduler found."
+
+Verification: `cd infra/scheduler && npm test -- src/cli-stop.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  4 passed (4)`
+
 ### 2026-03-25 — Add a `stop` command for the scheduler daemon
 
 Added `node dist/cli.js stop`, which reads `.scheduler/scheduler.pid`, sends `SIGTERM` to the running scheduler, and lets the daemon's existing signal handler perform a graceful shutdown and release the lockfile. This avoids manual PID lookup when the scheduler was started from another terminal.
