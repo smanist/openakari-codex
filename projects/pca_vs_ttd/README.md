@@ -32,7 +32,8 @@ Task-selected: Run a hyperparameter trade-off study for PCA and TTD
 Task-completed: yes
 Approvals-created: 0
 Files-changed: 20
-Commits: 1
+Files-changed: 22
+Commits: 2
 Compound-actions: none
 Resources-consumed: none
 Budget-remaining: llm_api_calls 0/0, cpu_hours 0.1/0.1 (ledger empty)

@@ -104,7 +104,7 @@ def _plot_tradeoff(
     ax.grid(True, which="both", linestyle=":", linewidth=0.6)
     ax.legend()
     fig.tight_layout()
-    fig.savefig(out_rel_fro, dpi=200)
+    fig.savefig(out_rel_fro)
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -117,7 +117,7 @@ def _plot_tradeoff(
     ax.grid(True, which="both", linestyle=":", linewidth=0.6)
     ax.legend()
     fig.tight_layout()
-    fig.savefig(out_psnr, dpi=200)
+    fig.savefig(out_psnr)
     plt.close(fig)
 
 
@@ -223,8 +223,8 @@ def main() -> None:
 
     _plot_tradeoff(
         rows,
-        out_rel_fro=out_dir / "tradeoff_rel_fro_vs_compression.png",
-        out_psnr=out_dir / "tradeoff_psnr_vs_compression.png",
+        out_rel_fro=out_dir / "tradeoff_rel_fro_vs_compression.pdf",
+        out_psnr=out_dir / "tradeoff_psnr_vs_compression.pdf",
     )
 
     print(f"Wrote: {summary_csv}")
@@ -232,4 +232,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

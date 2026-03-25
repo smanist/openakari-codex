@@ -27,7 +27,7 @@ Sweep:
 Outputs (written under `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/`):
 - Per-run JSON: `pca_k*.json`, `ttd_r*_* .json`
 - Summary table: `sweep_summary.csv`
-- Plots: `tradeoff_rel_fro_vs_compression.png`, `tradeoff_psnr_vs_compression.png`
+- Plots: `tradeoff_rel_fro_vs_compression.pdf`, `tradeoff_psnr_vs_compression.pdf`
 
 ## Verification
 
@@ -38,8 +38,8 @@ Run:
 
 Artifacts:
 - `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`
-- `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_rel_fro_vs_compression.png`
-- `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_psnr_vs_compression.png`
+- `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_rel_fro_vs_compression.pdf`
+- `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_psnr_vs_compression.pdf`
 
 Key comparison (matched compression ≈ 3.5×):
 - PCA `k=8`: compression ratio `3.5310×`, rel Fro error `0.03790`, PSNR `37.63 dB`.
