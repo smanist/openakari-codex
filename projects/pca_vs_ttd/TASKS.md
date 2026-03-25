@@ -19,10 +19,11 @@
 
 ### Phase 2: Trade-off analysis
 
-- [ ] Compare the compression rate and reconstruction accuracy from PCA and TTD [skill: execute]
+- [x] Compare the compression rate and reconstruction accuracy from PCA and TTD [skill: execute]
   Why: An initial comparison is needed to determine the range of trade-off study regarding to varying hyperparameters.
   Done when: Comparison results documented.  The scope of trade-off study determined and documented.
   Priority: high
+  Evidence: `projects/pca_vs_ttd/baseline_comparison.md`
 
 ## Mission gap tasks
 

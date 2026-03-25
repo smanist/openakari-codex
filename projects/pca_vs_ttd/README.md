@@ -12,6 +12,23 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (PCA vs TTD baseline comparison + sweep scope)
+
+Compared the existing PCA (`k=8`) and TTD (`ranks=(8,8)`) baseline results on the synthetic dataset and wrote a short note proposing the initial hyperparameter sweep scope for the trade-off study: `projects/pca_vs_ttd/baseline_comparison.md`.
+
+Task claiming attempt (per SOP) could not be executed because the scheduler control API was not reachable (`curl: (7) Failed to connect to localhost port 8420 ...: Connection refused`).
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Compare the compression rate and reconstruction accuracy from PCA and TTD
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: cpu_hours unknown/0.1 (no ledger.yaml)
+
 ### 2026-03-25 (TTD baseline implementation)
 
 Implemented a Tensor-Train Decomposition (TTD) baseline via TT-SVD on the synthetic dataset and recorded the compression vs reconstruction metrics under `projects/pca_vs_ttd/experiments/ttd-baseline/`.
