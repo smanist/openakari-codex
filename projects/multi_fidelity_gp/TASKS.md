@@ -34,9 +34,11 @@
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: high
 
-- [ ] Sweep the amount of high-fidelity training data [fleet-eligible] [skill: execute]
+- [x] Sweep the amount of high-fidelity training data [fleet-eligible] [skill: execute]
   Why: The practical question is when residual correction meaningfully helps under sparse high-fidelity sampling.
   Done when: At least three high-fidelity training-set sizes are evaluated and the resulting accuracy and calibration trends are documented.
+  Evidence: `projects/multi_fidelity_gp/experiments/hf-size-sweep/`
+  Verification: `python projects/multi_fidelity_gp/experiments/hf-size-sweep/sweep.py`
   Priority: medium
 
 - [x] Report latent vs observation uncertainty metrics in holdout evaluation [fleet-eligible] [skill: execute]
@@ -62,4 +64,9 @@
   Why: Interval coverage can saturate on small test sets; PIT or standardized residual diagnostics can detect over/under-dispersion more sensitively.
   Done when: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` reports standardized residual summary stats (mean/std) and within-1σ / within-2σ rates for both latent and observation predictive distributions, and `results.json` includes the same fields.
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
+  Priority: medium
+
+- [ ] Diagnose residual GP overconfidence at ultra-sparse N_train (e.g., 4 points) [requires-opus] [skill: diagnose]
+  Why: The HF-size sweep shows the residual correction GP can become catastrophically overconfident at `N_train=4` (95% coverage ≈ `0.0125` with huge NLL), even though it outperforms the HF GP on RMSE at `N_train=8`.
+  Done when: The root cause is identified and a documented safeguard (e.g., hyperparameter bounds/priors, jitter/noise floor strategy, or alternative selection objective) yields non-degenerate uncertainty metrics at `N_train=4` without regressing `N_train=8/12`.
   Priority: medium

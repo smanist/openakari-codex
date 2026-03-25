@@ -1,0 +1,241 @@
+{
+  "preference_rule": "rmse + observation_coverage",
+  "runs": [
+    {
+      "gp_hyperparams": {
+        "high_fidelity_gp": {
+          "length_scale": 0.95,
+          "noise_variance": 0.17942186286103573,
+          "signal_variance": 1.7942186286103572
+        },
+        "residual_gp": {
+          "length_scale": 3.8,
+          "noise_variance": 5.214725682183963e-07,
+          "signal_variance": 0.5214725682183964
+        }
+      },
+      "point_metrics": {
+        "high_fidelity_gp": {
+          "mae": 0.4801890260857856,
+          "rmse": 0.6134050748674255
+        },
+        "low_fidelity_only": {
+          "mae": 0.3976800453888142,
+          "rmse": 0.4867607524877902
+        },
+        "residual_gp_correction": {
+          "mae": 0.5281626665732077,
+          "rmse": 0.6725023429207575
+        }
+      },
+      "preference": {
+        "preferred": false
+      },
+      "train_indices": [
+        0,
+        4,
+        7,
+        11
+      ],
+      "train_points": 4,
+      "uncertainty_metrics": {
+        "high_fidelity_gp": {
+          "latent": {
+            "coverage_68": 0.825,
+            "coverage_95": 1.0,
+            "mean_width_68": 1.5779453112756752,
+            "mean_width_95": 3.092715979674168,
+            "nll": 0.8346206911959392
+          },
+          "observation": {
+            "coverage_68": 1.0,
+            "coverage_95": 1.0,
+            "mean_width_68": 1.8105231469604852,
+            "mean_width_95": 3.5485601612186715,
+            "nll": 0.95448992328194
+          }
+        },
+        "residual_gp_correction": {
+          "latent": {
+            "coverage_68": 0.0125,
+            "coverage_95": 0.0125,
+            "mean_width_68": 0.02640782653495042,
+            "mean_width_95": 0.051758388918483986,
+            "nll": 774.9416790841008
+          },
+          "observation": {
+            "coverage_68": 0.0125,
+            "coverage_95": 0.0125,
+            "mean_width_68": 0.02649406127103716,
+            "mean_width_95": 0.051927405895430344,
+            "nll": 763.0310913885057
+          }
+        }
+      }
+    },
+    {
+      "gp_hyperparams": {
+        "high_fidelity_gp": {
+          "length_scale": 0.6909090909090909,
+          "noise_variance": 0.0648657411727085,
+          "signal_variance": 0.648657411727085
+        },
+        "residual_gp": {
+          "length_scale": 0.6909090909090909,
+          "noise_variance": 0.0301537669218668,
+          "signal_variance": 0.301537669218668
+        }
+      },
+      "point_metrics": {
+        "high_fidelity_gp": {
+          "mae": 0.20175573924251317,
+          "rmse": 0.23918497681833492
+        },
+        "low_fidelity_only": {
+          "mae": 0.3976800453888142,
+          "rmse": 0.4867607524877902
+        },
+        "residual_gp_correction": {
+          "mae": 0.08114525258487637,
+          "rmse": 0.10188900883641348
+        }
+      },
+      "preference": {
+        "preferred": false
+      },
+      "train_indices": [
+        0,
+        2,
+        3,
+        5,
+        6,
+        8,
+        9,
+        11
+      ],
+      "train_points": 8,
+      "uncertainty_metrics": {
+        "high_fidelity_gp": {
+          "latent": {
+            "coverage_68": 0.95,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.6575024843482832,
+            "mean_width_95": 1.2886811890682455,
+            "nll": -0.024742439248465156
+          },
+          "observation": {
+            "coverage_68": 0.975,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.8389531216830726,
+            "mean_width_95": 1.644317903216272,
+            "nll": 0.17047497467493208
+          }
+        },
+        "residual_gp_correction": {
+          "latent": {
+            "coverage_68": 0.9875,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.4482914879760619,
+            "mean_width_95": 0.8786351710089519,
+            "nll": -0.5262463472797464
+          },
+          "observation": {
+            "coverage_68": 1.0,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.5720062694037236,
+            "mean_width_95": 1.1211116869624136,
+            "nll": -0.2919354141157048
+          }
+        }
+      }
+    },
+    {
+      "gp_hyperparams": {
+        "high_fidelity_gp": {
+          "length_scale": 1.3818181818181818,
+          "noise_variance": 8.194735998613177e-05,
+          "signal_variance": 2.458420799583953
+        },
+        "residual_gp": {
+          "length_scale": 1.3818181818181818,
+          "noise_variance": 2.3016549872388844e-05,
+          "signal_variance": 2.3016549872388845
+        }
+      },
+      "point_metrics": {
+        "high_fidelity_gp": {
+          "mae": 0.0018699351996197087,
+          "rmse": 0.0023916892252866394
+        },
+        "low_fidelity_only": {
+          "mae": 0.3976800453888142,
+          "rmse": 0.4867607524877902
+        },
+        "residual_gp_correction": {
+          "mae": 0.0022971552995717584,
+          "rmse": 0.004677779515376228
+        }
+      },
+      "preference": {
+        "preferred": false
+      },
+      "train_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "train_points": 12,
+      "uncertainty_metrics": {
+        "high_fidelity_gp": {
+          "latent": {
+            "coverage_68": 1.0,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.01939047839865605,
+            "mean_width_95": 0.03800463930436776,
+            "nll": -3.7238667471489166
+          },
+          "observation": {
+            "coverage_68": 1.0,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.026836962689106153,
+            "mean_width_95": 0.052599480325093276,
+            "nll": -3.394546347121987
+          }
+        },
+        "residual_gp_correction": {
+          "latent": {
+            "coverage_68": 0.9875,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.011461952736435244,
+            "mean_width_95": 0.022465014555913425,
+            "nll": -4.247854778695548
+          },
+          "observation": {
+            "coverage_68": 0.9875,
+            "coverage_95": 1.0,
+            "mean_width_68": 0.015233944779872619,
+            "mean_width_95": 0.02985798311102226,
+            "nll": -3.9481400566231413
+          }
+        }
+      }
+    }
+  ],
+  "subset_rule": "even_indices_from_default_train_grid",
+  "target_coverage": 0.95,
+  "test_points": 80,
+  "train_sizes": [
+    4,
+    8,
+    12
+  ]
+}
