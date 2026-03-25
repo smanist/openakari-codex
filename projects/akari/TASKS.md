@@ -18,10 +18,11 @@
   Done when: A short analysis computes intervention events per session over at least 2 time windows and records the result.
   Priority: medium
 
-- [ ] Reconcile missing doc references in SOP/skills [requires-opus] [skill: govern] [zero-resource]
+- [x] Reconcile missing doc references in SOP/skills [requires-opus] [skill: govern] [zero-resource]
   Why: `/orient` and `docs/sops/autonomous-work-cycle.md` reference `docs/status.md` and `docs/conventions/*`, but this repo checkout does not contain those paths (attempts to read them fail with "No such file or directory"). This causes repeated orient friction and can hide real missing-context issues.
   Done when: Either (a) the referenced docs exist with correct content, or (b) the SOP/skill/AGENTS references are updated to only point at existing docs (or to explicitly treat them as optional with fallback behavior).
   Priority: medium
+  Evidence: Added `docs/status.md`, `docs/conventions/*`, and `docs/schemas/*`.
 
 - [x] Write one self-observation diagnosis from operational evidence [requires-opus] [skill: diagnose] [zero-resource]
   Why: The meta-project only becomes real when the system diagnoses its own failure modes from its own logs and artifacts.
