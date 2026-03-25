@@ -1,7 +1,11 @@
 # Initial Benchmark Plan
 
 Date: 2026-03-25
-Status: proposed for execution
+Status: partially executed (models + initial holdout evaluation complete)
+
+Execution notes (2026-03-25):
+- Implemented models in `projects/multi_fidelity_gp/experiments/residual-gp/`.
+- Ran initial holdout evaluation in `projects/multi_fidelity_gp/experiments/holdout-eval/`.
 
 ## Research question
 

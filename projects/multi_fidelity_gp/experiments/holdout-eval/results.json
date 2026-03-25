@@ -1,0 +1,43 @@
+{
+  "gp_hyperparams": {
+    "high_fidelity_gp": {
+      "length_scale": 2.7636363636363637,
+      "noise_variance": 1e-06,
+      "signal_variance": 0.8194735998613177
+    },
+    "residual_gp": {
+      "length_scale": 2.7636363636363637,
+      "noise_variance": 1e-06,
+      "signal_variance": 0.23016549872388845
+    }
+  },
+  "metrics": {
+    "high_fidelity_gp": {
+      "coverage_95": 0.025,
+      "mae": 0.025725808953174112,
+      "mean_width_95": 0.003326927453402133,
+      "nll": 772.1977667747533,
+      "rmse": 0.030921689128618566
+    },
+    "low_fidelity_only": {
+      "coverage_95": 0.0,
+      "mae": 0.3976800453888142,
+      "mean_width_95": 0.0,
+      "nll": 118468015068.34334,
+      "rmse": 0.4867607524877902
+    },
+    "residual_gp_correction": {
+      "coverage_95": 0.0375,
+      "mae": 0.04185432792472844,
+      "mean_width_95": 0.003191532816347946,
+      "nll": 2049.252248353968,
+      "rmse": 0.05005558441561884
+    }
+  },
+  "preference": {
+    "preferred": false,
+    "rule": "rmse + coverage"
+  },
+  "test_points": 80,
+  "train_points": 12
+}\n

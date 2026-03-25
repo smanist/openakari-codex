@@ -13,14 +13,23 @@
   Verification: `python projects/multi_fidelity_gp/experiments/residual-gp/demo.py`
   Priority: high
 
-- [ ] Implement comparison baselines (low-fidelity only and high-fidelity-only GP) [fleet-eligible] [skill: execute]
+- [x] Implement comparison baselines (low-fidelity only and high-fidelity-only GP) [fleet-eligible] [skill: execute]
   Why: The correction model is only informative if its gains can be separated from the value of the low-fidelity prior and from a GP trained directly on the same high-fidelity data.
   Done when: The project can produce predictions from `f_LF(x)` alone and from a GP trained directly on high-fidelity observations using the same evaluation inputs as the correction model.
+  Evidence: `projects/multi_fidelity_gp/experiments/residual-gp/models.py`
+  Verification: `python projects/multi_fidelity_gp/experiments/residual-gp/demo.py`
   Priority: high
 
-- [ ] Evaluate accuracy and uncertainty on holdout high-fidelity data [requires-opus] [skill: analyze]
+- [x] Evaluate accuracy and uncertainty on holdout high-fidelity data [requires-opus] [skill: analyze]
   Why: The project’s research value is the measured trade-off between predictive accuracy and calibrated uncertainty, not the implementation alone.
   Done when: A report or experiment record compares RMSE, MAE, negative log likelihood, interval coverage, and average interval width for all models on a disjoint high-fidelity test set.
+  Evidence: `projects/multi_fidelity_gp/experiments/holdout-eval/`
+  Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
+  Priority: high
+
+- [ ] Improve GP hyperparameter selection for calibrated uncertainty [requires-opus] [skill: diagnose]
+  Why: The initial holdout evaluation shows severe 95% interval undercoverage (≪95%) and extremely large Gaussian NLL, suggesting the current heuristic hyperparameters yield overconfident uncertainty.
+  Done when: A documented hyperparameter selection method (e.g., marginal likelihood optimization or a simple grid search) is implemented and the holdout evaluation is re-run with updated calibration metrics.
   Priority: high
 
 - [ ] Sweep the amount of high-fidelity training data [fleet-eligible] [skill: execute]
