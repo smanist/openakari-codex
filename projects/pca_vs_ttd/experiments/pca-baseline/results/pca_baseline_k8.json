@@ -1,0 +1,19 @@
+{
+  "compression_floats": 37120,
+  "compression_ratio": 3.5310344827586206,
+  "data_path": "projects/pca_vs_ttd/experiments/dc-test/data/video_v1.npz",
+  "flattened_dim": 4096,
+  "k": 8,
+  "mse": 0.00017261006704864345,
+  "n_samples": 32,
+  "original_dtype": "float32",
+  "original_floats": 131072,
+  "original_shape": [
+    32,
+    64,
+    64
+  ],
+  "psnr_db": 37.62933878747242,
+  "rel_fro_error": 0.03790188354194469,
+  "rmse": 0.013138115049300013
+}

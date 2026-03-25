@@ -7,7 +7,7 @@
   Done when: Dataset generated as a three-dimensional data array. Results in `experiments/dc-test/data/`.
   Priority: high
 
-- [ ] Implement the PCA algorithm together with data reconstruction [skill: execute] [zero-resource]
+- [x] Implement the PCA algorithm together with data reconstruction [skill: execute] [zero-resource]
   Why: Prerequisite for benchmark
   Done when: The algorithm can achieve data compression and reconstruction of the synthesized dataset using a generic choice of hyperparameters. Compression rate and reconstruction accuracy documented.
   Priority: high
