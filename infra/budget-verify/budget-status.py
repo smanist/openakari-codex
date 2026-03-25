@@ -194,6 +194,13 @@ def get_project_status(project_dir: Path) -> dict:
         overspend_pct = round(100 * (ledgered - limit) / limit, 1) if ledgered > limit and limit > 0 else 0
         usage_pct = round(100 * ledgered / limit, 1) if limit > 0 else 0
 
+        prefer_int = isinstance(limit, int) and not isinstance(limit, bool)
+        if prefer_int and isinstance(ledgered, float):
+            prefer_int = float(ledgered).is_integer()
+
+        ledger_total_out = int(ledgered) if prefer_int else float(ledgered)
+        remaining_out = int(remaining) if prefer_int else float(remaining)
+
         # CSV-derived total (only for llm_api_calls; uses ledgered experiments only for fair comparison)
         csv_derived = csv_ledgered if rtype == "llm_api_calls" else None
         csv_all_total = csv_all if rtype == "llm_api_calls" else None
@@ -204,11 +211,11 @@ def get_project_status(project_dir: Path) -> dict:
         resource_status[rtype] = {
             "limit": limit,
             "unit": unit,
-            "ledger_total": int(ledgered),
+            "ledger_total": ledger_total_out,
             "csv_derived": csv_derived,
             "csv_all": csv_all_total,
             "discrepancy": discrepancy,
-            "remaining": int(remaining),
+            "remaining": remaining_out,
             "usage_pct": usage_pct,
             "overspend_pct": overspend_pct,
             "over_budget": ledgered > limit,

@@ -12,6 +12,31 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (Evaluation protocol + ledger scaffold)
+
+Completed the mission-gap task to define a standard evaluation protocol (metrics + reporting format) for the PCA vs TTD benchmark: `projects/pca_vs_ttd/evaluation_protocol.md`.
+
+Also added an empty `projects/pca_vs_ttd/ledger.yaml` (`entries: []`). The project has a `budget.yaml` but previously lacked a ledger file, which caused scheduler verification to report `ledgerConsistent: false` for prior pca-v-ttd sessions.
+
+To support the project’s `cpu_hours` budget (a float limit), fixed `infra/budget-verify/budget-status.py` to preserve decimals for `ledger_total` and `remaining` (previously truncated via `int(...)`) and added a regression test.
+
+Verification:
+- `python infra/budget-verify/budget-status.py projects/pca_vs_ttd/` → `Remaining:         0.1 hours`
+- `pytest -q infra/budget-verify/test_budget_status.py` → `20 passed in 0.06s`
+
+Task claiming attempt (per SOP) could not be executed because the scheduler control API was not reachable (`curl: (7) Failed to connect to localhost port 8420 ...: Couldn't connect to server`).
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Define and document the evaluation protocol (metrics + reporting format)
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: llm_api_calls 0/0, cpu_hours 0.1/0.1 (ledger empty)
+
 ### 2026-03-25 (PCA vs TTD baseline comparison + sweep scope)
 
 Compared the existing PCA (`k=8`) and TTD (`ranks=(8,8)`) baseline results on the synthetic dataset and wrote a short note proposing the initial hyperparameter sweep scope for the trade-off study: `projects/pca_vs_ttd/baseline_comparison.md`.

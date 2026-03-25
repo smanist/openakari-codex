@@ -133,6 +133,22 @@ class TestBudgetStatusMissingLedger:
         assert status["resources"]["llm_api_calls"]["remaining"] == 5000
         assert status["resources"]["gen_3d_api_calls"]["remaining"] == 100
 
+    def test_missing_ledger_float_resource_preserves_decimals(self, tmp_path: Path):
+        project = tmp_path / "myproject"
+        project.mkdir()
+        (project / "budget.yaml").write_text(textwrap.dedent("""\
+            resources:
+              cpu_hours:
+                limit: 0.1
+                unit: hours
+        """))
+
+        status = budget_status.get_project_status(project)
+
+        assert status["resources"]["cpu_hours"]["limit"] == pytest.approx(0.1)
+        assert status["resources"]["cpu_hours"]["ledger_total"] == pytest.approx(0.0)
+        assert status["resources"]["cpu_hours"]["remaining"] == pytest.approx(0.1)
+
     def test_missing_ledger_no_overspend(self, tmp_path: Path):
         project = tmp_path / "myproject"
         project.mkdir()
