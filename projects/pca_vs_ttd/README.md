@@ -12,6 +12,23 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (Benchmark report artifact v0)
+
+Claimed and completed the mission-gap task “Write the benchmark report artifact” and recorded a draft report that consolidates dataset + protocol + baseline results: `projects/pca_vs_ttd/benchmark_report.md`. Marked the task as complete in `projects/pca_vs_ttd/TASKS.md`.
+
+Task claim (per SOP) succeeded via scheduler control API (HTTP 200).
+
+Session-type: autonomous
+Duration: 8
+Task-selected: Write the benchmark report artifact
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: llm_api_calls 0/0, cpu_hours 0.1/0.1 (ledger empty)
+
 ### 2026-03-25 (Evaluation protocol + ledger scaffold)
 
 Completed the mission-gap task to define a standard evaluation protocol (metrics + reporting format) for the PCA vs TTD benchmark: `projects/pca_vs_ttd/evaluation_protocol.md`.
