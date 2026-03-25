@@ -1,8 +1,9 @@
 # Multi-Fidelity GP Correction — Tasks
 
-- [ ] Generate the synthetic benchmark and data splits [fleet-eligible] [skill: execute]
+- [x] Generate the synthetic benchmark and data splits [fleet-eligible] [skill: execute]
   Why: The project needs a reproducible target function, a concrete low-fidelity surrogate, and fixed high-fidelity train/test sets before models can be compared.
   Done when: `projects/multi_fidelity_gp/experiments/synthetic-benchmark/` contains the target-function specification, saved high-fidelity train/test data, and a plot showing `f(x)` and `f_LF(x)` over the domain.
+  Evidence: `projects/multi_fidelity_gp/experiments/synthetic-benchmark/`
   Priority: high
 
 - [ ] Implement the residual GP correction model [fleet-eligible] [skill: execute]

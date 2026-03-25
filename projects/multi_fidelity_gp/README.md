@@ -19,6 +19,37 @@ Verification:
 
 Sources: none (project creation)
 
+### 2026-03-25 — Synthetic benchmark artifacts generated
+
+Claimed and completed the task “Generate the synthetic benchmark and data splits” (highest-priority unblocker for model implementation and evaluation).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"274ecfc09a6682c3","taskId":"f2c9bf1efde7","taskText":"Generate the synthetic benchmark and data splits","project":"multi_fidelity_gp","agentId":"work-session-mn6cmspz","claimedAt":1774461744374,"expiresAt":1774464444374}}`
+
+Changes:
+- Added `projects/multi_fidelity_gp/experiments/synthetic-benchmark/` with function spec, reproducible generator, CSV splits, and a plot of `f(x)` vs `f_LF(x)`.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/synthetic-benchmark/generate.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/synthetic-benchmark/data/high_fidelity_train.csv`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/synthetic-benchmark/data/high_fidelity_test.csv`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/synthetic-benchmark/plots/functions.svg`
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Generate the synthetic benchmark and data splits
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 8
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (synthetic benchmark)
+
 ## Open questions
 
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?
