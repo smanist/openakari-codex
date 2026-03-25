@@ -16,10 +16,37 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ### 2026-03-25 (Re-verify Codex scheduler `numTurns` instrumentation)
 
-Claimed the high-priority verification task to ensure scheduled runs (not just smoke runs) produce non-empty `## output` logs and report `numTurns > 0` in `.scheduler/metrics/sessions.jsonl`.
+Investigated why scheduled Codex-backend jobs still produced `.scheduler/logs/*` files with an empty `## output` section and `Turns: 0` (despite evidence of post-session activity).
+
+Fix implemented (verifiable): treat Codex CLI `turn.*` events as the authoritative turn counter and fall back to command execution output (`item.completed` `command_execution.aggregated_output`) when assistant text is empty. This prevents tool-only turns from appearing as `Turns: 0` + empty output.
+
+Changes:
+- Codex stream accumulation: `infra/scheduler/src/backend.ts`
+- Regression coverage: `infra/scheduler/src/backend-all.test.ts`
+- Updated task evidence + diagnosis notes: `projects/akari/TASKS.md`, `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`
 
 Task claim (scheduler control API):
 - `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"a58b2b90f4a491a1","taskId":"68d77e543be2","taskText":"Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`","project":"akari","agentId":"work-session-mn5im4qz","claimedAt":1774411307495,"expiresAt":1774414007495}}`
+
+Verification (unit):
+- `cd infra/scheduler && npx vitest run src/backend-all.test.ts` → `71 passed`
+
+Next verification (end-to-end):
+- Build scheduler: `cd infra/scheduler && npm run build`
+- Run a scheduled job and confirm (a) the `.scheduler/logs/<job>-*.log` has non-empty `## output` and `Turns > 0`, and (b) the `.scheduler/metrics/sessions.jsonl` row reports `numTurns > 0`.
+
+Compound (fast): 1 action — clarified the diagnosis notes to reflect current `agent.ts` turn fallback behavior.
+
+Session-type: autonomous
+Duration: 20
+Task-selected: Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`
+Task-completed: partial
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: 1
+Resources-consumed: codex-cli (3 short invocations; cost untracked)
+Budget-remaining: n/a
 
 ### 2026-03-25 (Human intervention rate snapshot)
 
