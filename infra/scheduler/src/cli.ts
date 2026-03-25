@@ -106,6 +106,14 @@ Commands:
   burst <options>           Run sessions in a rapid loop until a stop condition
   cleanup-branches          Delete old session-work-session-* branches from remote
 
+Run options (manual runs only; overrides are not persisted):
+  --message <msg>           Override the job prompt for this run only
+  --model <model>           Override the model for this run only
+  --cwd <path>              Override the working directory for this run only
+  --backend <backend>       Override backend: codex|openai|claude|cursor|opencode|auto
+  --profile <key>           Override agent profile key (e.g. skillCycle)
+  --max-duration-ms <ms>    Override max session duration in ms
+
 Watchdog options:
   --limit <N>               Analyze last N sessions (default: 20)
   --notify                  Send Slack DM if issues found
@@ -193,7 +201,7 @@ async function main(): Promise<void> {
   } else if (cmd === "remove") {
     await cmdRemove(requireArg(args[1], "job ID"));
   } else if (cmd === "run") {
-    await cmdRun(requireArg(args[1], "job ID"));
+    await cmdRun(requireArg(args[1], "job ID"), args.slice(2));
   } else if (cmd === "enable") {
     await cmdSetEnabled(requireArg(args[1], "job ID"), true);
   } else if (cmd === "disable") {
@@ -828,22 +836,72 @@ async function cmdRemove(id: string): Promise<void> {
   console.log(removed ? `Job ${id} removed.` : `Job ${id} not found.`);
 }
 
-async function cmdRun(id: string): Promise<void> {
+async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
   const store = new JobStore();
   await store.load();
   const job = store.get(id);
   if (!job) return fail(`Job ${id} not found.`);
+  const runOpts = {} as Record<string, string | boolean>;
+
+  // Optional manual-run overrides (not persisted to the job definition).
+  // This is primarily for fast E2E verification without waiting for the next
+  // cron tick or running a full-length work session.
+  //
+  // Supported flags:
+  //   --message <text>
+  //   --model <model>
+  //   --cwd <path>
+  //   --backend <codex|openai|claude|cursor|opencode|auto>
+  //   --profile <AGENT_PROFILES key>
+  //   --max-duration-ms <ms>
+  //
+  // Note: flags are parsed from argv after the job ID: `akari run <id> --max-duration-ms 60000`
+  if (extraArgs.length > 0) Object.assign(runOpts, parseFlags(extraArgs));
+
+  const backendOverride = runOpts["backend"] as string | undefined;
+  if (backendOverride && !["codex", "openai", "claude", "cursor", "opencode", "auto"].includes(backendOverride)) {
+    return fail("Error: --backend must be codex, openai, claude, cursor, opencode, or auto.");
+  }
+
+  const maxDurationMsOverrideRaw = runOpts["max-duration-ms"];
+  const maxDurationMsOverride = typeof maxDurationMsOverrideRaw === "string"
+    ? parseInt(maxDurationMsOverrideRaw, 10)
+    : undefined;
+  if (maxDurationMsOverrideRaw != null && (maxDurationMsOverride == null || isNaN(maxDurationMsOverride) || maxDurationMsOverride <= 0)) {
+    return fail("Error: --max-duration-ms must be a positive integer.");
+  }
+
+  const runJob = {
+    ...job,
+    payload: {
+      ...job.payload,
+      message: typeof runOpts["message"] === "string" ? runOpts["message"] : job.payload.message,
+      model: typeof runOpts["model"] === "string" ? runOpts["model"] : job.payload.model,
+      cwd: typeof runOpts["cwd"] === "string" ? runOpts["cwd"] : job.payload.cwd,
+      backend: backendOverride ? backendOverride as typeof job.payload.backend : job.payload.backend,
+      profile: typeof runOpts["profile"] === "string" ? runOpts["profile"] : job.payload.profile,
+      maxDurationMs: maxDurationMsOverride ?? job.payload.maxDurationMs,
+    },
+  };
 
   // Start Slack bot so session notifications work for manual runs too
   const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
-  const repoDir = job.payload.cwd ?? repoRoot;
+  const repoDir = runJob.payload.cwd ?? repoRoot;
   if (slack.isConfigured()) {
     await slack.startSlackBot({ repoDir, store });
     console.log(`[run] Slack bot connected for notifications.`);
   }
 
-  console.log(`Running job: ${job.name} (${job.id})...`);
-  const result = await executeJob(job, "manual");
+  const overrideParts: string[] = [];
+  if (runJob.payload.message !== job.payload.message) overrideParts.push("message");
+  if (runJob.payload.model !== job.payload.model) overrideParts.push(`model=${runJob.payload.model}`);
+  if (runJob.payload.cwd !== job.payload.cwd) overrideParts.push(`cwd=${runJob.payload.cwd}`);
+  if (runJob.payload.backend !== job.payload.backend) overrideParts.push(`backend=${runJob.payload.backend}`);
+  if (runJob.payload.profile !== job.payload.profile && runJob.payload.profile) overrideParts.push(`profile=${runJob.payload.profile}`);
+  if (runJob.payload.maxDurationMs !== job.payload.maxDurationMs && runJob.payload.maxDurationMs) overrideParts.push(`maxDurationMs=${runJob.payload.maxDurationMs}`);
+
+  console.log(`Running job: ${job.name} (${job.id})...${overrideParts.length ? ` (overrides: ${overrideParts.join(", ")})` : ""}`);
+  const result = await executeJob(runJob, "manual");
   console.log(
     `\nResult: ${result.ok ? "ok" : "error"} (${Math.round(result.durationMs / 1000)}s)`,
   );

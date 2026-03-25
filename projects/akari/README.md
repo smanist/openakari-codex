@@ -14,6 +14,15 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Re-verify end-to-end Codex job logging after rebuild)
+
+Selected the high-priority follow-up task to re-verify that scheduled Codex-backend runs produce non-empty `.scheduler/logs/*` output and `numTurns > 0` in `.scheduler/metrics/sessions.jsonl`.
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"56f64c3d64a59ab1","taskId":"68d77e543be2","taskText":"Re-verify Codex scheduler sessions record non-empty output and `Turns > 0`","project":"akari","agentId":"work-session-mn5jbd0b","claimedAt":1774412573862,"expiresAt":1774415273862}}`
+
+Next: rebuild `infra/scheduler`, run a job via `node dist/cli.js run <job-id>`, and confirm the resulting `.scheduler/logs/*` and `.scheduler/metrics/sessions.jsonl` rows contain `Turns > 0` and non-empty output.
+
 ### 2026-03-25 (Re-verify Codex scheduler `numTurns` instrumentation)
 
 Investigated why scheduled Codex-backend jobs still produced `.scheduler/logs/*` files with an empty `## output` section and `Turns: 0` (despite evidence of post-session activity).
