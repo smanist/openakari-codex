@@ -30,12 +30,13 @@ Evaluate the three benchmark models on the disjoint high-fidelity test set:
 Results from `results.md` (12 HF train points, 80 HF test points):
 
 - Accuracy (RMSE): low-fidelity `0.486761`, high-fidelity GP `0.002392`, residual correction `0.004678`
-- Calibration (95% coverage): low-fidelity `0.000000` (deterministic), high-fidelity GP `1.000000`, residual correction `1.000000`
+- Calibration (95% coverage, latent): high-fidelity GP `1.000000`, residual correction `1.000000`
+- Calibration (95% coverage, observation): high-fidelity GP `1.000000`, residual correction `1.000000`
 - Preference rule (RMSE + coverage vs high-fidelity GP): residual correction preferred = **no**
 
 Notes:
 - GP hyperparameters are selected via log marginal likelihood grid search (`hyperparam_selection="lml_grid"`).
-- Uncertainty metrics use observation uncertainty (`include_noise=True`), i.e., latent variance plus fitted noise variance.
+- Uncertainty metrics report both latent and observation uncertainty (`include_noise=True`), with the preference rule using observation uncertainty.
 
 Artifacts:
 - `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`

@@ -15,9 +15,13 @@ import numpy as np
 class Metrics:
     rmse: float
     mae: float
-    nll: float | None
-    coverage_95: float | None
-    mean_width_95: float | None
+
+
+@dataclass(frozen=True)
+class UncertaintyMetrics:
+    nll: float
+    coverage_95: float
+    mean_width_95: float
 
 
 def _load_xy(path: Path) -> tuple[np.ndarray, np.ndarray]:
@@ -117,45 +121,49 @@ def main() -> int:
     lf_pred = LowFidelityOnlyModel(f_lf).predict(x_test)
 
     hf_model = HighFidelityGPModel().fit(x_train, y_train)
-    hf_pred = hf_model.predict(x_test)
-
     mf_model = ResidualGPCorrectionModel(f_lf).fit(x_train, y_train)
+
+    point_metrics: dict[str, Metrics] = {
+        "low_fidelity_only": Metrics(rmse=_rmse(y_test, lf_pred.mean), mae=_mae(y_test, lf_pred.mean))
+    }
+
+    hf_pred = hf_model.predict(x_test)
+    point_metrics["high_fidelity_gp"] = Metrics(rmse=_rmse(y_test, hf_pred.mean), mae=_mae(y_test, hf_pred.mean))
+
     mf_pred = mf_model.predict(x_test)
-
-    metrics: dict[str, Metrics] = {}
-
-    lf_cov, lf_width = _interval_coverage_and_width(y_test, lf_pred.mean, lf_pred.std)
-    metrics["low_fidelity_only"] = Metrics(
-        rmse=_rmse(y_test, lf_pred.mean),
-        mae=_mae(y_test, lf_pred.mean),
-        nll=_gaussian_nll(y_test, lf_pred.mean, lf_pred.std),
-        coverage_95=lf_cov,
-        mean_width_95=lf_width,
-    )
-
-    hf_cov, hf_width = _interval_coverage_and_width(y_test, hf_pred.mean, hf_pred.std)
-    metrics["high_fidelity_gp"] = Metrics(
-        rmse=_rmse(y_test, hf_pred.mean),
-        mae=_mae(y_test, hf_pred.mean),
-        nll=_gaussian_nll(y_test, hf_pred.mean, hf_pred.std),
-        coverage_95=hf_cov,
-        mean_width_95=hf_width,
-    )
-
-    mf_cov, mf_width = _interval_coverage_and_width(y_test, mf_pred.mean, mf_pred.std)
-    metrics["residual_gp_correction"] = Metrics(
+    point_metrics["residual_gp_correction"] = Metrics(
         rmse=_rmse(y_test, mf_pred.mean),
         mae=_mae(y_test, mf_pred.mean),
-        nll=_gaussian_nll(y_test, mf_pred.mean, mf_pred.std),
-        coverage_95=mf_cov,
-        mean_width_95=mf_width,
     )
+
+    uncertainty_metrics: dict[str, dict[str, UncertaintyMetrics]] = {
+        "high_fidelity_gp": {},
+        "residual_gp_correction": {},
+    }
+
+    def _uncertainty(mean: np.ndarray, std: np.ndarray) -> UncertaintyMetrics:
+        cov, width = _interval_coverage_and_width(y_test, mean, std)
+        return UncertaintyMetrics(
+            nll=_gaussian_nll(y_test, mean, std),
+            coverage_95=cov,
+            mean_width_95=width,
+        )
+
+    hf_latent = hf_model.predict_latent(x_test)
+    hf_obs = hf_model.predict_observation(x_test)
+    mf_latent = mf_model.predict_latent(x_test)
+    mf_obs = mf_model.predict_observation(x_test)
+
+    uncertainty_metrics["high_fidelity_gp"]["latent"] = _uncertainty(hf_latent.mean, hf_latent.std)
+    uncertainty_metrics["high_fidelity_gp"]["observation"] = _uncertainty(hf_obs.mean, hf_obs.std)
+    uncertainty_metrics["residual_gp_correction"]["latent"] = _uncertainty(mf_latent.mean, mf_latent.std)
+    uncertainty_metrics["residual_gp_correction"]["observation"] = _uncertainty(mf_obs.mean, mf_obs.std)
 
     target_cov = 0.95
     prefer_residual = (
-        metrics["residual_gp_correction"].rmse < metrics["high_fidelity_gp"].rmse
-        and abs((metrics["residual_gp_correction"].coverage_95 or 0.0) - target_cov)
-        < abs((metrics["high_fidelity_gp"].coverage_95 or 0.0) - target_cov)
+        point_metrics["residual_gp_correction"].rmse < point_metrics["high_fidelity_gp"].rmse
+        and abs(uncertainty_metrics["residual_gp_correction"]["observation"].coverage_95 - target_cov)
+        < abs(uncertainty_metrics["high_fidelity_gp"]["observation"].coverage_95 - target_cov)
     )
 
     hf_hp = getattr(hf_model, "_gp", None).hyperparams if getattr(hf_model, "_gp", None) is not None else None
@@ -166,8 +174,10 @@ def main() -> int:
     lines.append("")
     lines.append(f"- Train points: {x_train.size}, test points: {x_test.size}")
     lines.append("")
-    lines.append("| Model | RMSE | MAE | NLL | 95% coverage | 95% width |")
-    lines.append("|---|---:|---:|---:|---:|---:|")
+    lines.append("## Accuracy (point metrics)")
+    lines.append("")
+    lines.append("| Model | RMSE | MAE |")
+    lines.append("|---|---:|---:|")
 
     def _fmt(x: float | None) -> str:
         if x is None:
@@ -180,11 +190,31 @@ def main() -> int:
         ("Residual GP correction", "residual_gp_correction"),
     ]
     for label, key in order:
-        m = metrics[key]
-        lines.append(
-            f"| {label} | {_fmt(m.rmse)} | {_fmt(m.mae)} | {_fmt(m.nll)} | {_fmt(m.coverage_95)} | {_fmt(m.mean_width_95)} |"
-        )
+        m = point_metrics[key]
+        lines.append(f"| {label} | {_fmt(m.rmse)} | {_fmt(m.mae)} |")
 
+    lines.append("")
+    lines.append("## Uncertainty metrics (GP-based models)")
+    lines.append("")
+    lines.append("Two predictive distributions are reported for each GP model:")
+    lines.append("- **Latent**: predictive variance from the GP posterior (no observation noise).")
+    lines.append("- **Observation**: latent variance + fitted noise variance (`include_noise=True`).")
+    lines.append("")
+    lines.append("### Latent predictive distribution")
+    lines.append("")
+    lines.append("| Model | NLL | 95% coverage | 95% width |")
+    lines.append("|---|---:|---:|---:|")
+    for label, key in (("High-fidelity GP", "high_fidelity_gp"), ("Residual GP correction", "residual_gp_correction")):
+        u = uncertainty_metrics[key]["latent"]
+        lines.append(f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |")
+    lines.append("")
+    lines.append("### Observation predictive distribution")
+    lines.append("")
+    lines.append("| Model | NLL | 95% coverage | 95% width |")
+    lines.append("|---|---:|---:|---:|")
+    for label, key in (("High-fidelity GP", "high_fidelity_gp"), ("Residual GP correction", "residual_gp_correction")):
+        u = uncertainty_metrics[key]["observation"]
+        lines.append(f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |")
     lines.append("")
     lines.append("## GP hyperparameters")
     lines.append("")
@@ -204,14 +234,18 @@ def main() -> int:
     payload = {
         "train_points": int(x_train.size),
         "test_points": int(x_test.size),
-        "metrics": {k: asdict(v) for k, v in metrics.items()},
+        "point_metrics": {k: asdict(v) for k, v in point_metrics.items()},
+        "uncertainty_metrics": {
+            model: {dist: asdict(u) for dist, u in dist_map.items()}
+            for model, dist_map in uncertainty_metrics.items()
+        },
         "gp_hyperparams": {
             "high_fidelity_gp": _jsonable(hf_hp),
             "residual_gp": _jsonable(mf_hp),
         },
-        "preference": {"rule": "rmse + coverage", "preferred": bool(prefer_residual)},
+        "preference": {"rule": "rmse + observation_coverage", "preferred": bool(prefer_residual)},
     }
-    out_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    out_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(f"Wrote {out_md}")
     print(f"Wrote {out_json}")

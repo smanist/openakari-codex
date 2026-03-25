@@ -35,9 +35,16 @@ class HighFidelityGPModel:
         self._gp.fit(x_hf, y_hf)
         return self
 
-    def predict(self, x: np.ndarray) -> PredictiveDistribution:
+    def predict_latent(self, x: np.ndarray) -> PredictiveDistribution:
+        mean, std = self._gp.predict(x, return_std=True, include_noise=False)
+        return PredictiveDistribution(mean=mean, std=std)
+
+    def predict_observation(self, x: np.ndarray) -> PredictiveDistribution:
         mean, std = self._gp.predict(x, return_std=True, include_noise=True)
         return PredictiveDistribution(mean=mean, std=std)
+
+    def predict(self, x: np.ndarray) -> PredictiveDistribution:
+        return self.predict_observation(x)
 
 
 class ResidualGPCorrectionModel:
@@ -52,8 +59,17 @@ class ResidualGPCorrectionModel:
         self._gp.fit(x_hf, residual)
         return self
 
-    def predict(self, x: np.ndarray) -> PredictiveDistribution:
+    def predict_latent(self, x: np.ndarray) -> PredictiveDistribution:
+        x = np.asarray(x, dtype=float).reshape(-1)
+        lf = np.asarray(self._f_lf(x), dtype=float).reshape(-1)
+        r_mean, r_std = self._gp.predict(x, return_std=True, include_noise=False)
+        return PredictiveDistribution(mean=lf + r_mean, std=r_std)
+
+    def predict_observation(self, x: np.ndarray) -> PredictiveDistribution:
         x = np.asarray(x, dtype=float).reshape(-1)
         lf = np.asarray(self._f_lf(x), dtype=float).reshape(-1)
         r_mean, r_std = self._gp.predict(x, return_std=True, include_noise=True)
         return PredictiveDistribution(mean=lf + r_mean, std=r_std)
+
+    def predict(self, x: np.ndarray) -> PredictiveDistribution:
+        return self.predict_observation(x)

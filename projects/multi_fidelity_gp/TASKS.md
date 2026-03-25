@@ -39,9 +39,11 @@
   Done when: At least three high-fidelity training-set sizes are evaluated and the resulting accuracy and calibration trends are documented.
   Priority: medium
 
-- [ ] Report latent vs observation uncertainty metrics in holdout evaluation [fleet-eligible] [skill: execute]
+- [x] Report latent vs observation uncertainty metrics in holdout evaluation [fleet-eligible] [skill: execute]
   Why: After LML-grid hyperparameters + `include_noise=True`, 95% interval coverage became 1.0 for both GP models; separating latent vs observation uncertainty should clarify whether uncertainty is conservative or mis-specified.
   Done when: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` includes both latent and observation NLL/coverage/width for the GP-based models (clearly labeled).
+  Evidence: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+  Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 
 - [ ] Decide which uncertainty definition to optimize for calibration [requires-opus] [skill: analyze]

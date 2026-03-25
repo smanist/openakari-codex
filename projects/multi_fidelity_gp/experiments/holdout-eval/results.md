@@ -2,11 +2,33 @@
 
 - Train points: 12, test points: 80
 
-| Model | RMSE | MAE | NLL | 95% coverage | 95% width |
-|---|---:|---:|---:|---:|---:|
-| Low-fidelity only | 0.486761 | 0.397680 | 118468015068.343338 | 0.000000 | 0.000000 |
-| High-fidelity GP | 0.002392 | 0.001870 | -3.394546 | 1.000000 | 0.052599 |
-| Residual GP correction | 0.004678 | 0.002297 | -3.948140 | 1.000000 | 0.029858 |
+## Accuracy (point metrics)
+
+| Model | RMSE | MAE |
+|---|---:|---:|
+| Low-fidelity only | 0.486761 | 0.397680 |
+| High-fidelity GP | 0.002392 | 0.001870 |
+| Residual GP correction | 0.004678 | 0.002297 |
+
+## Uncertainty metrics (GP-based models)
+
+Two predictive distributions are reported for each GP model:
+- **Latent**: predictive variance from the GP posterior (no observation noise).
+- **Observation**: latent variance + fitted noise variance (`include_noise=True`).
+
+### Latent predictive distribution
+
+| Model | NLL | 95% coverage | 95% width |
+|---|---:|---:|---:|
+| High-fidelity GP | -3.723867 | 1.000000 | 0.038005 |
+| Residual GP correction | -4.247855 | 1.000000 | 0.022465 |
+
+### Observation predictive distribution
+
+| Model | NLL | 95% coverage | 95% width |
+|---|---:|---:|---:|
+| High-fidelity GP | -3.394546 | 1.000000 | 0.052599 |
+| Residual GP correction | -3.948140 | 1.000000 | 0.029858 |
 
 ## GP hyperparameters
 

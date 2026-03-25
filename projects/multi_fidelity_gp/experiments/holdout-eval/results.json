@@ -11,33 +11,50 @@
       "signal_variance": 2.3016549872388845
     }
   },
-  "metrics": {
+  "point_metrics": {
     "high_fidelity_gp": {
-      "coverage_95": 1.0,
       "mae": 0.0018699351996197087,
-      "mean_width_95": 0.052599480325093276,
-      "nll": -3.394546347121987,
       "rmse": 0.0023916892252866394
     },
     "low_fidelity_only": {
-      "coverage_95": 0.0,
       "mae": 0.3976800453888142,
-      "mean_width_95": 0.0,
-      "nll": 118468015068.34334,
       "rmse": 0.4867607524877902
     },
     "residual_gp_correction": {
-      "coverage_95": 1.0,
       "mae": 0.0022971552995717584,
-      "mean_width_95": 0.02985798311102226,
-      "nll": -3.9481400566231413,
       "rmse": 0.004677779515376228
     }
   },
   "preference": {
     "preferred": false,
-    "rule": "rmse + coverage"
+    "rule": "rmse + observation_coverage"
   },
   "test_points": 80,
-  "train_points": 12
-}\n
+  "train_points": 12,
+  "uncertainty_metrics": {
+    "high_fidelity_gp": {
+      "latent": {
+        "coverage_95": 1.0,
+        "mean_width_95": 0.03800463930436776,
+        "nll": -3.7238667471489166
+      },
+      "observation": {
+        "coverage_95": 1.0,
+        "mean_width_95": 0.052599480325093276,
+        "nll": -3.394546347121987
+      }
+    },
+    "residual_gp_correction": {
+      "latent": {
+        "coverage_95": 1.0,
+        "mean_width_95": 0.022465014555913425,
+        "nll": -4.247854778695548
+      },
+      "observation": {
+        "coverage_95": 1.0,
+        "mean_width_95": 0.02985798311102226,
+        "nll": -3.9481400566231413
+      }
+    }
+  }
+}
