@@ -232,11 +232,48 @@ Budget-remaining: n/a
 
 Sources: none (multi-level calibration metrics)
 
+### 2026-03-25 — High-fidelity training size sweep
+
+Claimed and completed the task “Sweep the amount of high-fidelity training data” (measuring when residual correction helps as HF data become sparse).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"3fee2a71cc7d5c90","taskId":"c46ce0633122","taskText":"Sweep the amount of high-fidelity training data","project":"multi_fidelity_gp","agentId":"work-session-mn6gx4kv","claimedAt":1774468933412,"expiresAt":1774471633412}}`
+
+Changes:
+- Added `projects/multi_fidelity_gp/experiments/hf-size-sweep/` with a deterministic sweep over `N_train ∈ {4, 8, 12}` and saved `results.md` / `results.json`.
+- Marked the task complete in `projects/multi_fidelity_gp/TASKS.md` and added a follow-up diagnosis task for catastrophic residual-GP overconfidence at `N_train=4`.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/hf-size-sweep/sweep.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/hf-size-sweep/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/hf-size-sweep/results.json`
+
+Findings (see `projects/multi_fidelity_gp/experiments/hf-size-sweep/results.md`):
+- RMSE: at `N_train=4`, both GP-based models underperform low-fidelity-only; at `N_train=8`, residual correction beats the high-fidelity GP; at `N_train=12`, the high-fidelity GP is best.
+- Uncertainty: at `N_train=4`, residual correction is catastrophically overconfident (95% coverage ≈ `0.0125` with huge NLL); at `N_train>=8`, 95% coverage saturates at `1.0` for both GP models under the current settings.
+
+Compound (fast): no actions.
+Fleet: no recent sessions found.
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Sweep the amount of high-fidelity training data
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (HF-size sweep)
+
 ## Open questions
 
 - Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (coverage closer to 0.95) rather than marginal likelihood alone?
 
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?
 - How sensitive are the findings to the amount and placement of high-fidelity training data?
+- Why does the residual correction GP become catastrophically overconfident in the ultra-sparse regime (e.g., `N_train=4`) under the current LML-grid hyperparameter selection?
 - Which uncertainty metric is most decision-relevant for this benchmark: interval coverage, negative log likelihood, or sharpness at matched coverage?
 - Was the initial severe undercoverage (≪95%) primarily a hyperparameter-selection issue, a modeling/metric mismatch (latent vs observation uncertainty), or both? After switching to LML-grid hyperparameters + `include_noise=True`, coverage jumped to 1.0, suggesting the uncertainty definition/target may still be mis-specified.
