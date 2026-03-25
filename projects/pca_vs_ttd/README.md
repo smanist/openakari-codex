@@ -12,6 +12,25 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (TTD baseline implementation)
+
+Implemented a Tensor-Train Decomposition (TTD) baseline via TT-SVD on the synthetic dataset and recorded the compression vs reconstruction metrics under `projects/pca_vs_ttd/experiments/ttd-baseline/`.
+
+Baseline (ranks=(8,8)) metrics from `projects/pca_vs_ttd/experiments/ttd-baseline/results/ttd_baseline_r8_8.json`: compression ratio ≈ 26.95×, relative Frobenius reconstruction error ≈ 0.0447, and PSNR ≈ 36.20 dB.
+
+Task claiming attempt (per SOP) could not be executed because the scheduler control API was not reachable in this environment (`curl` to `http://localhost:8420/api/tasks/claim` failed: `curl: (7) Failed to connect to localhost port 8420 after 0 ms: Couldn't connect to server`).
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Implement the TTD algorithm together with data reconstruction
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: cpu_hours unknown/0.1 (no ledger.yaml)
+
 ### 2026-03-25 (Synthetic dataset v1 for PCA vs TTD)
 
 Created a reproducible synthetic grayscale video-like dataset (3D tensor) and committed the artifacts under `projects/pca_vs_ttd/experiments/dc-test/data/` along with the generator script and a structured work record (`projects/pca_vs_ttd/experiments/dc-test/EXPERIMENT.md`).
@@ -56,3 +75,4 @@ Budget-remaining: cpu_hours unknown/0.1 (no ledger.yaml)
 
 - How to devise the synthesized dataset to differentiate the performance of the two algorithms.
 - Which set of metrics are the most concise to showcase the trade-off in PCA vs. TTD?
+- For a fair PCA vs TTD comparison, should baselines match compression ratio (bytes/floats) or reconstruction quality (e.g., rel Frobenius / PSNR)?
