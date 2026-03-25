@@ -268,9 +268,45 @@ Budget-remaining: n/a
 
 Sources: none (HF-size sweep)
 
+### 2026-03-25 — PIT + standardized residual calibration diagnostics
+
+Claimed and completed the task “Add PIT / standardized residual calibration diagnostics” (adding calibration diagnostics beyond interval coverage on a small test set).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"df3662cc2cc95b88","taskId":"b275a833023e","taskText":"Add PIT / standardized residual calibration diagnostics","project":"multi_fidelity_gp","agentId":"work-session-mn6h601j","claimedAt":1774469323353,"expiresAt":1774472023353}}`
+
+Changes:
+- Updated `projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` to compute PIT (via Normal CDF) and standardized residual diagnostics (mean/std and within-1σ/within-2σ rates) for both latent and observation predictive distributions.
+- Re-ran holdout evaluation, updating `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` and `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`.
+- Marked the task complete in `projects/multi_fidelity_gp/TASKS.md`.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+
+Findings (see `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`):
+- Standardized residual dispersion is far below 1.0 for both GP models (latent + observation), consistent with overly-conservative uncertainty under the current setup (coverage is saturated at 1.0).
+
+Compound (fast): no actions.
+Fleet: no recent sessions found.
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Add PIT / standardized residual calibration diagnostics
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (calibration diagnostics)
+
 ## Open questions
 
-- Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (coverage closer to 0.95) rather than marginal likelihood alone?
+- Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Standardized residual diagnostics also show dispersion far below 1.0 (see `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`), consistent with conservative uncertainty. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (e.g., standardized residual dispersion nearer 1.0, PIT closer to Uniform, coverage nearer 0.95) rather than marginal likelihood alone?
 
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?
 - How sensitive are the findings to the amount and placement of high-fidelity training data?
