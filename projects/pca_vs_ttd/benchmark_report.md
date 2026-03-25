@@ -9,7 +9,7 @@ This report consolidates the current PCA vs Tensor-Train Decomposition (TTD) ben
 
 - Dataset: synthetic grayscale tensor `(T, H, W) = (32, 64, 64)` (v1)
 - Implementations: PCA baseline and TT-SVD (order-3) TTD baseline
-- Results included here: baseline points + a first hyperparameter sweep trade-off curve (v1)
+- Results included here: baseline points + trade-off sweep curves (v1 equal-rank TTD; v2 adds unequal-rank TTD)
 
 ## Inputs (provenance)
 
@@ -27,6 +27,11 @@ Sweep artifacts (trade-off v1):
 - Experiment record: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/EXPERIMENT.md`
 - Summary table: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`
 - Plots: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_rel_fro_vs_compression.pdf`, `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/tradeoff_psnr_vs_compression.pdf`
+
+Sweep artifacts (trade-off v2: includes unequal-rank TTD):
+- Experiment record: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/EXPERIMENT.md`
+- Summary table: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/sweep_summary.csv`
+- Plots: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/tradeoff_rel_fro_vs_compression.pdf`, `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/tradeoff_psnr_vs_compression.pdf`
 
 ## Methods (summarized)
 
@@ -64,17 +69,18 @@ Dataset shape: `(32, 64, 64)` → `original_floats = 131,072`.
 
 Interpretation (single-point; not a curve conclusion): at these baselines, TTD achieves substantially higher compression (≈7.63× vs PCA) with modestly worse reconstruction (≈1.18× higher rel-Fro error; −1.43 dB PSNR).
 
-## Results (trade-off sweep v1)
+## Results (trade-off sweep v2)
 
-Sweep scope (per `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/EXPERIMENT.md`):
+Sweep scope (per `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/EXPERIMENT.md`):
 - PCA: `k ∈ {0, 1, 2, 4, 8, 16}`
-- TTD: `r1=r2 ∈ {4, 8, 12, 16, 23}`
+- TTD equal ranks: `(r1, r2) ∈ {(4,4), (8,8), (12,12), (16,16), (23,23)}`
+- TTD unequal ranks (added): `(r1, r2) ∈ {(16,32), (20,26), (26,20)}`
 
 Matched-compression example near PCA `k=8` (~3.53×):
 - PCA `k=8`: rel Fro error `0.03790`, PSNR `37.63 dB`
-- TTD `r1=r2=23` (~3.63×): rel Fro error `0.02632`, PSNR `40.80 dB`
+- TTD `(r1, r2)=(26,20)` (~3.70×): rel Fro error `0.02608`, PSNR `40.88 dB`
 
-Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`.
+Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/sweep_summary.csv`.
 
 ## Recommendation (comparison rule)
 
@@ -83,10 +89,10 @@ For the final benchmark write-up, use **both** of the following views, with a si
 1. **Full trade-off overlay (primary figure)**: plot each method’s sweep curve with
    - x-axis: compression ratio
    - y-axis: relative Frobenius error (primary), plus a second plot for PSNR (supporting)
-   Provenance: the v1 plots are already generated under `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/`.
+   Provenance: the v2 plots are generated under `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/` (v1 plots remain for historical comparison).
 
 2. **Matched-compression slices (primary comparison rule)**: pick a small set of target compression ratios (e.g., the PCA sweep points) and compare methods by the **best achieved reconstruction quality at (approximately) the same compression**.
-   - Example (already computed from the v1 sweep summary): near PCA `k=8` (~3.53×), TTD `r1=r2=23` (~3.63×) achieves lower rel-Fro error and higher PSNR than PCA `k=8`. Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`.
+   - Example (from the v2 sweep summary): near PCA `k=8` (~3.53×), TTD `(r1, r2)=(26,20)` (~3.70×) achieves lower rel-Fro error and higher PSNR than PCA `k=8`. Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/results/sweep_summary.csv`.
 
 3. **Matched-quality slices (secondary view)**: pick one or two target quality thresholds (e.g., rel-Fro error levels) and compare methods by **maximum compression achieved at (approximately) the same quality**.
 

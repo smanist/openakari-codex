@@ -1,0 +1,37 @@
+{
+  "compression_floats": 17920,
+  "compression_ratio": 7.314285714285714,
+  "cores_shapes": [
+    [
+      1,
+      32,
+      16
+    ],
+    [
+      16,
+      64,
+      16
+    ],
+    [
+      16,
+      64,
+      1
+    ]
+  ],
+  "data_path": "/Users/daninghuang/Repos/openakari-codex/projects/pca_vs_ttd/experiments/dc-test/data/video_v1.npz",
+  "mse": 0.00011950821332981701,
+  "original_dtype": "float32",
+  "original_floats": 131072,
+  "original_shape": [
+    32,
+    64,
+    64
+  ],
+  "psnr_db": 39.226022463372516,
+  "ranks": [
+    16,
+    16
+  ],
+  "rel_fro_error": 0.03153745247444981,
+  "rmse": 0.01093198121704465
+}

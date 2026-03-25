@@ -53,7 +53,8 @@
   Priority: medium
   Evidence: `projects/pca_vs_ttd/benchmark_report.md`
 
-- [ ] (Optional) Expand the TTD sweep beyond equal ranks [skill: execute]
+- [x] (Optional) Expand the TTD sweep beyond equal ranks [skill: execute]
   Why: Equal-rank `(r, r)` TT is a convenient baseline, but unequal ranks may better match the data’s anisotropy (T vs H vs W) and improve the curve.
   Done when: `projects/pca_vs_ttd/experiments/` contains an additional sweep record that includes at least 3 unequal-rank settings and updates the trade-off overlay plot.
   Priority: low
+  Evidence: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v2/EXPERIMENT.md`
