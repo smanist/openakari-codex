@@ -14,6 +14,35 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Human intervention rate snapshot)
+
+Completed the task to measure a local human intervention rate using the scheduler’s session metrics JSONL.
+
+Artifact:
+- `projects/akari/analysis/human-intervention-rate-2026-03-25.md`
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"74fab7b48b90dd27","taskId":"ff554df73478","taskText":"Measure human intervention rate in your deployment","project":"akari","agentId":"work-session-mn5etsym","claimedAt":1774404981602,"expiresAt":1774407681602}}`
+
+Verification (data + recomputation):
+- `wc -l .scheduler/metrics/sessions.jsonl` → `5`
+- `python - <<'PY' ... PY` →
+  - `[all] scheduler=5, human=0, ratio=0.000`
+  - `[last_2h] scheduler=4, human=0, ratio=0.000`
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 6
+Task-selected: Measure human intervention rate in your deployment
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Restore missing conventions/schemas/status docs)
 
 Completed the governance task to reconcile missing doc references by creating the referenced paths:
