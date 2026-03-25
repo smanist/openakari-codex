@@ -13,10 +13,11 @@
   Done when: Scheduler control API supports task claiming with conflict detection (implemented).
   Priority: medium
 
-- [ ] Measure human intervention rate in your deployment [fleet-eligible] [skill: analyze] [zero-resource]
+- [x] Measure human intervention rate in your deployment [fleet-eligible] [skill: analyze] [zero-resource]
   Why: A decreasing intervention rate is one of the clearest signals that the system is becoming more autonomous.
   Done when: A short analysis computes intervention events per session over at least 2 time windows and records the result.
   Priority: medium
+  Evidence: `projects/akari/analysis/human-intervention-rate-2026-03-25.md`
 
 - [x] Reconcile missing doc references in SOP/skills [requires-opus] [skill: govern] [zero-resource]
   Why: `/orient` and `docs/sops/autonomous-work-cycle.md` reference `docs/status.md` and `docs/conventions/*`, but this repo checkout does not contain those paths (attempts to read them fail with "No such file or directory"). This causes repeated orient friction and can hide real missing-context issues.
