@@ -24,8 +24,9 @@ Recent `work-cycle` sessions running on the `codex` backend produce an operation
 - The Codex backend’s stream parser currently assumes Claude-SDK-shaped messages:
   - `infra/scheduler/src/backend.ts` → `parseCodexMessage()` returns an assistant message only when `msg.type === "assistant" && msg.message?.content`.
   - `BaseCodexBackend.spawnCodex()` only increments turns on `msg.type === "assistant"` and only captures text from `msg.message.content` text blocks.
-- The unified agent wrapper does not fall back to incrementally-tracked turns when the backend result lacks them:
-  - `infra/scheduler/src/agent.ts` tracks turns via `incrementSessionTurns(sessionId)` on each `msg.type === "assistant"`, but the returned `AgentResult.numTurns` is taken from the backend’s `QueryResult.numTurns` (`r.numTurns ?? 0`).
+- The unified agent wrapper *does* fall back to incrementally-tracked turns when `r.numTurns` is missing/zero, but that counter is only incremented on `msg.type === "assistant"`:
+  - `infra/scheduler/src/agent.ts` increments turns via `incrementSessionTurns(sessionId)` when the backend emits `msg.type === "assistant"`, and resolves `AgentResult.numTurns` to `trackedTurns` when the backend-reported count is missing/zero.
+  - This still yields `Turns: 0` if the backend stream emits no assistant messages (e.g., turns consisting only of Codex CLI tool items).
 
 ## Evidence (confirmed Codex CLI stream schema)
 
