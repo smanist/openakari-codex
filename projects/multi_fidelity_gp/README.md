@@ -50,6 +50,38 @@ Budget-remaining: n/a
 
 Sources: none (synthetic benchmark)
 
+### 2026-03-25 — Residual GP correction model implemented
+
+Claimed and completed the task “Implement the residual GP correction model” (central unblocker for running the model comparison benchmark).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"ddc742cbe2f3c213","taskId":"1efa48ed8475","taskText":"Implement the residual GP correction model","project":"multi_fidelity_gp","agentId":"work-session-mn6cvttb","claimedAt":1774462158854,"expiresAt":1774464858854}}`
+
+Changes:
+- Added `projects/multi_fidelity_gp/experiments/residual-gp/` with a NumPy-only 1D GP regressor (RBF + Cholesky) and wrappers for low-fidelity-only, high-fidelity GP, and residual-GP correction prediction (mean + std).
+- Marked the task complete in `projects/multi_fidelity_gp/TASKS.md` with evidence + verification command.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/residual-gp/demo.py` ->
+  - `Residual-GP demo (synthetic benchmark)`
+  - `- Train points: 12, test points: 80`
+  - `- Low-fidelity-only RMSE: 0.486761`
+  - `- High-fidelity-only GP RMSE: 0.030922`
+  - `- Residual correction GP RMSE: 0.050056`
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Implement the residual GP correction model
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 1
+Compound-actions: not run
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (model implementation)
+
 ## Open questions
 
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?

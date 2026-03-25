@@ -6,9 +6,11 @@
   Evidence: `projects/multi_fidelity_gp/experiments/synthetic-benchmark/`
   Priority: high
 
-- [ ] Implement the residual GP correction model [fleet-eligible] [skill: execute]
+- [x] Implement the residual GP correction model [fleet-eligible] [skill: execute]
   Why: The central hypothesis is that modeling the residual `f(x) - f_LF(x)` with a Gaussian process improves predictions without discarding the low-fidelity approximation.
   Done when: A reproducible implementation accepts `f_LF(x)` and high-fidelity training pairs, then returns predictive mean and uncertainty for the corrected model on arbitrary inputs.
+  Evidence: `projects/multi_fidelity_gp/experiments/residual-gp/`
+  Verification: `python projects/multi_fidelity_gp/experiments/residual-gp/demo.py`
   Priority: high
 
 - [ ] Implement comparison baselines (low-fidelity only and high-fidelity-only GP) [fleet-eligible] [skill: execute]
