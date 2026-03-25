@@ -207,4 +207,24 @@ describe("JobStore schedule-change recomputation", () => {
       "every:3600000",
     );
   });
+
+  it("does not resurrect a job removed by another store instance during updateState", async () => {
+    const keepJob = makeCronJob("keep", "keep-job", "0 * * * *", Date.now() + 60_000);
+    const removeJob = makeCronJob("remove", "remove-job", "0 * * * *", Date.now() + 60_000);
+    await writeFile(storePath, JSON.stringify(makeStore([keepJob, removeJob])));
+
+    const staleStore = new JobStore(storePath);
+    await staleStore.load();
+
+    const removingStore = new JobStore(storePath);
+    await removingStore.load();
+    await removingStore.remove("remove");
+
+    await staleStore.updateState("keep", { lastStatus: "ok", runCount: 1 });
+
+    const raw = JSON.parse(await readFile(storePath, "utf-8")) as Store;
+    expect(raw.jobs.map((j) => j.id)).toEqual(["keep"]);
+    expect(raw.jobs[0]?.state.lastStatus).toBe("ok");
+    expect(raw.jobs[0]?.state.runCount).toBe(1);
+  });
 });

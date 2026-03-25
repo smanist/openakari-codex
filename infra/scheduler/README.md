@@ -231,6 +231,28 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-03-25 — Prevent removed jobs from being resurrected by stale scheduler state
+
+Fixed a concurrency bug in the scheduler job store where `node dist/cli.js remove` or `disable` could be undone by a running daemon. Root cause: the daemon loaded `.scheduler/jobs.json` into memory at tick start, and later `updateState()` wrote that stale in-memory snapshot back to disk after a session finished, reintroducing jobs that had been removed externally.
+
+Changes:
+- Updated `src/store.ts` mutators (`add`, `remove`, `updateState`, `setEnabled`) to reload the latest on-disk store before applying a mutation and saving.
+- Added a regression test in `src/store.test.ts` covering the stale-instance case where one store removes a job and another stale store later calls `updateState()`; the removed job now stays deleted.
+
+Verification: `cd infra/scheduler && npm test -- src/store.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  9 passed (9)`
+
+Verification: `cd infra/scheduler && npm test -- src/service.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  15 passed (15)`
+
+Verification: `cd infra/scheduler && npx tsc --noEmit`
+Output:
+- no output (exit 0)
+
 ### 2026-03-24 — Restore openakari scheduler build compatibility after API drift
 
 Fixed the `npm run build` failure in `infra/scheduler` caused by interface drift between the openakari Slack stub and the scheduler callers, plus stale experiment-status and push-enqueue assumptions in the CLI/API layer.

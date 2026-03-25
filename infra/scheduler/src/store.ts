@@ -120,6 +120,7 @@ export class JobStore {
   }
 
   async add(input: JobCreate): Promise<Job> {
+    await this.load();
     const store = this.ensure();
     const now = Date.now();
     const job: Job = {
@@ -141,6 +142,7 @@ export class JobStore {
   }
 
   async remove(id: string): Promise<boolean> {
+    await this.load();
     const store = this.ensure();
     const idx = store.jobs.findIndex((j) => j.id === id);
     if (idx === -1) return false;
@@ -150,6 +152,7 @@ export class JobStore {
   }
 
   async updateState(id: string, patch: Partial<Job["state"]>): Promise<void> {
+    await this.load();
     const job = this.get(id);
     if (!job) return;
     Object.assign(job.state, patch);
@@ -157,6 +160,7 @@ export class JobStore {
   }
 
   async setEnabled(id: string, enabled: boolean): Promise<void> {
+    await this.load();
     const job = this.get(id);
     if (!job) return;
     job.enabled = enabled;
