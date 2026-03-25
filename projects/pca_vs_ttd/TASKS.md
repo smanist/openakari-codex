@@ -27,10 +27,11 @@
 
 ## Mission gap tasks
 
-- [ ] Define and document the evaluation protocol (metrics + reporting format) [skill: record] [zero-resource]
+- [x] Define and document the evaluation protocol (metrics + reporting format) [skill: record] [zero-resource]
   Why: Mission gap — no task for "recommended evaluation protocol" (per ADR 0049)
   Done when: `projects/pca_vs_ttd/evaluation_protocol.md` exists with (a) compression metric definition, (b) reconstruction accuracy metric definition, and (c) standard plots/tables to report.
   Priority: high
+  Evidence: `projects/pca_vs_ttd/evaluation_protocol.md`
 
 - [ ] Run a hyperparameter trade-off study for PCA and TTD [skill: execute]
   Why: Mission gap — no task for "demonstrated trade-off in compression rate and accuracy against hyperparameters" (per ADR 0049)
