@@ -51,8 +51,9 @@
   Done when: A short note in `projects/multi_fidelity_gp/README.md` (Context or a new section) states whether calibration targets latent or observation uncertainty (and why), and the holdout evaluation reflects that choice.
   Priority: medium
 
-- [ ] Add multi-level calibration metrics for the GP models [fleet-eligible] [skill: execute]
+- [x] Add multi-level calibration metrics for the GP models [fleet-eligible] [skill: execute]
   Why: With only 80 test points, single-level 95% coverage can saturate at 1.0; reporting multiple interval levels should make calibration/over-dispersion easier to diagnose.
   Done when: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` reports (for both latent and observation) at least 68% and 95% interval coverage + width for the GP-based models, and `results.json` includes the same fields.
+  Evidence: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium

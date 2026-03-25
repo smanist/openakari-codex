@@ -19,7 +19,7 @@ Evaluate the three benchmark models on the disjoint high-fidelity test set:
 ## Metrics
 
 - Accuracy: RMSE, MAE
-- Uncertainty (probabilistic models only): Gaussian NLL, empirical 95% interval coverage, mean 95% interval width
+- Uncertainty (probabilistic models only): Gaussian NLL, and empirical interval coverage + mean interval width at 68% and 95% (reported for both latent and observation predictive distributions)
 
 ## How to run
 
@@ -30,6 +30,8 @@ Evaluate the three benchmark models on the disjoint high-fidelity test set:
 Results from `results.md` (12 HF train points, 80 HF test points):
 
 - Accuracy (RMSE): low-fidelity `0.486761`, high-fidelity GP `0.002392`, residual correction `0.004678`
+- Calibration (68% coverage, latent): high-fidelity GP `1.000000`, residual correction `0.987500`
+- Calibration (68% coverage, observation): high-fidelity GP `1.000000`, residual correction `0.987500`
 - Calibration (95% coverage, latent): high-fidelity GP `1.000000`, residual correction `1.000000`
 - Calibration (95% coverage, observation): high-fidelity GP `1.000000`, residual correction `1.000000`
 - Preference rule (RMSE + coverage vs high-fidelity GP): residual correction preferred = **no**

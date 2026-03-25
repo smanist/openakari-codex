@@ -34,24 +34,32 @@
   "uncertainty_metrics": {
     "high_fidelity_gp": {
       "latent": {
+        "coverage_68": 1.0,
         "coverage_95": 1.0,
+        "mean_width_68": 0.01939047839865605,
         "mean_width_95": 0.03800463930436776,
         "nll": -3.7238667471489166
       },
       "observation": {
+        "coverage_68": 1.0,
         "coverage_95": 1.0,
+        "mean_width_68": 0.026836962689106153,
         "mean_width_95": 0.052599480325093276,
         "nll": -3.394546347121987
       }
     },
     "residual_gp_correction": {
       "latent": {
+        "coverage_68": 0.9875,
         "coverage_95": 1.0,
+        "mean_width_68": 0.011461952736435244,
         "mean_width_95": 0.022465014555913425,
         "nll": -4.247854778695548
       },
       "observation": {
+        "coverage_68": 0.9875,
         "coverage_95": 1.0,
+        "mean_width_68": 0.015233944779872619,
         "mean_width_95": 0.02985798311102226,
         "nll": -3.9481400566231413
       }

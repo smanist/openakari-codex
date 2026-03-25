@@ -20,6 +20,8 @@ class Metrics:
 @dataclass(frozen=True)
 class UncertaintyMetrics:
     nll: float
+    coverage_68: float
+    mean_width_68: float
     coverage_95: float
     mean_width_95: float
 
@@ -142,11 +144,14 @@ def main() -> int:
     }
 
     def _uncertainty(mean: np.ndarray, std: np.ndarray) -> UncertaintyMetrics:
-        cov, width = _interval_coverage_and_width(y_test, mean, std)
+        cov_68, width_68 = _interval_coverage_and_width(y_test, mean, std, z=1.0)
+        cov_95, width_95 = _interval_coverage_and_width(y_test, mean, std, z=1.959963984540054)
         return UncertaintyMetrics(
             nll=_gaussian_nll(y_test, mean, std),
-            coverage_95=cov,
-            mean_width_95=width,
+            coverage_68=cov_68,
+            mean_width_68=width_68,
+            coverage_95=cov_95,
+            mean_width_95=width_95,
         )
 
     hf_latent = hf_model.predict_latent(x_test)
@@ -202,19 +207,25 @@ def main() -> int:
     lines.append("")
     lines.append("### Latent predictive distribution")
     lines.append("")
-    lines.append("| Model | NLL | 95% coverage | 95% width |")
-    lines.append("|---|---:|---:|---:|")
+    lines.append("| Model | NLL | 68% coverage | 68% width | 95% coverage | 95% width |")
+    lines.append("|---|---:|---:|---:|---:|---:|")
     for label, key in (("High-fidelity GP", "high_fidelity_gp"), ("Residual GP correction", "residual_gp_correction")):
         u = uncertainty_metrics[key]["latent"]
-        lines.append(f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |")
+        lines.append(
+            f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_68)} | {_fmt(u.mean_width_68)}"
+            f" | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |"
+        )
     lines.append("")
     lines.append("### Observation predictive distribution")
     lines.append("")
-    lines.append("| Model | NLL | 95% coverage | 95% width |")
-    lines.append("|---|---:|---:|---:|")
+    lines.append("| Model | NLL | 68% coverage | 68% width | 95% coverage | 95% width |")
+    lines.append("|---|---:|---:|---:|---:|---:|")
     for label, key in (("High-fidelity GP", "high_fidelity_gp"), ("Residual GP correction", "residual_gp_correction")):
         u = uncertainty_metrics[key]["observation"]
-        lines.append(f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |")
+        lines.append(
+            f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_68)} | {_fmt(u.mean_width_68)}"
+            f" | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |"
+        )
     lines.append("")
     lines.append("## GP hyperparameters")
     lines.append("")

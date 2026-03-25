@@ -18,17 +18,17 @@ Two predictive distributions are reported for each GP model:
 
 ### Latent predictive distribution
 
-| Model | NLL | 95% coverage | 95% width |
-|---|---:|---:|---:|
-| High-fidelity GP | -3.723867 | 1.000000 | 0.038005 |
-| Residual GP correction | -4.247855 | 1.000000 | 0.022465 |
+| Model | NLL | 68% coverage | 68% width | 95% coverage | 95% width |
+|---|---:|---:|---:|---:|---:|
+| High-fidelity GP | -3.723867 | 1.000000 | 0.019390 | 1.000000 | 0.038005 |
+| Residual GP correction | -4.247855 | 0.987500 | 0.011462 | 1.000000 | 0.022465 |
 
 ### Observation predictive distribution
 
-| Model | NLL | 95% coverage | 95% width |
-|---|---:|---:|---:|
-| High-fidelity GP | -3.394546 | 1.000000 | 0.052599 |
-| Residual GP correction | -3.948140 | 1.000000 | 0.029858 |
+| Model | NLL | 68% coverage | 68% width | 95% coverage | 95% width |
+|---|---:|---:|---:|---:|---:|
+| High-fidelity GP | -3.394546 | 1.000000 | 0.026837 | 1.000000 | 0.052599 |
+| Residual GP correction | -3.948140 | 0.987500 | 0.015234 | 1.000000 | 0.029858 |
 
 ## GP hyperparameters
 
