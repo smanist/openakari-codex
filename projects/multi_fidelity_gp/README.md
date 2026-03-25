@@ -1,6 +1,7 @@
 # Multi-Fidelity GP Correction
 
 Status: active
+Priority: medium
 Mission: Determine how much a Gaussian-process residual correction can improve a known low-fidelity function approximation when only limited high-fidelity data are available.
 Done when: A reproducible benchmark compares low-fidelity-only, high-fidelity-only GP, and low-fidelity-plus-GP correction models on holdout high-fidelity data using both accuracy and uncertainty metrics, and records when the correction model is preferable.
 
@@ -192,6 +193,44 @@ Resources-consumed: none
 Budget-remaining: n/a
 
 Sources: none (latent vs observation uncertainty reporting)
+
+### 2026-03-25 — Multi-level interval calibration metrics added
+
+Claimed and completed the task “Add multi-level calibration metrics for the GP models” (adding additional coverage/width levels to make over/under-dispersion easier to diagnose on small test sets).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"2718da7704d923aa","taskId":"7833fa1724d9","taskText":"Add multi-level calibration metrics for the GP models","project":"multi_fidelity_gp","agentId":"work-session-mn6faz4j","claimedAt":1774466212872,"expiresAt":1774468912872}}`
+
+Changes:
+- Updated `projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` to report 68% + 95% interval coverage/width for both latent and observation predictive distributions.
+- Re-ran evaluation, updating `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` and `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`, and updated `projects/multi_fidelity_gp/experiments/holdout-eval/EXPERIMENT.md`.
+- Marked the task complete in `projects/multi_fidelity_gp/TASKS.md`.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+
+Findings (see `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`):
+- 68% coverage (latent): high-fidelity GP `1.000000`, residual correction `0.987500`
+- 68% coverage (observation): high-fidelity GP `1.000000`, residual correction `0.987500`
+- 95% coverage: still saturated at `1.000000` for both GP models (latent + observation), suggesting the current uncertainty is conservative relative to nominal 95% intervals under this synthetic setup.
+
+Compound (fast): 2 actions — added `Priority: medium` to `projects/multi_fidelity_gp/README.md`; added a follow-up task for PIT/standardized residual diagnostics.
+Fleet: no recent sessions found.
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Add multi-level calibration metrics for the GP models
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 2
+Compound-actions: 2
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (multi-level calibration metrics)
 
 ## Open questions
 
