@@ -160,6 +160,39 @@ Budget-remaining: n/a
 
 Sources: none (hyperparameter selection + re-eval)
 
+### 2026-03-25 — Latent vs observation uncertainty reported in holdout eval
+
+Claimed and completed the task “Report latent vs observation uncertainty metrics in holdout evaluation” (clarifying uncertainty definitions after coverage saturated at 1.0 with `include_noise=True`).
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"51abc66e5e79c00e","taskId":"1588ce1e175a","taskText":"Report latent vs observation uncertainty metrics in holdout evaluation","project":"multi_fidelity_gp","agentId":"work-session-mn6f28a0","claimedAt":1774465771435,"expiresAt":1774468471435}}`
+
+Changes:
+- Updated `projects/multi_fidelity_gp/experiments/residual-gp/models.py` to expose both `predict_latent()` and `predict_observation()` for GP-based models (with `predict()` continuing to return observation uncertainty).
+- Updated `projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` to emit separate latent vs observation NLL/coverage/width tables, and updated `results.md` / `results.json` accordingly.
+- Updated `projects/multi_fidelity_gp/experiments/holdout-eval/EXPERIMENT.md` to reflect the new reporting.
+
+Verification:
+- `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py` ->
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
+  - `Wrote /Users/daninghuang/Repos/openakari-codex/projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+
+Compound (fast): 1 action — added a follow-up task to report multi-level interval calibration metrics.
+Fleet: no recent sessions found.
+
+Session-type: autonomous
+Duration: n/a
+Task-selected: Report latent vs observation uncertainty metrics in holdout evaluation
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
+Sources: none (latent vs observation uncertainty reporting)
+
 ## Open questions
 
 - Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (coverage closer to 0.95) rather than marginal likelihood alone?
