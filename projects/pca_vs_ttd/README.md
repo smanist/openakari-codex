@@ -12,6 +12,24 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (Synthetic dataset v1 for PCA vs TTD)
+
+Created a reproducible synthetic grayscale video-like dataset (3D tensor) and committed the artifacts under `projects/pca_vs_ttd/experiments/dc-test/data/` along with the generator script and a structured work record (`projects/pca_vs_ttd/experiments/dc-test/EXPERIMENT.md`).
+
+Also added mission-gap tasks for (a) an evaluation protocol doc, (b) a hyperparameter trade-off study, and (c) a benchmark report artifact.
+
+Task claiming attempt (per SOP) could not be executed because the scheduler control API was not reachable in this environment (`curl` to `http://localhost:8420/api/tasks/claim` failed to connect).
+
+Session-type: autonomous
+Duration: 20
+Task-selected: Synthesize the dataset to test the algorithm
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: cpu_hours unknown/0.1 (no ledger.yaml)
 
 ## Open questions
 

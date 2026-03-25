@@ -1,0 +1,22 @@
+{
+  "artifacts": {
+    "meta": "meta_v1.json",
+    "tensor": "video_v1.npz"
+  },
+  "dtype": "float32",
+  "frames": 32,
+  "height": 64,
+  "max": 1.0,
+  "min": 0.0,
+  "n_blobs": 2,
+  "n_spatial_bases": 3,
+  "noise_std": 0.03,
+  "seed": 0,
+  "shape": [
+    32,
+    64,
+    64
+  ],
+  "version": "v1",
+  "width": 64
+}
