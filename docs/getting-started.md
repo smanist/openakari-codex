@@ -91,7 +91,7 @@ node dist/cli.js add \
   --name "your-work-cycle" \
   --cron "0 * * * *" \
   --tz "UTC" \
-  --message "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report." \
+  --message-default \
   --backend codex \
   --model gpt-5.2 \
   --cwd /path/to/your/akari
@@ -109,7 +109,10 @@ Examples:
 
 ```bash
 # Codex backend
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend codex --model gpt-5.2 --cwd /path/to/your/akari
+node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message-default --backend codex --model gpt-5.2 --cwd /path/to/your/akari
+
+# Project-scoped boilerplate
+node dist/cli.js add --name "pca-v-ttd" --cron "0 * * * *" --tz "UTC" --message-project pca_vs_ttd --backend codex --model gpt-5.2 --cwd /path/to/your/akari
 
 # OpenAI capability-fallback backend
 node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend openai --model gpt-5.2 --cwd /path/to/your/akari
@@ -120,6 +123,11 @@ node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message
 # opencode backend
 node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --backend opencode --cwd /path/to/your/akari
 ```
+
+For `add`, choose exactly one of:
+- `--message <prompt>` for a fully custom prompt
+- `--message-default` for the standard 5-step work-cycle prompt
+- `--message-project <project>` for the project-scoped work-cycle prompt
 
 The `--cron "0 * * * *"` runs sessions hourly. Adjust for your needs — a new research group might start with every 2-3 hours (`"0 */2 * * *"`) to keep costs lower while building up project context.
 

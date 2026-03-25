@@ -147,7 +147,9 @@ Add options:
   --cron <expr>             Cron expression, e.g. "0 * * * *" (required unless --every)
   --every <ms>              Interval in milliseconds (alternative to --cron)
   --tz <timezone>           IANA timezone for cron (default: UTC)
-  --message <msg>           Prompt message for agent session (required)
+  --message <msg>           Prompt message for agent session
+  --message-default         Use the default autonomous work-cycle prompt
+  --message-project <name>  Use the project-scoped work-cycle prompt for <name>
   --model <model>           Model name (e.g. opus, sonnet)
   --cwd <dir>               Working directory for agent session
   --backend <backend>       Agent backend: codex, openai, cursor, opencode, claude (deprecated), or auto (default: auto)
@@ -183,6 +185,38 @@ export async function waitForActiveSessions(timeoutMs = 300_000): Promise<void> 
   }
 
   console.warn(`[evolution] Timeout waiting for sessions, proceeding with restart anyway.`);
+}
+
+export function buildDefaultWorkCycleMessage(): string {
+  return "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.";
+}
+
+export function buildProjectWorkCycleMessage(project: string): string {
+  return `You are an autonomous research agent starting a work session on project ${project}. Run /orient ${project}. Work only on projects/${project} unless you must touch shared infra that directly supports this project. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient ${project}. Step 2: Select a task from projects/${project}/TASKS.md. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.`;
+}
+
+export function resolveAddMessage(
+  opts: Record<string, string | boolean>,
+): string {
+  const hasExplicit = typeof opts["message"] === "string";
+  const hasDefault = opts["message-default"] === true;
+  const hasProject = typeof opts["message-project"] === "string";
+  const count = Number(hasExplicit) + Number(hasDefault) + Number(hasProject);
+
+  if (count === 0) {
+    throw new Error("Error: choose one of --message, --message-default, or --message-project.");
+  }
+  if (count > 1) {
+    throw new Error("Choose exactly one of --message, --message-default, or --message-project.");
+  }
+
+  if (hasExplicit) {
+    return String(opts["message"]);
+  }
+  if (hasDefault) {
+    return buildDefaultWorkCycleMessage();
+  }
+  return buildProjectWorkCycleMessage(String(opts["message-project"]));
 }
 
 export interface StopSchedulerOpts {
@@ -867,23 +901,30 @@ async function cmdStop(): Promise<void> {
 
 async function cmdAdd(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const name = opts["name"];
-  const message = opts["message"];
+  const name = getStringFlag(opts, "name");
+  let message: string;
 
-  if (!name || !message) {
-    return fail("Error: --name and --message are required.");
+  if (!name) {
+    return fail("Error: --name is required.");
+  }
+  try {
+    message = resolveAddMessage(opts);
+  } catch (err) {
+    return fail(err instanceof Error ? err.message : String(err));
   }
 
   let schedule: Schedule;
-  if (opts["cron"]) {
-    schedule = { kind: "cron", expr: opts["cron"], tz: opts["tz"] ?? "UTC" };
-  } else if (opts["every"]) {
-    schedule = { kind: "every", everyMs: parseInt(opts["every"], 10) };
+  const cronExpr = getStringFlag(opts, "cron");
+  const everyMs = getStringFlag(opts, "every");
+  if (cronExpr) {
+    schedule = { kind: "cron", expr: cronExpr, tz: getStringFlag(opts, "tz") ?? "UTC" };
+  } else if (everyMs) {
+    schedule = { kind: "every", everyMs: parseInt(everyMs, 10) };
   } else {
     return fail("Error: --cron or --every is required.");
   }
 
-  const backendOpt = opts["backend"] as "codex" | "openai" | "claude" | "cursor" | "opencode" | "auto" | undefined;
+  const backendOpt = getStringFlag(opts, "backend") as "codex" | "openai" | "claude" | "cursor" | "opencode" | "auto" | undefined;
   if (backendOpt && !["codex", "openai", "claude", "cursor", "opencode", "auto"].includes(backendOpt)) {
     return fail("Error: --backend must be codex, openai, claude, cursor, opencode, or auto.");
   }
@@ -893,8 +934,8 @@ async function cmdAdd(args: string[]): Promise<void> {
     schedule,
     payload: {
       message,
-      model: opts["model"],
-      cwd: opts["cwd"],
+      model: getStringFlag(opts, "model"),
+      cwd: getStringFlag(opts, "cwd"),
       backend: backendOpt,
     },
   };
@@ -1109,7 +1150,7 @@ async function cmdHeartbeat(): Promise<void> {
 
 async function cmdWatchdog(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const limit = parseInt(opts["limit"] ?? "20", 10);
+  const limit = parseInt(getStringFlag(opts, "limit") ?? "20", 10);
   const notify = args.includes("--notify");
 
   const { checks, sessionsAnalyzed } = await runHealthWatchdog({ limit });
@@ -1127,7 +1168,7 @@ async function cmdWatchdog(args: string[]): Promise<void> {
 
 async function cmdDetectAnomalies(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const limit = parseInt(opts["limit"] ?? "20", 10);
+  const limit = parseInt(getStringFlag(opts, "limit") ?? "20", 10);
   const notify = args.includes("--notify");
 
   const { anomalies, sessionsAnalyzed } = await runAnomalyDetection({ limit });
@@ -1145,7 +1186,7 @@ async function cmdDetectAnomalies(args: string[]): Promise<void> {
 
 async function cmdEscalateWarnings(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const limit = parseInt(opts["limit"] ?? "20", 10);
+  const limit = parseInt(getStringFlag(opts, "limit") ?? "20", 10);
   const notify = args.includes("--notify");
 
   const { escalations, sessionsAnalyzed } = await runWarningEscalation({ limit });
@@ -1163,7 +1204,7 @@ async function cmdEscalateWarnings(args: string[]): Promise<void> {
 
 async function cmdAuditInteractions(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const since = opts["since"];
+  const since = getStringFlag(opts, "since");
   const notify = args.includes("--notify");
 
   const { checks, stats } = await runInteractionAudit({ since });
@@ -1188,9 +1229,9 @@ interface HealthCheckState {
 
 async function cmdCheckHealth(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const url = opts["url"] ?? "http://localhost:8420";
-  const timeout = parseInt(opts["timeout"] ?? "5000", 10);
-  const stateFile = opts["state-file"] ?? "/tmp/akari-health-state.json";
+  const url = getStringFlag(opts, "url") ?? "http://localhost:8420";
+  const timeout = parseInt(getStringFlag(opts, "timeout") ?? "5000", 10);
+  const stateFile = getStringFlag(opts, "state-file") ?? "/tmp/akari-health-state.json";
   const notify = args.includes("--notify");
 
   const result = await runHealthCheck({ url, timeout, stateFile, notify });
@@ -1329,13 +1370,13 @@ export async function runHealthCheck(opts: HealthCheckOptions): Promise<HealthCh
 
 async function cmdBurst(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const jobName = opts["job"];
+  const jobName = getStringFlag(opts, "job");
   if (!jobName) return fail("Error: --job <name> is required for burst mode.");
 
-  const maxSessions = parseInt(opts["max-sessions"] ?? "10", 10);
-  const maxCost = parseFloat(opts["max-cost"] ?? "50");
+  const maxSessions = parseInt(getStringFlag(opts, "max-sessions") ?? "10", 10);
+  const maxCost = parseFloat(getStringFlag(opts, "max-cost") ?? "50");
   const autofixEnabled = args.includes("--autofix");
-  const autofixRetries = parseInt(opts["autofix-retries"] ?? "3", 10);
+  const autofixRetries = parseInt(getStringFlag(opts, "autofix-retries") ?? "3", 10);
 
   if (isNaN(maxSessions) || maxSessions < 0) return fail("Error: --max-sessions must be a non-negative integer.");
   if (isNaN(maxCost) || maxCost < 0) return fail("Error: --max-cost must be a non-negative number.");
@@ -1393,7 +1434,7 @@ async function cmdBurst(args: string[]): Promise<void> {
 
 async function cmdCleanupBranches(args: string[]): Promise<void> {
   const opts = parseFlags(args);
-  const keepDays = parseInt(opts["keep-days"] ?? "7", 10);
+  const keepDays = parseInt(getStringFlag(opts, "keep-days") ?? "7", 10);
   const dryRun = args.includes("--dry-run");
   const notify = args.includes("--notify");
 
@@ -1414,15 +1455,27 @@ async function cmdCleanupBranches(args: string[]): Promise<void> {
   }
 }
 
-function parseFlags(args: string[]): Record<string, string> {
-  const flags: Record<string, string> = {};
+export function parseFlags(args: string[]): Record<string, string | boolean> {
+  const flags: Record<string, string | boolean> = {};
   for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith("--") && i + 1 < args.length) {
-      flags[args[i].slice(2)] = args[i + 1];
-      i++;
+    if (args[i].startsWith("--")) {
+      if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
+        flags[args[i].slice(2)] = args[i + 1];
+        i++;
+      } else {
+        flags[args[i].slice(2)] = true;
+      }
     }
   }
   return flags;
+}
+
+function getStringFlag(
+  flags: Record<string, string | boolean>,
+  key: string,
+): string | undefined {
+  const value = flags[key];
+  return typeof value === "string" ? value : undefined;
 }
 
 main().catch((err) => {

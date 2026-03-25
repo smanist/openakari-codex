@@ -37,7 +37,7 @@ node dist/cli.js add \
   --name "akari-work-cycle" \
   --cron "0 * * * *" \
   --tz "UTC" \
-  --message "You are an autonomous research agent starting a work session on the akari repo. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report." \
+  --message-default \
   --model opus \
   --cwd /path/to/akari
 
@@ -82,6 +82,13 @@ Openakari does not ship a dashboard UI. It ships a local control API (see below)
 ## Creating jobs
 
 **Always use the CLI `add` command. Do not edit `jobs.json` directly.**
+
+Prompt shortcuts for `add`:
+- `--message-default` inserts the standard autonomous work-cycle prompt.
+- `--message-project <project>` inserts the project-scoped work-cycle prompt for `projects/<project>`.
+- `--message <msg>` still accepts a fully custom prompt.
+
+Choose exactly one of `--message`, `--message-default`, or `--message-project`.
 
 The `add` command computes `nextRunAtMs` and stamps the schedule fingerprint atomically. Direct JSON editing risks creating jobs with `null` `nextRunAtMs` that will never fire. See [postmortem-scheduled-jobs-never-fired-2026-03-05.md](../../projects/akari/postmortem/postmortem-scheduled-jobs-never-fired-2026-03-05.md) for the incident where three jobs silently failed for 11+ days due to this issue.
 
@@ -233,6 +240,15 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-03-25 — Add canned prompt flags for `add`
+
+Added scheduler CLI shortcuts for the common autonomous work-cycle prompts. `node dist/cli.js add --message-default` now expands to the standard 5-step work-cycle boilerplate, and `--message-project <project>` expands to the project-scoped variant that runs `/orient <project>` and limits work to `projects/<project>` unless shared infra is directly required.
+
+Verification: `cd infra/scheduler && npm test -- src/cli-add.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  8 passed (8)`
 
 ### 2026-03-25 — Show daemon state in `status`
 
