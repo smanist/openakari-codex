@@ -1,23 +1,23 @@
 {
   "gp_hyperparams": {
     "high_fidelity_gp": {
-      "length_scale": 2.7636363636363637,
-      "noise_variance": 1e-06,
-      "signal_variance": 0.8194735998613177
+      "length_scale": 1.3818181818181818,
+      "noise_variance": 8.194735998613177e-05,
+      "signal_variance": 2.458420799583953
     },
     "residual_gp": {
-      "length_scale": 2.7636363636363637,
-      "noise_variance": 1e-06,
-      "signal_variance": 0.23016549872388845
+      "length_scale": 1.3818181818181818,
+      "noise_variance": 2.3016549872388844e-05,
+      "signal_variance": 2.3016549872388845
     }
   },
   "metrics": {
     "high_fidelity_gp": {
-      "coverage_95": 0.025,
-      "mae": 0.025725808953174112,
-      "mean_width_95": 0.003326927453402133,
-      "nll": 772.1977667747533,
-      "rmse": 0.030921689128618566
+      "coverage_95": 1.0,
+      "mae": 0.0018699351996197087,
+      "mean_width_95": 0.052599480325093276,
+      "nll": -3.394546347121987,
+      "rmse": 0.0023916892252866394
     },
     "low_fidelity_only": {
       "coverage_95": 0.0,
@@ -27,11 +27,11 @@
       "rmse": 0.4867607524877902
     },
     "residual_gp_correction": {
-      "coverage_95": 0.0375,
-      "mae": 0.04185432792472844,
-      "mean_width_95": 0.003191532816347946,
-      "nll": 2049.252248353968,
-      "rmse": 0.05005558441561884
+      "coverage_95": 1.0,
+      "mae": 0.0022971552995717584,
+      "mean_width_95": 0.02985798311102226,
+      "nll": -3.9481400566231413,
+      "rmse": 0.004677779515376228
     }
   },
   "preference": {

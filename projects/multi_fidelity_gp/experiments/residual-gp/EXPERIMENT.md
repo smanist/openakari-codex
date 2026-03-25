@@ -16,7 +16,10 @@ Implement three 1D regression models for the synthetic multi-fidelity benchmark:
 2. High-fidelity-only GP: GP fit directly to `(x_HF, y_HF)`
 3. Residual GP correction: GP fit to residuals `r = y_HF - f_LF(x_HF)`, predicting `y(x) = f_LF(x) + r(x)`
 
-The GP implementation is NumPy-only (RBF kernel + Cholesky) and returns predictive mean and (latent) variance.
+The GP implementation is NumPy-only (RBF kernel + Cholesky) and returns predictive mean and variance. By default, the project models:
+
+- Select GP hyperparameters via a small grid search that maximizes the GP log marginal likelihood (`hyperparam_selection="lml_grid"`).
+- Report predictive uncertainty as observation uncertainty (`var = var_latent + noise_variance`) via `include_noise=True`.
 
 ## Verification
 

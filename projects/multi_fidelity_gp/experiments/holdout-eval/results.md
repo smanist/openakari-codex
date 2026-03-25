@@ -5,13 +5,13 @@
 | Model | RMSE | MAE | NLL | 95% coverage | 95% width |
 |---|---:|---:|---:|---:|---:|
 | Low-fidelity only | 0.486761 | 0.397680 | 118468015068.343338 | 0.000000 | 0.000000 |
-| High-fidelity GP | 0.030922 | 0.025726 | 772.197767 | 0.025000 | 0.003327 |
-| Residual GP correction | 0.050056 | 0.041854 | 2049.252248 | 0.037500 | 0.003192 |
+| High-fidelity GP | 0.002392 | 0.001870 | -3.394546 | 1.000000 | 0.052599 |
+| Residual GP correction | 0.004678 | 0.002297 | -3.948140 | 1.000000 | 0.029858 |
 
 ## GP hyperparameters
 
-- High-fidelity GP: {'length_scale': 2.7636363636363637, 'signal_variance': 0.8194735998613177, 'noise_variance': 1e-06}
-- Residual GP: {'length_scale': 2.7636363636363637, 'signal_variance': 0.23016549872388845, 'noise_variance': 1e-06}
+- High-fidelity GP: {'length_scale': 1.3818181818181818, 'signal_variance': 2.458420799583953, 'noise_variance': 8.194735998613177e-05}
+- Residual GP: {'length_scale': 1.3818181818181818, 'signal_variance': 2.3016549872388845, 'noise_variance': 2.3016549872388844e-05}
 
 ## Preference rule (initial)
 

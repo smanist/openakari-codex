@@ -27,9 +27,11 @@
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: high
 
-- [ ] Improve GP hyperparameter selection for calibrated uncertainty [requires-opus] [skill: diagnose]
+- [x] Improve GP hyperparameter selection for calibrated uncertainty [requires-opus] [skill: diagnose]
   Why: The initial holdout evaluation shows severe 95% interval undercoverage (≪95%) and extremely large Gaussian NLL, suggesting the current heuristic hyperparameters yield overconfident uncertainty.
   Done when: A documented hyperparameter selection method (e.g., marginal likelihood optimization or a simple grid search) is implemented and the holdout evaluation is re-run with updated calibration metrics.
+  Evidence: `projects/multi_fidelity_gp/experiments/residual-gp/gp.py`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
+  Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: high
 
 - [ ] Sweep the amount of high-fidelity training data [fleet-eligible] [skill: execute]

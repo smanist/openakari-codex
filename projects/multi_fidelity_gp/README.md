@@ -119,6 +119,8 @@ Sources: none (evaluation)
 
 ## Open questions
 
+- Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (coverage closer to 0.95) rather than marginal likelihood alone?
+
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?
 - How sensitive are the findings to the amount and placement of high-fidelity training data?
 - Which uncertainty metric is most decision-relevant for this benchmark: interval coverage, negative log likelihood, or sharpness at matched coverage?
