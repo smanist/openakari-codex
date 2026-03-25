@@ -24,11 +24,12 @@
   Priority: medium
   Evidence: Implemented in `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
 
-- [ ] Fix Codex work-cycle turn/output instrumentation [requires-opus] [skill: execute] [zero-resource]
+- [x] Fix Codex work-cycle turn/output instrumentation [requires-opus] [skill: execute] [zero-resource]
   Why: Some Codex `work-cycle` runs record `Turns: 0` and empty output, which makes self-observation and metrics analysis unreliable.
   Done when: A regression test fixture for Codex `--json` output passes, and `work-cycle` logs show `Turns > 0` and non-empty output for a non-idle session.
   Priority: medium
   Evidence: Diagnosis at `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
+  Evidence: Added Codex CLI stream-json parsing + tests; smoke log at `.scheduler/logs/work-cycle-2026-03-25T01-47-37-609Z.log`; fixture at `infra/scheduler/src/__fixtures__/codex-cli-json-stream.sample.jsonl`.
 
 - [ ] Add one local example of a successful self-improvement loop [fleet-eligible] [skill: record] [zero-resource]
   Why: The strongest evidence for the meta-project is a full loop: detect a gap, change the system, then measure improvement.

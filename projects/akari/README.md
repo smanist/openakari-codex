@@ -14,6 +14,34 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Codex CLI stream-json parsing fixes)
+
+Fixed the Codex backend instrumentation that caused some `work-cycle` sessions to record `Turns: 0` and empty output. The root cause was a schema mismatch: `codex exec --json` (codex-cli 0.110.0) emits `thread.started` / `turn.*` / `item.*` events rather than Claude-SDK-shaped `{type:"assistant", message:{content:[...]}}` lines.
+
+Changes:
+- Updated `infra/scheduler/src/backend.ts` `parseCodexMessage()` to parse Codex CLI `thread.started`, `item.completed` (`agent_message`), and `item.*` (`command_execution`) events.
+- Fixed Codex text accumulation to append assistant text (rather than overwriting).
+- Updated `infra/scheduler/src/agent.ts` to fall back to incrementally tracked session turns when a backend reports 0.
+- Extended `infra/scheduler/src/sleep-guard.ts` to detect violations from `tool_use_summary` events (covers Cursor/opencode and Codex CLI mappings).
+- Added a sanitized fixture at `infra/scheduler/src/__fixtures__/codex-cli-json-stream.sample.jsonl` plus regression tests.
+
+Verification:
+- `cd infra/scheduler && npx vitest run src/backend-all.test.ts src/sleep-guard.test.ts`
+- Smoke run via executor produced a `work-cycle` log with non-empty output and `Turns: 1`: `.scheduler/logs/work-cycle-2026-03-25T01-47-37-609Z.log`.
+
+Note: Task claiming could not be used because the scheduler control API was not reachable (`curl: (7) Failed to connect to localhost port 8420 ...`).
+
+Session-type: autonomous
+Duration: 25
+Task-selected: Fix Codex work-cycle turn/output instrumentation
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 9
+Commits: 2
+Compound-actions: none
+Resources-consumed: OpenAI via `codex exec` (cost not captured in scheduler metrics)
+Budget-remaining: n/a
+
 ### 2026-03-25 (Codex work-cycle self-observation gap)
 
 Wrote a self-observation diagnosis for a metrics/instrumentation failure where Codex `work-cycle` sessions can record `Turns: 0` and empty output, despite post-session verification showing file/commit activity. See `projects/akari/diagnosis/diagnosis-2026-03-25-codex-work-cycle-empty-output.md`.
