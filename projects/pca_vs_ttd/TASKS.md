@@ -38,7 +38,8 @@
   Done when: A documented sweep exists showing compression vs accuracy curves for both PCA and TTD over at least 3 hyperparameter settings each.
   Priority: high
 
-- [ ] Write the benchmark report artifact [skill: record] [zero-resource]
+- [x] Write the benchmark report artifact [skill: record] [zero-resource]
   Why: Mission gap — no task for "published benchmark with compression rate and accuracy comparison" (per ADR 0049)
   Done when: `projects/pca_vs_ttd/benchmark_report.md` exists summarizing dataset, methods, and results with the agreed protocol.
   Priority: high
+  Evidence: `projects/pca_vs_ttd/benchmark_report.md`
