@@ -27,7 +27,7 @@
   },
   "preference": {
     "preferred": false,
-    "rule": "rmse + observation_coverage"
+    "rule": "rmse + latent_coverage"
   },
   "test_points": 80,
   "train_points": 12,

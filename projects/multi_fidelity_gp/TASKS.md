@@ -48,9 +48,11 @@
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 
-- [ ] Decide which uncertainty definition to optimize for calibration [requires-opus] [skill: analyze]
+- [x] Decide which uncertainty definition to optimize for calibration [requires-opus] [skill: analyze]
   Why: The project currently mixes modeling choices (noise variance, observation vs latent uncertainty) with calibration metrics; we need an explicit target so “calibrated uncertainty” is well-defined.
   Done when: A short note in `projects/multi_fidelity_gp/README.md` (Context or a new section) states whether calibration targets latent or observation uncertainty (and why), and the holdout evaluation reflects that choice.
+  Evidence: `projects/multi_fidelity_gp/README.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
+  Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 
 - [x] Add multi-level calibration metrics for the GP models [fleet-eligible] [skill: execute]

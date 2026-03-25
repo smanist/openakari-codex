@@ -38,7 +38,7 @@ Results from `results.md` (12 HF train points, 80 HF test points):
 
 Notes:
 - GP hyperparameters are selected via log marginal likelihood grid search (`hyperparam_selection="lml_grid"`).
-- Uncertainty metrics report both latent and observation uncertainty (`include_noise=True`), with the preference rule using observation uncertainty.
+- Uncertainty metrics report both latent and observation uncertainty (`include_noise=True`), with the preference rule using **latent** uncertainty (per project calibration target in `projects/multi_fidelity_gp/README.md`).
 
 Artifacts:
 - `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`

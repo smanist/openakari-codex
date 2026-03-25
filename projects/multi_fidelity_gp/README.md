@@ -9,6 +9,12 @@ Done when: A reproducible benchmark compares low-fidelity-only, high-fidelity-on
 
 This project studies one-dimensional multi-fidelity regression for a target function `y = f(x)`. The working model is to keep a provided low-fidelity approximation `f_LF(x)` unchanged and learn only the residual `r(x) = f(x) - f_LF(x)` from sparse high-fidelity data with a Gaussian process. The first benchmark will be fully synthetic so that the true function is known everywhere, the low-fidelity bias can be controlled, and uncertainty calibration can be checked against a separate high-fidelity test set. The concrete initial benchmark uses `x in [-4, 4]`, a smooth nonlinear target with oscillation plus a local bump, and a biased low-fidelity surrogate that captures the broad trend but misses amplitude, phase, and offset details.
 
+## Calibration target (uncertainty)
+
+For this synthetic benchmark, the saved high-fidelity values `y_hf` are deterministic evaluations of the latent function `f(x)` (no measurement noise). Therefore, when this project talks about “calibrated uncertainty”, the primary target is **latent predictive uncertainty**: uncertainty over the unknown function value `f(x)` given limited high-fidelity data (not “observation uncertainty” that adds fitted noise variance).
+
+The holdout evaluation still reports both latent and observation predictive distributions, but preference rules and calibration discussions should use the latent distribution unless explicitly stated otherwise.
+
 ## Log
 
 ### 2026-03-25 — Project created
@@ -305,8 +311,6 @@ Budget-remaining: n/a
 Sources: none (calibration diagnostics)
 
 ## Open questions
-
-- Holdout evaluation now shows 95% interval coverage = 1.0 for both GP-based models after LML grid hyperparameters + `include_noise=True`. Standardized residual diagnostics also show dispersion far below 1.0 (see `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`), consistent with conservative uncertainty. Should uncertainty be reported separately for latent vs observation uncertainty, and should hyperparameters be selected with an explicit calibration target (e.g., standardized residual dispersion nearer 1.0, PIT closer to Uniform, coverage nearer 0.95) rather than marginal likelihood alone?
 
 - Should the project treat `f_LF(x)` strictly as a fixed mean function, or also compare against more general multi-fidelity GP constructions such as autoregressive co-kriging?
 - How sensitive are the findings to the amount and placement of high-fidelity training data?

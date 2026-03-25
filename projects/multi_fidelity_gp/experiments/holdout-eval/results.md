@@ -1,6 +1,7 @@
 # Holdout evaluation (synthetic benchmark)
 
 - Train points: 12, test points: 80
+- Calibration target: **latent** predictive distribution
 
 ## Accuracy (point metrics)
 
@@ -45,8 +46,8 @@ Two predictive distributions are reported for each GP model:
 - High-fidelity GP: {'length_scale': 1.3818181818181818, 'signal_variance': 2.458420799583953, 'noise_variance': 8.194735998613177e-05}
 - Residual GP: {'length_scale': 1.3818181818181818, 'signal_variance': 2.3016549872388845, 'noise_variance': 2.3016549872388844e-05}
 
-## Preference rule (initial)
+## Preference rule
 
-Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% interval coverage closer to 0.95.
+Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% interval coverage closer to 0.95 under the **latent** predictive distribution.
 - Preferred: no
 

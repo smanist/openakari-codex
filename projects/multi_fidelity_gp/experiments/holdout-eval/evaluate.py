@@ -203,11 +203,12 @@ def main() -> int:
     uncertainty_metrics["residual_gp_correction"]["latent"] = _uncertainty(mf_latent.mean, mf_latent.std)
     uncertainty_metrics["residual_gp_correction"]["observation"] = _uncertainty(mf_obs.mean, mf_obs.std)
 
+    calibration_target = "latent"
     target_cov = 0.95
     prefer_residual = (
         point_metrics["residual_gp_correction"].rmse < point_metrics["high_fidelity_gp"].rmse
-        and abs(uncertainty_metrics["residual_gp_correction"]["observation"].coverage_95 - target_cov)
-        < abs(uncertainty_metrics["high_fidelity_gp"]["observation"].coverage_95 - target_cov)
+        and abs(uncertainty_metrics["residual_gp_correction"][calibration_target].coverage_95 - target_cov)
+        < abs(uncertainty_metrics["high_fidelity_gp"][calibration_target].coverage_95 - target_cov)
     )
 
     hf_hp = getattr(hf_model, "_gp", None).hyperparams if getattr(hf_model, "_gp", None) is not None else None
@@ -217,6 +218,7 @@ def main() -> int:
     lines.append("# Holdout evaluation (synthetic benchmark)")
     lines.append("")
     lines.append(f"- Train points: {x_train.size}, test points: {x_test.size}")
+    lines.append(f"- Calibration target: **{calibration_target}** predictive distribution")
     lines.append("")
     lines.append("## Accuracy (point metrics)")
     lines.append("")
@@ -291,10 +293,11 @@ def main() -> int:
     lines.append(f"- High-fidelity GP: {_jsonable(hf_hp)}")
     lines.append(f"- Residual GP: {_jsonable(mf_hp)}")
     lines.append("")
-    lines.append("## Preference rule (initial)")
+    lines.append("## Preference rule")
     lines.append("")
     lines.append(
-        "Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% interval coverage closer to 0.95."
+        "Residual GP preferred if it beats the high-fidelity GP on RMSE and has 95% interval coverage closer to 0.95"
+        f" under the **{calibration_target}** predictive distribution."
     )
     lines.append(f"- Preferred: {'yes' if prefer_residual else 'no'}")
     lines.append("")
@@ -313,7 +316,7 @@ def main() -> int:
             "high_fidelity_gp": _jsonable(hf_hp),
             "residual_gp": _jsonable(mf_hp),
         },
-        "preference": {"rule": "rmse + observation_coverage", "preferred": bool(prefer_residual)},
+        "preference": {"rule": f"rmse + {calibration_target}_coverage", "preferred": bool(prefer_residual)},
     }
     out_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
