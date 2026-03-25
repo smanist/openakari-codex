@@ -24,6 +24,13 @@ class UncertaintyMetrics:
     mean_width_68: float
     coverage_95: float
     mean_width_95: float
+    standardized_residual_mean: float
+    standardized_residual_std: float
+    within_1sigma: float
+    within_2sigma: float
+    pit_mean: float
+    pit_std: float
+    pit_ks: float
 
 
 def _load_xy(path: Path) -> tuple[np.ndarray, np.ndarray]:
@@ -68,6 +75,24 @@ def _interval_coverage_and_width(
     coverage = float(np.mean((y_true >= lo) & (y_true <= hi)))
     width = float(np.mean(hi - lo))
     return coverage, width
+
+
+def _normal_cdf(z: np.ndarray) -> np.ndarray:
+    z = np.asarray(z, dtype=float).reshape(-1)
+    sqrt2 = math.sqrt(2.0)
+    return np.asarray([0.5 * math.erfc(-float(zi) / sqrt2) for zi in z], dtype=float)
+
+
+def _ks_uniform(u: np.ndarray) -> float:
+    u = np.asarray(u, dtype=float).reshape(-1)
+    if u.size == 0:
+        return float("nan")
+    u_sorted = np.sort(u)
+    n = u_sorted.size
+    i = np.arange(1, n + 1, dtype=float)
+    d_plus = np.max(i / n - u_sorted)
+    d_minus = np.max(u_sorted - (i - 1) / n)
+    return float(max(d_plus, d_minus))
 
 
 def _import_benchmark_and_models(project_dir: Path) -> tuple[Any, Any]:
@@ -144,14 +169,28 @@ def main() -> int:
     }
 
     def _uncertainty(mean: np.ndarray, std: np.ndarray) -> UncertaintyMetrics:
+        var_floor = 1e-12
+        std = np.asarray(std, dtype=float).reshape(-1)
+        std_adj = np.sqrt(np.maximum(std * std, var_floor))
+        z = (y_test - mean) / std_adj
+        pit = _normal_cdf(z)
+        eps = 1e-12
+        pit = np.clip(pit, eps, 1.0 - eps)
         cov_68, width_68 = _interval_coverage_and_width(y_test, mean, std, z=1.0)
         cov_95, width_95 = _interval_coverage_and_width(y_test, mean, std, z=1.959963984540054)
         return UncertaintyMetrics(
-            nll=_gaussian_nll(y_test, mean, std),
+            nll=_gaussian_nll(y_test, mean, std, var_floor=var_floor),
             coverage_68=cov_68,
             mean_width_68=width_68,
             coverage_95=cov_95,
             mean_width_95=width_95,
+            standardized_residual_mean=float(np.mean(z)),
+            standardized_residual_std=float(np.std(z)),
+            within_1sigma=float(np.mean(np.abs(z) <= 1.0)),
+            within_2sigma=float(np.mean(np.abs(z) <= 2.0)),
+            pit_mean=float(np.mean(pit)),
+            pit_std=float(np.std(pit)),
+            pit_ks=_ks_uniform(pit),
         )
 
     hf_latent = hf_model.predict_latent(x_test)
@@ -216,6 +255,16 @@ def main() -> int:
             f" | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |"
         )
     lines.append("")
+    lines.append("| Model | Std resid mean | Std resid std | |z|≤1 | |z|≤2 | PIT mean | PIT std | PIT KS |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|")
+    for label, key in (("High-fidelity GP", "high_fidelity_gp"), ("Residual GP correction", "residual_gp_correction")):
+        u = uncertainty_metrics[key]["latent"]
+        lines.append(
+            f"| {label} | {_fmt(u.standardized_residual_mean)} | {_fmt(u.standardized_residual_std)}"
+            f" | {_fmt(u.within_1sigma)} | {_fmt(u.within_2sigma)} | {_fmt(u.pit_mean)} | {_fmt(u.pit_std)}"
+            f" | {_fmt(u.pit_ks)} |"
+        )
+    lines.append("")
     lines.append("### Observation predictive distribution")
     lines.append("")
     lines.append("| Model | NLL | 68% coverage | 68% width | 95% coverage | 95% width |")
@@ -225,6 +274,16 @@ def main() -> int:
         lines.append(
             f"| {label} | {_fmt(u.nll)} | {_fmt(u.coverage_68)} | {_fmt(u.mean_width_68)}"
             f" | {_fmt(u.coverage_95)} | {_fmt(u.mean_width_95)} |"
+        )
+    lines.append("")
+    lines.append("| Model | Std resid mean | Std resid std | |z|≤1 | |z|≤2 | PIT mean | PIT std | PIT KS |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|")
+    for label, key in (("High-fidelity GP", "high_fidelity_gp"), ("Residual GP correction", "residual_gp_correction")):
+        u = uncertainty_metrics[key]["observation"]
+        lines.append(
+            f"| {label} | {_fmt(u.standardized_residual_mean)} | {_fmt(u.standardized_residual_std)}"
+            f" | {_fmt(u.within_1sigma)} | {_fmt(u.within_2sigma)} | {_fmt(u.pit_mean)} | {_fmt(u.pit_std)}"
+            f" | {_fmt(u.pit_ks)} |"
         )
     lines.append("")
     lines.append("## GP hyperparameters")

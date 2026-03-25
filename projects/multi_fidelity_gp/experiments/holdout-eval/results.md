@@ -23,12 +23,22 @@ Two predictive distributions are reported for each GP model:
 | High-fidelity GP | -3.723867 | 1.000000 | 0.019390 | 1.000000 | 0.038005 |
 | Residual GP correction | -4.247855 | 0.987500 | 0.011462 | 1.000000 | 0.022465 |
 
+| Model | Std resid mean | Std resid std | |z|≤1 | |z|≤2 | PIT mean | PIT std | PIT KS |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| High-fidelity GP | -0.001560 | 0.281680 | 1.000000 | 1.000000 | 0.499335 | 0.108497 | 0.285889 |
+| Residual GP correction | 0.003581 | 0.392857 | 0.987500 | 1.000000 | 0.501527 | 0.145326 | 0.251824 |
+
 ### Observation predictive distribution
 
 | Model | NLL | 68% coverage | 68% width | 95% coverage | 95% width |
 |---|---:|---:|---:|---:|---:|
 | High-fidelity GP | -3.394546 | 1.000000 | 0.026837 | 1.000000 | 0.052599 |
 | Residual GP correction | -3.948140 | 0.987500 | 0.015234 | 1.000000 | 0.029858 |
+
+| Model | Std resid mean | Std resid std | |z|≤1 | |z|≤2 | PIT mean | PIT std | PIT KS |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| High-fidelity GP | -0.001944 | 0.190926 | 1.000000 | 1.000000 | 0.499212 | 0.074964 | 0.347408 |
+| Residual GP correction | 0.002661 | 0.322729 | 0.987500 | 1.000000 | 0.501356 | 0.119677 | 0.283821 |
 
 ## GP hyperparameters
 

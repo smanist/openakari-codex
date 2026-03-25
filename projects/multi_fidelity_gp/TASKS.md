@@ -60,9 +60,10 @@
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 
-- [ ] Add PIT / standardized residual calibration diagnostics [fleet-eligible] [skill: execute]
+- [x] Add PIT / standardized residual calibration diagnostics [fleet-eligible] [skill: execute]
   Why: Interval coverage can saturate on small test sets; PIT or standardized residual diagnostics can detect over/under-dispersion more sensitively.
   Done when: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md` reports standardized residual summary stats (mean/std) and within-1σ / within-2σ rates for both latent and observation predictive distributions, and `results.json` includes the same fields.
+  Evidence: `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 

@@ -38,14 +38,28 @@
         "coverage_95": 1.0,
         "mean_width_68": 0.01939047839865605,
         "mean_width_95": 0.03800463930436776,
-        "nll": -3.7238667471489166
+        "nll": -3.7238667471489166,
+        "pit_ks": 0.28588892065958615,
+        "pit_mean": 0.4993351143615065,
+        "pit_std": 0.10849712258458458,
+        "standardized_residual_mean": -0.001559674390743367,
+        "standardized_residual_std": 0.2816802894265085,
+        "within_1sigma": 1.0,
+        "within_2sigma": 1.0
       },
       "observation": {
         "coverage_68": 1.0,
         "coverage_95": 1.0,
         "mean_width_68": 0.026836962689106153,
         "mean_width_95": 0.052599480325093276,
-        "nll": -3.394546347121987
+        "nll": -3.394546347121987,
+        "pit_ks": 0.3474081871894862,
+        "pit_mean": 0.49921154127859013,
+        "pit_std": 0.07496409592694064,
+        "standardized_residual_mean": -0.0019442051170515603,
+        "standardized_residual_std": 0.1909259869580822,
+        "within_1sigma": 1.0,
+        "within_2sigma": 1.0
       }
     },
     "residual_gp_correction": {
@@ -54,14 +68,28 @@
         "coverage_95": 1.0,
         "mean_width_68": 0.011461952736435244,
         "mean_width_95": 0.022465014555913425,
-        "nll": -4.247854778695548
+        "nll": -4.247854778695548,
+        "pit_ks": 0.2518239408301671,
+        "pit_mean": 0.5015266659490673,
+        "pit_std": 0.1453258211550534,
+        "standardized_residual_mean": 0.003581179060141515,
+        "standardized_residual_std": 0.3928570680020011,
+        "within_1sigma": 0.9875,
+        "within_2sigma": 1.0
       },
       "observation": {
         "coverage_68": 0.9875,
         "coverage_95": 1.0,
         "mean_width_68": 0.015233944779872619,
         "mean_width_95": 0.02985798311102226,
-        "nll": -3.9481400566231413
+        "nll": -3.9481400566231413,
+        "pit_ks": 0.2838209778236558,
+        "pit_mean": 0.5013556401225397,
+        "pit_std": 0.11967710554373612,
+        "standardized_residual_mean": 0.0026613765300689206,
+        "standardized_residual_std": 0.32272881755866506,
+        "within_1sigma": 0.9875,
+        "within_2sigma": 1.0
       }
     }
   }
