@@ -42,6 +42,7 @@
   Why: Despite the instrumentation fix + smoke log, subsequent scheduled runs still produced empty `.scheduler/logs/*` output with `Turns: 0`, which blocks metrics analysis and makes “fixed” claims unverifiable.
   Evidence: Empty output logs: `.scheduler/logs/work-cycle-2026-03-25T03-11-33-249Z.log`, `.scheduler/logs/pca-v-ttd-2026-03-25T02-23-32-461Z.log`.
   Evidence (2026-03-25): Codex CLI emits explicit `turn.*` events; a turn can contain only tool items and no `agent_message`. Implemented turn counting from `turn.completed` and a fallback to command execution `aggregated_output` when assistant text is empty (`infra/scheduler/src/backend.ts`), with regression coverage in `infra/scheduler/src/backend-all.test.ts`.
+  Evidence (2026-03-25): `node infra/scheduler/dist/cli.js run <job-id>` did not append a `.scheduler/metrics/sessions.jsonl` row because `cmdRun()` updated job state but did not record structured metrics; fixed by recording metrics for manual runs in `infra/scheduler/src/cli.ts`.
   Verification (unit): `cd infra/scheduler && npx vitest run src/backend-all.test.ts` → `71 passed`
   Done when: A scheduled `work-cycle` run (not a smoke run) produces a log file with non-empty `## output` and `Turns > 0`, and the corresponding `.scheduler/metrics/sessions.jsonl` row reports `numTurns > 0`.
   Priority: high

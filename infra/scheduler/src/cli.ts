@@ -57,7 +57,7 @@ loadEnvFile(resolve(__dirname, "..", ".env"));     // infra/scheduler/.env (sche
 
 import { JobStore } from "./store.js";
 import { SchedulerService } from "./service.js";
-import { executeJob } from "./executor.js";
+import { executeJob, type ExecutionResult } from "./executor.js";
 import { getPendingApprovals } from "./notify.js";
 import * as slack from "./slack.js";
 import { clearAll as clearSessions, listSessions } from "./session.js";
@@ -80,7 +80,7 @@ import { createHealthTasks } from "./health-tasks.js";
 import { triggerAutoDiagnosis } from "./auto-diagnose.js";
 import { runBranchCleanup, formatCleanupReport } from "./branch-cleanup.js";
 import { runRecurringTasks } from "./recurring-tasks.js";
-import type { Schedule, JobCreate } from "./types.js";
+import type { Schedule, JobCreate, Job } from "./types.js";
 import { listExperiments } from "./experiments.js";
 import { wasFullOrient } from "./orient-tier.js";
 import { getUnifiedStatus, formatUnifiedStatus, toStatusExperiment, type StatusSession, type StatusExperiment, type StatusJob } from "./status.js";
@@ -163,6 +163,106 @@ function fail(msg: string): never {
 function requireArg(val: string | undefined, label: string): string {
   if (!val) return fail(`Error: ${label} required.`);
   return val;
+}
+
+type VerifySessionResult = Awaited<ReturnType<typeof verifySession>>;
+
+async function recordRunMetrics(opts: {
+  job: Job;
+  result: ExecutionResult;
+  headBeforeRaw: string | null;
+}): Promise<{ verification: VerifySessionResult | null }> {
+  const { job, result, headBeforeRaw } = opts;
+  const dir = job.payload.cwd ?? process.cwd();
+
+  // Use post-auto-commit HEAD as the baseline for attribution. This ensures
+  // orphaned files from prior sessions (auto-committed before this session)
+  // are not credited to this session's knowledge metrics.
+  const headBefore = result.headAfterAutoCommit ?? headBeforeRaw;
+
+  const verification = await verifySession(
+    dir,
+    headBefore,
+    result.costUsd,
+    result.numTurns,
+    result.durationMs,
+    undefined,
+    result.sleepViolation,
+    result.stallViolation,
+  ).catch((err) => {
+    console.error(`[verify] Error: ${err}`);
+    return null;
+  });
+
+  const knowledge = await countKnowledgeOutput(dir, headBefore).catch((err) => {
+    console.error(`[verify] Knowledge counting error: ${err}`);
+    return null;
+  });
+
+  const crossProject = await countCrossProjectMetrics(dir, headBefore).catch((err) => {
+    console.error(`[verify] Cross-project metrics error: ${err}`);
+    return null;
+  });
+
+  const qualityAudit = await countQualityAuditMetrics(dir, headBefore).catch((err) => {
+    console.error(`[verify] Quality audit metrics error: ${err}`);
+    return null;
+  });
+
+  const budgetGate = await checkBudget(job).catch(() => null);
+
+  const metrics: SessionMetrics = {
+    timestamp: new Date().toISOString(),
+    jobName: job.name,
+    runId: generateRunId(job.id),
+    triggerSource: result.triggerSource,
+    backend: (result.backend ?? "codex") as "codex" | "openai" | "claude" | "cursor" | "opencode",
+    durationMs: result.durationMs,
+    costUsd: result.costUsd ?? null,
+    numTurns: result.numTurns ?? null,
+    timedOut: result.timedOut ?? false,
+    ok: result.ok,
+    error: result.error,
+    verification: verification ? {
+      uncommittedFiles: verification.uncommittedFiles.length,
+      orphanedFiles: verification.orphanedFiles.length,
+      hasLogEntry: verification.hasLogEntry,
+      hasCommit: verification.hasCommit,
+      hasCompleteFooter: verification.hasCompleteFooter,
+      ledgerConsistent: verification.ledgerConsistent,
+      filesChanged: verification.filesChanged,
+      commitCount: verification.commitCount,
+      agentCommitCount: verification.agentCommitCount,
+      warningCount: verification.warnings.length,
+      l2ViolationCount: verification.l2ViolationCount,
+      l2ChecksPerformed: verification.l2ChecksPerformed,
+      stallViolationCommand: verification.stallViolationCommand,
+    } : null,
+    knowledge,
+    budgetGate: budgetGate ? { allowed: budgetGate.allowed, reason: budgetGate.reason } : null,
+    modelUsage: result.modelUsage ?? null,
+    toolCounts: result.toolCounts ?? null,
+    orientTurns: result.orientTurns ?? null,
+    crossProject: crossProject ?? null,
+    qualityAudit: qualityAudit ?? null,
+    injectedOrientTier: result.injectedOrientTier ?? null,
+    injectedCompoundTier: result.injectedCompoundTier ?? null,
+    injectedRole: result.injectedRole ?? null,
+    pushQueueResult: result.pushQueueResult,
+  };
+
+  await recordMetrics(metrics).catch((err) => {
+    console.error(`[metrics] Failed to record: ${err}`);
+  });
+
+  if (verification) {
+    const warningText = formatVerification(verification);
+    if (warningText) {
+      console.log(`[verify] Warnings for ${job.name}:\n${warningText}`);
+    }
+  }
+
+  return { verification };
 }
 
 /** Wait for active sessions to complete before restarting.
@@ -445,90 +545,7 @@ async function cmdStart(): Promise<void> {
       const headBeforeRaw = headBeforeMap.get(job.id) ?? null;
       headBeforeMap.delete(job.id);
 
-      // Use post-auto-commit HEAD as the baseline for attribution. This ensures
-      // orphaned files from prior sessions (auto-committed before this session)
-      // are not credited to this session's knowledge metrics.
-      const headBefore = result.headAfterAutoCommit ?? headBeforeRaw;
-
-      // Post-session verification
-      const verification = await verifySession(dir, headBefore, result.costUsd, result.numTurns, result.durationMs, undefined, result.sleepViolation, result.stallViolation).catch((err) => {
-        console.error(`[verify] Error: ${err}`);
-        return null;
-      });
-
-      // Knowledge output counting
-      const knowledge = await countKnowledgeOutput(dir, headBefore).catch((err) => {
-        console.error(`[verify] Knowledge counting error: ${err}`);
-        return null;
-      });
-
-      // Cross-project utilization tracking
-      const crossProject = await countCrossProjectMetrics(dir, headBefore).catch((err) => {
-        console.error(`[verify] Cross-project metrics error: ${err}`);
-        return null;
-      });
-
-      // Quality audit coverage tracking
-      const qualityAudit = await countQualityAuditMetrics(dir, headBefore).catch((err) => {
-        console.error(`[verify] Quality audit metrics error: ${err}`);
-        return null;
-      });
-
-      // Budget gate result (already computed in onBeforeRun, reconstruct for metrics)
-      const budgetGate = await checkBudget(job).catch(() => null);
-
-      // Record structured metrics
-      const runId = generateRunId(job.id);
-      const metrics: SessionMetrics = {
-        timestamp: new Date().toISOString(),
-        jobName: job.name,
-        runId,
-        triggerSource: result.triggerSource,
-        backend: (result.backend ?? "codex") as "codex" | "openai" | "claude" | "cursor" | "opencode",
-        durationMs: result.durationMs,
-        costUsd: result.costUsd ?? null,
-        numTurns: result.numTurns ?? null,
-        timedOut: result.timedOut ?? false,
-        ok: result.ok,
-        error: result.error,
-        verification: verification ? {
-          uncommittedFiles: verification.uncommittedFiles.length,
-          orphanedFiles: verification.orphanedFiles.length,
-          hasLogEntry: verification.hasLogEntry,
-          hasCommit: verification.hasCommit,
-          hasCompleteFooter: verification.hasCompleteFooter,
-          ledgerConsistent: verification.ledgerConsistent,
-          filesChanged: verification.filesChanged,
-          commitCount: verification.commitCount,
-          agentCommitCount: verification.agentCommitCount,
-          warningCount: verification.warnings.length,
-          l2ViolationCount: verification.l2ViolationCount,
-          l2ChecksPerformed: verification.l2ChecksPerformed,
-          stallViolationCommand: verification.stallViolationCommand,
-        } : null,
-        knowledge,
-        budgetGate: budgetGate ? { allowed: budgetGate.allowed, reason: budgetGate.reason } : null,
-        modelUsage: result.modelUsage ?? null,
-        toolCounts: result.toolCounts ?? null,
-        orientTurns: result.orientTurns ?? null,
-        crossProject: crossProject ?? null,
-        qualityAudit: qualityAudit ?? null,
-        injectedOrientTier: result.injectedOrientTier ?? null,
-        injectedCompoundTier: result.injectedCompoundTier ?? null,
-        injectedRole: result.injectedRole ?? null,
-        pushQueueResult: result.pushQueueResult,
-      };
-      await recordMetrics(metrics).catch((err) => {
-        console.error(`[metrics] Failed to record: ${err}`);
-      });
-
-      // Log verification warnings
-      if (verification) {
-        const warningText = formatVerification(verification);
-        if (warningText) {
-          console.log(`[verify] Warnings for ${job.name}:\n${warningText}`);
-        }
-      }
+      await recordRunMetrics({ job, result, headBeforeRaw });
 
       // Update orient/compound tier timestamps (ADR 0030)
       if (result.ok) {
@@ -1052,6 +1069,7 @@ async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
   if (runJob.payload.maxDurationMs !== job.payload.maxDurationMs && runJob.payload.maxDurationMs) overrideParts.push(`maxDurationMs=${runJob.payload.maxDurationMs}`);
 
   console.log(`Running job: ${job.name} (${job.id})...${overrideParts.length ? ` (overrides: ${overrideParts.join(", ")})` : ""}`);
+  const headBeforeRaw = await getHeadCommit(repoDir).catch(() => null);
   const result = await executeJob(runJob, "manual");
   console.log(
     `\nResult: ${result.ok ? "ok" : "error"} (${Math.round(result.durationMs / 1000)}s)`,
@@ -1070,6 +1088,10 @@ async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
     lastDurationMs: result.durationMs,
     runCount: job.state.runCount + 1,
   });
+
+  // Manual runs should still record structured metrics so verification is
+  // visible in sessions.jsonl (enables E2E checks without waiting for cron).
+  await recordRunMetrics({ job: runJob as Job, result, headBeforeRaw });
 
   await slack.stopSlackBot();
 }
