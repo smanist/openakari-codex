@@ -12,6 +12,31 @@ The goal is to answer: how much improvement in data compression can TTD achieve 
 
 ## Log
 
+### 2026-03-25 (Hyperparameter trade-off sweep v1)
+
+Claimed and completed the mission-gap task “Run a hyperparameter trade-off study for PCA and TTD” by running a first sweep (PCA `k ∈ {0,1,2,4,8,16}`; TTD `r1=r2 ∈ {4,8,12,16,23}`) and generating the standard curve artifacts under `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/`.
+
+Task claim (scheduler control API):
+- `curl -s -X POST http://localhost:8420/api/tasks/claim ...` → `{"ok":true,"claim":{"claimId":"a3ebb616deb017c2","taskId":"8a7348da40c8","taskText":"Run a hyperparameter trade-off study for PCA and TTD","project":"pca_vs_ttd","agentId":"work-session-mn5ggyu1","claimedAt":1774407773329,"expiresAt":1774410473329}}`
+
+Verification:
+- `python projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/run_sweep.py --overwrite` → wrote `.../results/sweep_summary.csv` and plots.
+
+Notes:
+- Extended `projects/pca_vs_ttd/experiments/pca-baseline/run_pca.py` to support `k=0` so the sweep can include the “mean-only” extreme point.
+- Summary CSV + plots: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/`.
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Run a hyperparameter trade-off study for PCA and TTD
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 20
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: llm_api_calls 0/0, cpu_hours 0.1/0.1 (ledger empty)
+
 ### 2026-03-25 (Benchmark report artifact v0)
 
 Claimed and completed the mission-gap task “Write the benchmark report artifact” and recorded a draft report that consolidates dataset + protocol + baseline results: `projects/pca_vs_ttd/benchmark_report.md`. Marked the task as complete in `projects/pca_vs_ttd/TASKS.md`.

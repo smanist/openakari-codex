@@ -91,19 +91,23 @@ def main() -> None:
     ap.add_argument("--overwrite", action="store_true", help="Overwrite existing outputs.")
     args = ap.parse_args()
 
-    if args.k <= 0:
-        raise ValueError("--k must be positive.")
+    if args.k < 0:
+        raise ValueError("--k must be non-negative.")
 
     tensor = _load_tensor(args.data)
     t, h, w = tensor.shape
     x = tensor.reshape(t, h * w)
 
-    max_k = min(x.shape[0], x.shape[1])
-    if args.k > max_k:
-        raise ValueError(f"--k={args.k} exceeds max allowed {max_k} for shape N={x.shape[0]}, D={x.shape[1]}.")
+    if args.k == 0:
+        mean = x.mean(axis=0, dtype=np.float64)
+        x_hat = np.broadcast_to(mean, x.shape)
+    else:
+        max_k = min(x.shape[0], x.shape[1])
+        if args.k > max_k:
+            raise ValueError(f"--k={args.k} exceeds max allowed {max_k} for shape N={x.shape[0]}, D={x.shape[1]}.")
 
-    mean, components, scores = _pca_fit_transform_reconstruct(x, args.k)
-    x_hat = _reconstruct(mean, components, scores)
+        mean, components, scores = _pca_fit_transform_reconstruct(x, args.k)
+        x_hat = _reconstruct(mean, components, scores)
     recon = x_hat.reshape(t, h, w)
 
     err = recon.astype(np.float64) - tensor.astype(np.float64)
@@ -150,4 +154,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

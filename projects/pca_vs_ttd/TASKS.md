@@ -33,10 +33,11 @@
   Priority: high
   Evidence: `projects/pca_vs_ttd/evaluation_protocol.md`
 
-- [ ] Run a hyperparameter trade-off study for PCA and TTD [skill: execute]
+- [x] Run a hyperparameter trade-off study for PCA and TTD [skill: execute]
   Why: Mission gap — no task for "demonstrated trade-off in compression rate and accuracy against hyperparameters" (per ADR 0049)
   Done when: A documented sweep exists showing compression vs accuracy curves for both PCA and TTD over at least 3 hyperparameter settings each.
   Priority: high
+  Evidence: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/EXPERIMENT.md`
 
 - [x] Write the benchmark report artifact [skill: record] [zero-resource]
   Why: Mission gap — no task for "published benchmark with compression rate and accuracy comparison" (per ADR 0049)

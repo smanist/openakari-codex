@@ -65,3 +65,13 @@ For each sweep point, record at least:
 
 Done-when for this phase: a single table/CSV and a plot of both methods’ trade-off curves on the same axes.
 
+## Update: trade-off sweep results (v1)
+
+Ran the proposed sweep and produced an overlayed trade-off curve + CSV under:
+- `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/`
+
+Matched-compression example near PCA `k=8` (~3.53×):
+- PCA `k=8`: rel Fro error `0.03790`, PSNR `37.63 dB`
+- TTD `r1=r2=23` (~3.63×): rel Fro error `0.02632`, PSNR `40.80 dB`
+
+Provenance: `projects/pca_vs_ttd/experiments/tradeoff-sweep-v1/results/sweep_summary.csv`.
