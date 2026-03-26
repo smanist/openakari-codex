@@ -55,6 +55,51 @@ Compound-actions: 1
 Resources-consumed: none
 Budget-remaining: n/a
 
+### 2026-03-25 (Orient akari + findings-rate intervention design)
+
+Ran `/orient akari` (full scoped orient) for `SESSION_ID=work-session-mn6ts1a7`. Repo state was clean.
+
+Orient findings:
+- No orphaned work (`git status --short` returned no rows).
+- No pending approvals (`APPROVAL_QUEUE.md` pending section empty) and no stale external blockers (`rg -n "\\[blocked-by: external: ...\\]" projects/*/TASKS.md` returned no matches).
+- `docs/roadmap.md` is still absent (`sed: docs/roadmap.md: No such file or directory`).
+- Recent efficiency window remains low on findings incidence: `2/10 = 20%` sessions with non-zero findings (all-session window), with `6` findings total; `findings/$` remains `n/a` because `costUsd` is `0`.
+- No recent horizon-scan reports found under `.scheduler/skill-reports/`.
+
+Task selection and claim:
+- Selected task: `Design an intervention to increase non-zero-findings session rate`.
+- Claim API:
+  - `curl -s -X POST http://localhost:8420/api/tasks/claim ...`
+  - `{\"ok\":true,\"claim\":{\"claimId\":\"8ae0ae469774f733\",\"taskId\":\"3f0831a71470\",...}}`
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) — planning/documentation only; no LLM/API/GPU/long-running execution.
+
+Completed work:
+- Added `projects/akari/plans/2026-03-25-findings-rate-intervention.md` with one explicit intervention, fixed pre/post windows, and quantitative success/refutation thresholds.
+- Completed task `Design an intervention to increase non-zero-findings session rate` in `projects/akari/TASKS.md` with evidence.
+- Added follow-up task `Implement the findings-first orient gate intervention` to execute and measure the designed intervention.
+
+Verification:
+- `node - <<'NODE' ... NODE`
+  - `last10_all {\"n\":10,\"nonZeroFindings\":2,\"nonZeroRate\":0.2,\"failed\":0,\"failedRate\":0}`
+  - `last10_scheduler_only {\"n\":9,\"nonZeroFindings\":2,\"nonZeroRate\":0.2222222222222222,\"failed\":0,\"failedRate\":0}`
+- `rg -n "Hypothesis:|Intervention definition|Baseline snapshot|Success criteria|>= 40%|next 10 scheduler sessions" projects/akari/plans/2026-03-25-findings-rate-intervention.md`
+  - matched hypothesis, baseline, intervention, and success-threshold lines (`>= 40%`).
+
+Compound (fast): no actions. Fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 22
+Task-selected: Design an intervention to increase non-zero-findings session rate
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Codex-only module-oriented repo policy)
 
 Implemented the repo split that keeps `projects/` as the durable memory layer and moves project-owned code plus heavy runtime artifacts to `modules/`. Added `modules/registry.yaml` as the project-to-module registry, updated experiment schema/conventions to require `module` and `artifacts_dir` for executable work records, and refactored the experiment runner so `progress.json` stays next to `EXPERIMENT.md` while runtime logs, lock files, watched CSVs, and heavy outputs live under `modules/<package>/artifacts/<experiment-id>/`.
