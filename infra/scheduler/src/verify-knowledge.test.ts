@@ -255,6 +255,33 @@ describe("parseKnowledgeFromDiff", () => {
     expect(result.logEntryFindings).toBe(1);
   });
 
+  it("counts quantified diagnosis findings when provenance is present", () => {
+    const diff = `diff --git a/projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md b/projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md
+@@ -20,0 +21,8 @@
++1. Non-zero findings rate remained 0/9 (0.0%) after gate rollout.
++2. Analysis-artifact sessions were 2/9 while findings stayed 0/9.
++
++Evidence: Derived from projects/akari/diagnosis/zero-findings-window-2026-03-26.json.
++Verification: \`node scripts/check-window.js --input projects/akari/diagnosis/zero-findings-window-2026-03-26.json\`
+`;
+    const result = parseKnowledgeFromDiff(diff, [
+      "projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md",
+    ]);
+    expect(result.logEntryFindings).toBe(2);
+  });
+
+  it("does not count quantified diagnosis findings without provenance", () => {
+    const diff = `diff --git a/projects/akari/analysis/findings-gap.md b/projects/akari/analysis/findings-gap.md
+@@ -10,0 +11,4 @@
++1. Non-zero findings rate was 0/10.
++2. Average turns per session was 0.7.
+`;
+    const result = parseKnowledgeFromDiff(diff, [
+      "projects/akari/analysis/findings-gap.md",
+    ]);
+    expect(result.logEntryFindings).toBe(0);
+  });
+
   // ── NEW: infra code changes ──
 
   it("counts new and modified infra source files, excluding tests", () => {

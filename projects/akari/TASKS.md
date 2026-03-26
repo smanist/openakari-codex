@@ -130,7 +130,11 @@
   Evidence: `projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md`
   Evidence: `projects/akari/diagnosis/zero-findings-window-2026-03-26.json`
 
-- [ ] Implement findings accounting for quantified diagnosis/analysis artifacts [requires-opus] [skill: execute] [zero-resource]
+- [x] Implement findings accounting for quantified diagnosis/analysis artifacts [requires-opus] [skill: execute] [zero-resource]
   Why: Follow-up from `projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md` — `2/9` scheduler work-cycle sessions produced new analysis files and `3/9` created tasks, but findings stayed `0/9`, indicating taxonomy undercount.
   Done when: Scheduler knowledge extraction increments a findings metric for diagnosis/analysis artifacts that include explicit quantified findings with provenance, and regression tests cover one positive and one negative fixture.
   Priority: high
+  Evidence: `infra/scheduler/src/verify.ts`
+  Evidence: `infra/scheduler/src/verify-knowledge.test.ts`
+  Verification: `cd infra/scheduler && npx vitest run src/verify-knowledge.test.ts` → `Test Files 1 passed (1); Tests 77 passed (77)`.
+  Verification: `cd infra/scheduler && npx vitest run src/verify.test.ts` → `Test Files 1 passed (1); Tests 1 passed (1)`.

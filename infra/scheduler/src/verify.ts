@@ -1087,6 +1087,27 @@ export function parseKnowledgeFromDiff(
     return m ? m[1] : "";
   };
 
+  const quantifiedArtifactRe = /^projects\/[^/]+\/(?:analysis|diagnosis|postmortem)\/.*\.md$/;
+  const quantifiedLineRe = /^\+\d+\.\s/;
+  const quantifiedValueRe =
+    /\b\d+\s*\/\s*\d+\b|\b\d+(?:\.\d+)?%|\b\d+(?:\.\d+)?\s*(?:pp|x|times?|tasks?|files?|findings?|sessions?|runs?|rows?|calls?|minutes?|mins?|hours?|ms|s)\b/i;
+  const provenanceSignalRe =
+    /(?:^\+(?:Evidence|Source|Sources|Provenance|Verification):)|(?:projects\/[^/\s)]+\/)|(?:modules\/[^/\s)]+\/)|(?:infra\/[^/\s)]+\/)|(?:\b\w+\.(?:jsonl?|csv|ya?ml|md|py|ts|js|sh)\b)|(?:`[^`]+`)/i;
+
+  const countQuantifiedArtifactFindings = (block: string): number => {
+    const lines = block.split("\n");
+    const hasProvenance = lines.some((line) => line.startsWith("+") && provenanceSignalRe.test(line));
+    if (!hasProvenance) return 0;
+
+    let count = 0;
+    for (const line of lines) {
+      if (!quantifiedLineRe.test(line)) continue;
+      const content = line.replace(/^\+\d+\.\s*/, "");
+      if (quantifiedValueRe.test(content)) count++;
+    }
+    return count;
+  };
+
   // 1. Numbered findings in EXPERIMENT.md files
   for (const block of diffBlocks) {
     if (!blockFile(block).endsWith("EXPERIMENT.md")) continue;
@@ -1151,6 +1172,13 @@ export function parseKnowledgeFromDiff(
         result.logEntryFindings++;
       }
     }
+  }
+
+  // 7b. Quantified findings in diagnosis/analysis artifacts with provenance signals.
+  for (const block of diffBlocks) {
+    const file = blockFile(block);
+    if (!quantifiedArtifactRe.test(file)) continue;
+    result.logEntryFindings += countQuantifiedArtifactFindings(block);
   }
 
   // 8. Infrastructure source code changes (infra/**/*.ts|py|js, excluding tests and configs)
