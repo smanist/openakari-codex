@@ -1,6 +1,6 @@
 # Data Pipeline
 
-Status: active
+Status: completed
 Mission: Build a reusable PyTorch-native data transformation pipeline that fits on one dataset, applies the learned transform to other datasets, and reconstructs data through inverse transforms where mathematically possible.
 Done when: The project provides a documented `nn.Module` pipeline in `modules/data_pipeline/` that composes arbitrary ordered transforms over list-of-array datasets, supports fit/transform/inverse-transform reuse across datasets, and verifies the reference normalization/SVD/polynomial-lift behaviors with automated tests.
 
@@ -28,6 +28,7 @@ Orient checks recorded in-session:
 Scope classification for execution: structural (verifiable), `consumes_resources: false` (no LLM/API calls, GPU compute, or long-running jobs).
 
 Implemented `ZScoreStandardizeTransform` in `modules/data_pipeline/` with exact inverse-transform support and deterministic zero-variance behavior (features with near-zero standard deviation are assigned unit scale during fit so transform/inverse stay finite and stable). Added export wiring, module documentation, and test coverage for reference arithmetic + zero-variance handling.
+Decision recorded: project status returns to `completed`; all currently requested pipeline capabilities (including z-score standardization) are now implemented with passing tests.
 
 Verification:
 - `curl -s -o /tmp/data_pipeline_claim_mn7uatfj.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim API unavailable; proceeded per SOP fallback)
