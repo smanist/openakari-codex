@@ -1,6 +1,6 @@
 # Data Pipeline
 
-Status: completed
+Status: active
 Mission: Build a reusable PyTorch-native data transformation pipeline that fits on one dataset, applies the learned transform to other datasets, and reconstructs data through inverse transforms where mathematically possible.
 Done when: The project provides a documented `nn.Module` pipeline in `modules/data_pipeline/` that composes arbitrary ordered transforms over list-of-array datasets, supports fit/transform/inverse-transform reuse across datasets, and verifies the reference normalization/SVD/polynomial-lift behaviors with automated tests.
 
@@ -13,6 +13,13 @@ The initial motivating examples are min-max normalization, truncated SVD, and po
 The user provided a non-`nn.Module` reference implementation and tests in `/Users/daninghuang/Repos/dymad-dev/src/dymad/transform/collection.py` and `/Users/daninghuang/Repos/dymad-dev/tests/test_assert_transform.py`. The execution module for this project already exists at `modules/data_pipeline/`.
 
 ## Log
+
+### 2026-03-26 — Reopened project to add signed min-max transform task
+
+Reopened `data_pipeline` from `Status: completed` to `Status: active` after a new augmentation request to add a reusable transform that maps fitted feature ranges to `[-1, 1]` instead of `[0, 1]`. Added a separate bounded execution task in `projects/data_pipeline/TASKS.md` so the signed-range transform is tracked independently from the existing `MinMaxNormalizeTransform` and z-score work.
+
+Verification:
+- `git diff --check -- projects/data_pipeline/README.md projects/data_pipeline/TASKS.md` -> no output
 
 ### 2026-03-26 — Added z-score standardization transform (`SESSION_ID=work-session-mn7uatfj`)
 
