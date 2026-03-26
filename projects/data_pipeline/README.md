@@ -26,6 +26,29 @@ Sources:
 - `/Users/daninghuang/Repos/dymad-dev/src/dymad/transform/collection.py`
 - `/Users/daninghuang/Repos/dymad-dev/tests/test_assert_transform.py`
 
+### 2026-03-26 — Defined transform contract and pipeline execution
+
+Selected task: "Define the PyTorch transform interface and pipeline contract" (high priority, unblocked). Scope classification: structural (verifiable), `consumes_resources: false` because no external API calls, GPU compute, or long-running jobs were required.
+
+Implemented the module contract in `modules/data_pipeline/`: added `DatasetTransform` (fit/transform/inverse lifecycle), `Invertibility` semantics (`exact`, `approximate`, `none`), dataset-shape validation for list-of-2D-tensor input, and `TransformPipeline` composition that fits forward and inverts in reverse. Added module-level documentation that defines shape assumptions, fitted-state lifecycle, inverse expectations for lossy stages, and `nn.Module` state reuse.
+
+Legacy reference review found two behavioral constraints worth preserving in the new API: forward-order composition with reverse-order inversion, and optional partial-range application. The pipeline now includes `transform_range` and `inverse_transform_range` hooks to keep parity with that pattern while remaining PyTorch-native.
+
+Verification:
+- `cd modules/data_pipeline && pytest -q` -> `4 passed in 0.83s`
+- `curl -s -o /tmp/task_claim_resp.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim service unavailable; proceeded without claim per SOP fallback)
+
+Session-type: autonomous
+Duration: 25 minutes
+Task-selected: Define the PyTorch transform interface and pipeline contract
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 8
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ## Open questions
 
 - How should polynomial lifting define and order interaction terms so that serialization and inverse/reconstruction behavior remain stable across versions?

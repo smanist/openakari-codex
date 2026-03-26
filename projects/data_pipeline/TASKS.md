@@ -1,11 +1,11 @@
 # Data Pipeline — Tasks
 
-- [ ] Define the PyTorch transform interface and pipeline contract [requires-opus] [skill: multi]
+- [x] Define the PyTorch transform interface and pipeline contract [requires-opus] [skill: multi]
   Why: The project needs one stable abstraction for fit/transform/inverse-transform semantics over list-of-array datasets before individual transforms can be implemented without drift.
   Done when: `modules/data_pipeline/` documents the base transform and pipeline API, including dataset shape assumptions, fitted-state lifecycle, inverse-transform contract for lossy stages, and how `nn.Module` integration works.
   Priority: high
 
-- [ ] Implement composable `nn.Module` pipeline execution [skill: execute]
+- [x] Implement composable `nn.Module` pipeline execution [skill: execute]
   Why: The central capability is arbitrary ordered composition of learned transforms that can be trained once and applied repeatedly to new datasets.
   Done when: `modules/data_pipeline/` contains a pipeline module that fits transforms in sequence on a training dataset and applies `transform` and `inverse_transform` in forward and reverse order on new datasets.
   Priority: high
