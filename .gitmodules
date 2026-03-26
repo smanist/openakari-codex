@@ -1,0 +1,3 @@
+[submodule "modules/data_pipeline"]
+	path = modules/data_pipeline
+	url = git@github.com:smanist/scratch.git
