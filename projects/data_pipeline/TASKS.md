@@ -1,9 +1,11 @@
 # Data Pipeline — Tasks
 
-- [ ] Implement z-score standardization transform [fleet-eligible] [skill: execute]
+- [x] Implement z-score standardization transform [fleet-eligible] [skill: execute]
   Why: Z-score standardization is a common reusable preprocessing stage that fits the pipeline mission and complements the existing min-max normalization option.
   Done when: `modules/data_pipeline/` exposes a z-score transform that learns per-feature mean and standard deviation from the fit dataset, applies standardized outputs to new datasets, supports inverse transformation back to the original feature space, and includes automated tests covering reference arithmetic plus deterministic handling of zero-variance features.
   Priority: high
+  Evidence: Added `ZScoreStandardizeTransform` in `modules/data_pipeline/src/data_pipeline/transforms.py`, exported it from `src/data_pipeline/__init__.py`, and documented it in `modules/data_pipeline/README.md`.
+  Verification: `cd modules/data_pipeline && pytest -q` -> `17 passed in 0.70s`
 
 - [x] Define the PyTorch transform interface and pipeline contract [requires-frontier] [skill: multi]
   Why: The project needs one stable abstraction for fit/transform/inverse-transform semantics over list-of-array datasets before individual transforms can be implemented without drift.

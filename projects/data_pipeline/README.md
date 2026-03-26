@@ -14,6 +14,36 @@ The user provided a non-`nn.Module` reference implementation and tests in `/User
 
 ## Log
 
+### 2026-03-26 — Added z-score standardization transform (`SESSION_ID=work-session-mn7uatfj`)
+
+Ran `/orient data_pipeline` and selected the highest-priority unblocked task: "Implement z-score standardization transform."
+
+Orient checks recorded in-session:
+- Recommended task: implement z-score standardization transform (only open high-priority task in `projects/data_pipeline/TASKS.md`).
+- Findings-first gate: enabled (`0/10 = 0.0%` scheduler work-cycle sessions with non-zero findings in the latest window).
+- Efficiency summary (latest 10 sessions): findings/$ `n/a` (all `costUsd=0`), genuine waste `9/10 = 90.0%`, orient overhead `n/a` (no sessions with `numTurns > 10`), avg cost/session `$0.00`, avg turns `1.0`.
+- Budget gate: `n/a` (`projects/data_pipeline/` has no `budget.yaml` / `ledger.yaml`).
+- Approval queue status: `APPROVAL_QUEUE.md` pending section is empty.
+
+Scope classification for execution: structural (verifiable), `consumes_resources: false` (no LLM/API calls, GPU compute, or long-running jobs).
+
+Implemented `ZScoreStandardizeTransform` in `modules/data_pipeline/` with exact inverse-transform support and deterministic zero-variance behavior (features with near-zero standard deviation are assigned unit scale during fit so transform/inverse stay finite and stable). Added export wiring, module documentation, and test coverage for reference arithmetic + zero-variance handling.
+
+Verification:
+- `curl -s -o /tmp/data_pipeline_claim_mn7uatfj.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim API unavailable; proceeded per SOP fallback)
+- `cd modules/data_pipeline && pytest -q` -> `17 passed in 0.70s`
+
+Session-type: autonomous
+Duration: 22 minutes
+Task-selected: Implement z-score standardization transform
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 — Reopened project to add z-score transform follow-up task
 
 Reopened `data_pipeline` from `Status: completed` to `Status: active` after a new augmentation request to add z-score standardization as an additional reusable transform in `modules/data_pipeline/`. Added a bounded execution task in `projects/data_pipeline/TASKS.md` so the follow-up work is tracked explicitly with fleet routing and a verifiable done-when condition.
