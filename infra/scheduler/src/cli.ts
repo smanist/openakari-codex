@@ -150,7 +150,7 @@ Add options:
   --message-default         Use the default autonomous work-cycle prompt
   --message-project <name>  Use the project-scoped work-cycle prompt for <name>
   --model <model>           Model name (e.g. opus, sonnet)
-  --cwd <dir>               Working directory for agent session
+  --cwd <dir>               Working directory for agent session (default: repo root)
 `.trim();
 
 function fail(msg: string): never {
@@ -315,6 +315,17 @@ export function resolveAddMessage(
     return buildDefaultWorkCycleMessage();
   }
   return buildProjectWorkCycleMessage(String(opts["message-project"]));
+}
+
+export function resolveRepoRoot(importMetaUrl = import.meta.url): string {
+  return new URL("../../..", importMetaUrl).pathname.replace(/\/$/, "");
+}
+
+export function resolveAddCwd(
+  opts: Record<string, string | boolean>,
+  importMetaUrl = import.meta.url,
+): string {
+  return getStringFlag(opts, "cwd") ?? resolveRepoRoot(importMetaUrl);
 }
 
 export interface StopSchedulerOpts {
@@ -917,6 +928,7 @@ async function cmdStop(): Promise<void> {
 async function cmdAdd(args: string[]): Promise<void> {
   const opts = parseFlags(args);
   const name = getStringFlag(opts, "name");
+  const cwd = resolveAddCwd(opts);
   let message: string;
 
   if (!name) {
@@ -945,7 +957,7 @@ async function cmdAdd(args: string[]): Promise<void> {
     payload: {
       message,
       model: getStringFlag(opts, "model"),
-      cwd: getStringFlag(opts, "cwd"),
+      cwd,
     },
   };
 

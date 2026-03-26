@@ -77,44 +77,45 @@ Openakari exposes models to the user and resolves runtimes internally:
 cd infra/scheduler
 npm install
 npm run build
+cd ../..
 ```
 
 Add a work cycle job for the agent:
 
 ```bash
-node dist/cli.js add \
+./akari add \
   --name "your-work-cycle" \
   --cron "0 * * * *" \
   --tz "UTC" \
   --message-default \
-  --model gpt-5.2 \
-  --cwd /path/to/your/akari
+  --model gpt-5.2
 ```
 
 Examples:
 
 ```bash
 # Codex-routed model
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message-default --model gpt-5.2 --cwd /path/to/your/akari
+./akari add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message-default --model gpt-5.2
 
 # Project-scoped boilerplate
-node dist/cli.js add --name "pca-v-ttd" --cron "0 * * * *" --tz "UTC" --message-project pca_vs_ttd --model gpt-5.2 --cwd /path/to/your/akari
+./akari add --name "pca-v-ttd" --cron "0 * * * *" --tz "UTC" --message-project pca_vs_ttd --model gpt-5.2
 
 # Model that may route through the OpenAI capability path
-node dist/cli.js add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --model gpt-5.2 --cwd /path/to/your/akari
+./akari add --name "work-cycle" --cron "0 * * * *" --tz "UTC" --message "<prompt>" --model gpt-5.2
 ```
 
 For `add`, choose exactly one of:
 - `--message <prompt>` for a fully custom prompt
 - `--message-default` for the standard 5-step work-cycle prompt
 - `--message-project <project>` for the project-scoped work-cycle prompt
+- `--cwd <path>` is optional; if omitted, the scheduler defaults to the repo root
 
 The `--cron "0 * * * *"` runs sessions hourly. Adjust for your needs — a new research group might start with every 2-3 hours (`"0 */2 * * *"`) to keep costs lower while building up project context.
 
 Start the daemon:
 
 ```bash
-node dist/cli.js start
+./akari start
 ```
 
 The scheduler will:
@@ -131,7 +132,7 @@ Before relying on the cron schedule, run a session manually to verify the agent 
 
 ```bash
 # Run the job immediately
-node dist/cli.js run <job-id>
+./akari run <job-id>
 ```
 
 Or run an agent directly:

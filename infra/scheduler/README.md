@@ -31,30 +31,30 @@ CLI (cli.ts)
 cd infra/scheduler
 npm install
 npm run build
+cd ../..
 
 # Add the akari work cycle job
-node dist/cli.js add \
+./akari add \
   --name "akari-work-cycle" \
   --cron "0 * * * *" \
   --tz "UTC" \
   --message-default \
-  --model opus \
-  --cwd /path/to/akari
+  --model opus
 
 # List jobs
-node dist/cli.js list
+./akari list
 
 # Run a job immediately (for testing)
-node dist/cli.js run <job-id>
+./akari run <job-id>
 
 # Start the daemon (foreground)
-node dist/cli.js start
+./akari start
 
 # Stop the daemon
-node dist/cli.js stop
+./akari stop
 
 # Check status
-node dist/cli.js status
+./akari status
 ```
 
 ## Production deployment (pm2)
@@ -89,6 +89,7 @@ Prompt shortcuts for `add`:
 - `--message <msg>` still accepts a fully custom prompt.
 
 Choose exactly one of `--message`, `--message-default`, or `--message-project`.
+`--cwd` is optional; when omitted, `add` now defaults it to the repo root.
 
 The `add` command computes `nextRunAtMs` and stamps the schedule fingerprint atomically. Direct JSON editing risks creating jobs with `null` `nextRunAtMs` that will never fire. See [postmortem-scheduled-jobs-never-fired-2026-03-05.md](../../projects/akari/postmortem/postmortem-scheduled-jobs-never-fired-2026-03-05.md) for the incident where three jobs silently failed for 11+ days due to this issue.
 
@@ -147,7 +148,7 @@ The scheduler includes a `check-health` command for external monitoring. This ru
 
 ```bash
 # Run health check manually
-node dist/cli.js check-health --notify
+./akari check-health --notify
 
 # Options:
 #   --url <url>         Scheduler API URL (default: http://localhost:8420)
@@ -162,7 +163,7 @@ Add to `/etc/cron.d/akari-health` (or user crontab):
 
 ```
 # Check scheduler health every 2 minutes
-*/2 * * * * <user> cd /path/to/akari/infra/scheduler && node dist/cli.js check-health --notify >> /var/log/akari-health.log 2>&1
+*/2 * * * * <user> /path/to/akari/akari check-health --notify >> /var/log/akari-health.log 2>&1
 ```
 
 ### Behavior
@@ -231,6 +232,19 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-03-25 — Add root CLI alias and default `add` cwd
+
+Added a repo-root wrapper command (`./akari`) so scheduler commands can be run from the repository root without typing `node infra/scheduler/dist/cli.js`. Updated `add` so `--cwd` is optional; when omitted, jobs default to the repository root.
+
+Verification: `cd infra/scheduler && npm test -- src/cli-add.test.ts`
+Output:
+- `Test Files  1 passed (1)`
+- `Tests  10 passed (10)`
+
+Verification: `cd infra/scheduler && npm run build`
+Output:
+- `npx tsc` completed successfully.
 
 ### 2026-03-25 — Add canned prompt flags for `add`
 

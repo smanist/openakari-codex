@@ -4,6 +4,7 @@ import {
   buildDefaultWorkCycleMessage,
   buildProjectWorkCycleMessage,
   resolveAddMessage,
+  resolveAddCwd,
   parseFlags,
 } from "./cli.js";
 
@@ -53,5 +54,15 @@ describe("parseFlags", () => {
       "message-default": true,
       model: "gpt-5.2",
     });
+  });
+});
+
+describe("resolveAddCwd", () => {
+  it("defaults to repo root when --cwd is omitted", () => {
+    expect(resolveAddCwd({}, "file:///tmp/workspace/infra/scheduler/dist/cli.js")).toBe("/tmp/workspace");
+  });
+
+  it("uses explicit --cwd when provided", () => {
+    expect(resolveAddCwd({ cwd: "/tmp/custom" }, "file:///tmp/workspace/infra/scheduler/dist/cli.js")).toBe("/tmp/custom");
   });
 });
