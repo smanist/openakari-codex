@@ -859,6 +859,7 @@ async function cmdStart(): Promise<void> {
         elapsedMs: Date.now() - s.startedAtMs,
         costUsd: s.costUsd,
         numTurns: s.numTurns,
+        modelUsage: s.modelUsage,
         lastActivity: s.lastActivity,
       }));
 
@@ -1122,6 +1123,7 @@ async function cmdStatus(): Promise<void> {
     elapsedMs: s.elapsedMs,
     costUsd: s.costUsd,
     numTurns: s.numTurns,
+    modelUsage: s.modelUsage,
     lastActivity: s.lastActivity,
   }));
 

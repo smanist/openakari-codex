@@ -14,6 +14,21 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Codex token-usage capture for scheduler metrics)
+
+Recorded a telemetry gap discovered while checking whether zero-cost Codex-local sessions could still track usage: the Codex CLI JSON stream fixture already includes per-turn token counts on `turn.completed.usage`, but the scheduler backend was not aggregating or persisting them.
+
+Implemented a narrow fix in `infra/scheduler/src/backend.ts` so Codex/OpenAI-routed sessions now sum `input_tokens`, `output_tokens`, and `cached_input_tokens` across `turn.completed` events and emit them into session `modelUsage` under the resolved model id. `costUSD` remains `0` for local Codex accounting, but token usage is now preserved in `.scheduler/metrics/sessions.jsonl`.
+
+Follow-up surface work in the same session:
+- Extended session aggregation and report renderers so operational markdown/Slack outputs include token totals and average tokens per session.
+- Extended the in-memory active-session registry plus `status` formatting so live sessions can show cumulative token counts once Codex turn usage arrives.
+- Added focused regression coverage for Codex usage aggregation, operational report token summaries, and live status token formatting.
+
+Verification:
+- `cd infra/scheduler && npm test -- backend-all.test.ts` -> `Test Files 1 passed`, `Tests 21 passed`
+- `cd infra/scheduler && npm test -- backend-all.test.ts status.test.ts report/report.test.ts` -> `Test Files 3 passed`, `Tests 69 passed`
+
 ### 2026-03-26 (Task-routing label migration to frontier tiers)
 
 Migrated task-routing language from `[requires-opus]` to `[requires-frontier]` across active conventions, scheduler prompts/tests, and project task files. Added parser back-compat so legacy `[requires-opus]` still routes correctly during transition (`[requires-frontier]` is now canonical).

@@ -22,6 +22,7 @@ function makeSession(overrides?: Partial<StatusSession>): StatusSession {
     elapsedMs: 300_000,
     costUsd: 2.5,
     numTurns: 42,
+    modelUsage: null,
     lastActivity: "Reading project README",
     ...overrides,
   };
@@ -199,6 +200,31 @@ describe("formatUnifiedStatus", () => {
 
     expect(output).toContain("$3.75");
     expect(output).toContain("55 turns");
+  });
+
+  it("includes token information for sessions when available", () => {
+    const status: UnifiedStatus = {
+      timestamp: new Date().toISOString(),
+      summary: { activeSessions: 1, runningExperiments: 0, totalJobs: 0, enabledJobs: 0, daemonState: "running" },
+      sessions: [makeSession({
+        modelUsage: {
+          "gpt-5.4": {
+            inputTokens: 1200,
+            outputTokens: 300,
+            cacheReadInputTokens: 200,
+            cacheCreationInputTokens: 0,
+            costUSD: 0,
+          },
+        },
+      })],
+      experiments: [],
+      jobs: [],
+    };
+
+    const output = formatUnifiedStatus(status);
+
+    expect(output).toContain("Tokens: 1,500 total");
+    expect(output).toContain("1,200 in, 300 out, 200 cached");
   });
 
   it("includes job schedule and next run", () => {

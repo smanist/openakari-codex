@@ -11,6 +11,7 @@ export interface StatusSession {
   elapsedMs: number;
   costUsd: number;
   numTurns: number;
+  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
   lastActivity: string;
 }
 
@@ -123,6 +124,31 @@ function formatRelative(ms: number): string {
   return `${hours}h ${totalMinutes % 60}m`;
 }
 
+function formatTokenCount(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+function formatSessionTokens(
+  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null,
+): string | null {
+  if (!modelUsage) return null;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let cachedInputTokens = 0;
+  for (const usage of Object.values(modelUsage)) {
+    inputTokens += usage.inputTokens ?? 0;
+    outputTokens += usage.outputTokens ?? 0;
+    cachedInputTokens += usage.cacheReadInputTokens ?? 0;
+  }
+  if (inputTokens === 0 && outputTokens === 0 && cachedInputTokens === 0) return null;
+  let line = `    Tokens: ${formatTokenCount(inputTokens + outputTokens)} total (${formatTokenCount(inputTokens)} in, ${formatTokenCount(outputTokens)} out`;
+  if (cachedInputTokens > 0) {
+    line += `, ${formatTokenCount(cachedInputTokens)} cached`;
+  }
+  line += ")";
+  return line;
+}
+
 /** Format unified status as human-readable text for CLI output. */
 export function formatUnifiedStatus(status: UnifiedStatus): string {
   const lines: string[] = [];
@@ -141,6 +167,8 @@ export function formatUnifiedStatus(status: UnifiedStatus): string {
       const cost = `$${s.costUsd.toFixed(2)}`;
       lines.push(`  ${s.jobName} (${s.id})`);
       lines.push(`    Elapsed: ${elapsed}  |  Cost: ${cost}  |  ${s.numTurns} turns`);
+      const tokenLine = formatSessionTokens(s.modelUsage);
+      if (tokenLine) lines.push(tokenLine);
       lines.push(`    Last: ${s.lastActivity.slice(0, 100)}`);
     }
     lines.push("");

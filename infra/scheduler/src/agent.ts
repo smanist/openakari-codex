@@ -235,7 +235,7 @@ export function spawnAgent(opts: SpawnAgentOpts): {
       // forwarder sees accurate cost/turns when finalizing living messages).
       // numTurns=0 is treated as "not reported" and preserves the incremental count.
       if (msg.type === "result") {
-        updateSessionStats(sessionId, msg.total_cost_usd ?? 0, msg.num_turns ?? 0);
+        updateSessionStats(sessionId, msg.total_cost_usd ?? 0, msg.num_turns ?? 0, msg.modelUsage);
       }
 
       // Buffer summarized messages for session watchers

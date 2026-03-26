@@ -22,6 +22,7 @@ export interface ActiveSession {
   watchers: Set<string>;
   costUsd: number;
   numTurns: number;
+  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
 }
 
 export interface SessionInfo {
@@ -34,6 +35,7 @@ export interface SessionInfo {
   messageCount: number;
   costUsd: number;
   numTurns: number;
+  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
   lastActivity: string;
 }
 
@@ -64,6 +66,7 @@ export function registerSession(
     watchers: new Set(),
     costUsd: 0,
     numTurns: 0,
+    modelUsage: null,
   };
   sessions.set(id, session);
   return session;
@@ -89,6 +92,7 @@ export function listSessions(): SessionInfo[] {
     messageCount: s.messages.length,
     costUsd: s.costUsd,
     numTurns: s.numTurns,
+    modelUsage: s.modelUsage,
     lastActivity: s.messages.length > 0
       ? s.messages[s.messages.length - 1].text
       : "(starting...)",
@@ -98,12 +102,20 @@ export function listSessions(): SessionInfo[] {
 /** Update session cost and turn count (called when a result message is received).
  *  When numTurns is 0 (some runtimes don't report turns), the existing
  *  incrementally-tracked count is preserved. */
-export function updateSessionStats(id: string, costUsd: number, numTurns: number): void {
+export function updateSessionStats(
+  id: string,
+  costUsd: number,
+  numTurns: number,
+  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>,
+): void {
   const session = sessions.get(id);
   if (!session) return;
   session.costUsd = costUsd;
   if (numTurns > 0) {
     session.numTurns = numTurns;
+  }
+  if (modelUsage) {
+    session.modelUsage = modelUsage;
   }
 }
 

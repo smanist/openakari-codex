@@ -56,6 +56,10 @@ function budgetBlocks(budgets: BudgetSummary[]): Block[] {
   return blocks;
 }
 
+function formatTokenCount(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
 // ── Operational report ──────────────────────────────────────────────────────
 
 export function renderOperationalSlack(data: ReportData): Block[] {
@@ -72,13 +76,15 @@ export function renderOperationalSlack(data: ReportData): Block[] {
     fields(
       `*Avg duration:*\n${Math.round(s.avgDurationMs / 60000)} min`,
       `*Avg turns:*\n${s.avgTurns}`,
+      `*Input/output tokens:*\n${formatTokenCount(s.totalInputTokens)}/${formatTokenCount(s.totalOutputTokens)}`,
+      `*Avg tokens/session:*\n${formatTokenCount(s.avgTotalTokensPerSession)}`,
     ),
   ];
 
   // Daily breakdown (compact text table)
   if (s.byDay.length > 0) {
     const rows = s.byDay.map((d) =>
-      `${d.date.slice(5)}  ${d.sessions} sess  ${d.successes}/${d.sessions} ok  $${d.totalCostUsd.toFixed(1)}`,
+      `${d.date.slice(5)}  ${d.sessions} sess  ${d.successes}/${d.sessions} ok  $${d.totalCostUsd.toFixed(1)}  ${formatTokenCount(d.totalInputTokens + d.totalOutputTokens)} tok`,
     );
     blocks.push(divider(), section(`*Daily breakdown:*\n\`\`\`\n${rows.join("\n")}\n\`\`\``));
   }

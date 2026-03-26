@@ -78,9 +78,13 @@ function makeSessionSummary(overrides: Partial<SessionSummary> = {}): SessionSum
     avgCostPerSession: 2.55,
     avgDurationMs: 600_000,
     avgTurns: 45,
+    totalInputTokens: 120_000,
+    totalOutputTokens: 30_000,
+    totalCachedInputTokens: 15_000,
+    avgTotalTokensPerSession: 15_000,
     byDay: [
-      { date: "2026-02-16", sessions: 4, successes: 4, failures: 0, totalCostUsd: 15.0, totalDurationMs: 2400000, avgTurns: 50 },
-      { date: "2026-02-17", sessions: 6, successes: 5, failures: 1, totalCostUsd: 10.5, totalDurationMs: 3600000, avgTurns: 40 },
+      { date: "2026-02-16", sessions: 4, successes: 4, failures: 0, totalCostUsd: 15.0, totalDurationMs: 2400000, avgTurns: 50, totalInputTokens: 70_000, totalOutputTokens: 18_000, totalCachedInputTokens: 9_000 },
+      { date: "2026-02-17", sessions: 6, successes: 5, failures: 1, totalCostUsd: 10.5, totalDurationMs: 3600000, avgTurns: 40, totalInputTokens: 50_000, totalOutputTokens: 12_000, totalCachedInputTokens: 6_000 },
     ],
     ...overrides,
   };
@@ -185,14 +189,15 @@ describe("aggregateSessions", () => {
     expect(result.totalSessions).toBe(0);
     expect(result.successRate).toBe(0);
     expect(result.totalCostUsd).toBe(0);
+    expect(result.totalInputTokens).toBe(0);
     expect(result.byDay).toEqual([]);
   });
 
   it("computes correct totals for multiple sessions", () => {
     const sessions = [
-      makeSession({ timestamp: "2026-02-16T09:00:00Z", costUsd: 5.0, ok: true }),
-      makeSession({ timestamp: "2026-02-16T21:00:00Z", costUsd: 3.0, ok: false }),
-      makeSession({ timestamp: "2026-02-17T10:00:00Z", costUsd: 2.0, ok: true }),
+      makeSession({ timestamp: "2026-02-16T09:00:00Z", costUsd: 5.0, ok: true, modelUsage: { "gpt-5.4": { inputTokens: 100, outputTokens: 40, cacheReadInputTokens: 10, cacheCreationInputTokens: 0, costUSD: 0.2 } } }),
+      makeSession({ timestamp: "2026-02-16T21:00:00Z", costUsd: 3.0, ok: false, modelUsage: { "gpt-5.4": { inputTokens: 80, outputTokens: 30, cacheReadInputTokens: 5, cacheCreationInputTokens: 0, costUSD: 0.1 } } }),
+      makeSession({ timestamp: "2026-02-17T10:00:00Z", costUsd: 2.0, ok: true, modelUsage: { "gpt-5.4": { inputTokens: 20, outputTokens: 10, cacheReadInputTokens: 0, cacheCreationInputTokens: 0, costUSD: 0.05 } } }),
     ];
     const result = aggregateSessions(sessions);
 
@@ -200,6 +205,10 @@ describe("aggregateSessions", () => {
     expect(result.successRate).toBeCloseTo(2 / 3);
     expect(result.totalCostUsd).toBe(10.0);
     expect(result.avgCostPerSession).toBeCloseTo(10 / 3);
+    expect(result.totalInputTokens).toBe(200);
+    expect(result.totalOutputTokens).toBe(80);
+    expect(result.totalCachedInputTokens).toBe(15);
+    expect(result.avgTotalTokensPerSession).toBe(93);
   });
 
   it("groups sessions by day", () => {
@@ -216,6 +225,7 @@ describe("aggregateSessions", () => {
     expect(result.byDay[0].successes).toBe(1);
     expect(result.byDay[0].failures).toBe(1);
     expect(result.byDay[0].totalCostUsd).toBe(8.0);
+    expect(result.byDay[0].totalInputTokens).toBe(0);
     expect(result.byDay[1].date).toBe("2026-02-17");
     expect(result.byDay[1].sessions).toBe(1);
   });
@@ -560,6 +570,14 @@ describe("renderOperationalSlack", () => {
 
     const sections = blocks.filter((b) => (b as { type: string }).type === "section");
     expect(sections.length).toBeGreaterThan(0);
+  });
+
+  it("includes token usage in the operational summary", () => {
+    const data = makeReportData();
+    const blocks = renderOperationalSlack(data);
+    const text = JSON.stringify(blocks);
+    expect(text).toContain("120,000/30,000");
+    expect(text).toContain("15,000");
   });
 
   it("includes budget warnings when budget data present", () => {

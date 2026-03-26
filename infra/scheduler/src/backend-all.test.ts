@@ -127,6 +127,25 @@ describe("Codex exec json state", () => {
     expect(finalized.numTurns).toBe(1);
     expect(finalized.text).toContain("file-a");
   });
+
+  it("aggregates token usage from turn.completed events", () => {
+    const state = createCodexExecJsonState();
+    consumeCodexExecJsonMessage(state, {
+      type: "turn.completed",
+      usage: { input_tokens: 10, cached_input_tokens: 3, output_tokens: 5 },
+    });
+    consumeCodexExecJsonMessage(state, {
+      type: "turn.completed",
+      usage: { input_tokens: 7, cached_input_tokens: 2, output_tokens: 11 },
+    });
+
+    const finalized = finalizeCodexExecJsonState(state);
+    expect(finalized.usage).toEqual({
+      inputTokens: 17,
+      outputTokens: 16,
+      cacheReadInputTokens: 5,
+    });
+  });
 });
 
 describe("error helpers", () => {

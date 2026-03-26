@@ -27,6 +27,9 @@ export interface DaySummary {
   totalCostUsd: number;
   totalDurationMs: number;
   avgTurns: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCachedInputTokens: number;
 }
 
 export interface SessionSummary {
@@ -36,6 +39,10 @@ export interface SessionSummary {
   avgCostPerSession: number;
   avgDurationMs: number;
   avgTurns: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCachedInputTokens: number;
+  avgTotalTokensPerSession: number;
   byDay: DaySummary[];
 }
 

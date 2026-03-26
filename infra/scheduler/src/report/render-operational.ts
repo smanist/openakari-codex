@@ -3,6 +3,10 @@
 import type { ReportData, ChartSpec } from "./types.js";
 import { sessionCostChart, sessionsPerDayChart, budgetGaugeChart, findingsPerDollarChart, zeroKnowledgeRateChart } from "./chart-specs.js";
 
+function formatTokenCount(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
 export function renderOperationalMarkdown(data: ReportData): { content: string; charts: ChartSpec[] } {
   const s = data.sessions;
   const charts: ChartSpec[] = [];
@@ -23,6 +27,10 @@ export function renderOperationalMarkdown(data: ReportData): { content: string; 
     `| Avg cost/session | $${s.avgCostPerSession.toFixed(2)} |`,
     `| Avg duration | ${Math.round(s.avgDurationMs / 60000)} min |`,
     `| Avg turns | ${s.avgTurns} |`,
+    `| Total input tokens | ${formatTokenCount(s.totalInputTokens)} |`,
+    `| Total output tokens | ${formatTokenCount(s.totalOutputTokens)} |`,
+    `| Total cached input tokens | ${formatTokenCount(s.totalCachedInputTokens)} |`,
+    `| Avg tokens/session | ${formatTokenCount(s.avgTotalTokensPerSession)} |`,
     ``,
   ];
 
@@ -43,12 +51,13 @@ export function renderOperationalMarkdown(data: ReportData): { content: string; 
     lines.push(
       `## Daily Breakdown`,
       ``,
-      `| Date | Sessions | OK | Fail | Cost | Avg Turns |`,
-      `|------|----------|----|------|------|-----------|`,
+      `| Date | Sessions | OK | Fail | Cost | Avg Turns | Tokens |`,
+      `|------|----------|----|------|------|-----------|--------|`,
     );
     for (const d of s.byDay) {
+      const totalTokens = d.totalInputTokens + d.totalOutputTokens;
       lines.push(
-        `| ${d.date} | ${d.sessions} | ${d.successes} | ${d.failures} | $${d.totalCostUsd.toFixed(2)} | ${d.avgTurns} |`,
+        `| ${d.date} | ${d.sessions} | ${d.successes} | ${d.failures} | $${d.totalCostUsd.toFixed(2)} | ${d.avgTurns} | ${formatTokenCount(totalTokens)} |`,
       );
     }
     lines.push(``);

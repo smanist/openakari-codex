@@ -203,6 +203,9 @@ export type CodexExecJsonState = {
   turnCompletedCount: number;
   reportedTurns?: number;
   reportedText?: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
   toolFallbackText: string;
   toolFallbackCommandCount: number;
   toolFallbackTruncated: boolean;
@@ -218,6 +221,9 @@ export function createCodexExecJsonState(): CodexExecJsonState {
     assistantMessageCount: 0,
     turnStartedCount: 0,
     turnCompletedCount: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
     toolFallbackText: "",
     toolFallbackCommandCount: 0,
     toolFallbackTruncated: false,
@@ -240,6 +246,21 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
   }
   if (type === "turn.completed") {
     state.turnCompletedCount += 1;
+    const usage = msg.usage as Record<string, unknown> | undefined;
+    if (usage && typeof usage === "object") {
+      const inputTokens = usage.input_tokens ?? usage.inputTokens;
+      const outputTokens = usage.output_tokens ?? usage.outputTokens;
+      const cachedInputTokens = usage.cached_input_tokens ?? usage.cacheReadInputTokens;
+      if (typeof inputTokens === "number" && Number.isFinite(inputTokens) && inputTokens > 0) {
+        state.inputTokens += inputTokens;
+      }
+      if (typeof outputTokens === "number" && Number.isFinite(outputTokens) && outputTokens > 0) {
+        state.outputTokens += outputTokens;
+      }
+      if (typeof cachedInputTokens === "number" && Number.isFinite(cachedInputTokens) && cachedInputTokens > 0) {
+        state.cacheReadInputTokens += cachedInputTokens;
+      }
+    }
     return;
   }
   if (type === "item.completed") {
@@ -296,13 +317,30 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
   }
 }
 
-export function finalizeCodexExecJsonState(state: CodexExecJsonState): { text: string; numTurns: number; sessionId?: string; ok: boolean } {
+export function finalizeCodexExecJsonState(state: CodexExecJsonState): {
+  text: string;
+  numTurns: number;
+  sessionId?: string;
+  ok: boolean;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadInputTokens: number;
+  };
+} {
   const text = (state.reportedText ?? state.assistantText).trim();
   const finalText = text || state.toolFallbackText.trim();
   const numTurns = state.reportedTurns && state.reportedTurns > 0
     ? state.reportedTurns
     : (state.turnCompletedCount || state.turnStartedCount || state.assistantMessageCount);
-  return { text: finalText, numTurns, sessionId: state.sessionId, ok: !state.isError };
+  const usage = (state.inputTokens > 0 || state.outputTokens > 0 || state.cacheReadInputTokens > 0)
+    ? {
+        inputTokens: state.inputTokens,
+        outputTokens: state.outputTokens,
+        cacheReadInputTokens: state.cacheReadInputTokens,
+      }
+    : undefined;
+  return { text: finalText, numTurns, sessionId: state.sessionId, ok: !state.isError, usage };
 }
 
 abstract class BaseCodexBackend implements AgentBackend {
@@ -351,6 +389,7 @@ abstract class BaseCodexBackend implements AgentBackend {
     const start = Date.now();
     const cwd = opts.cwd;
     const codexBin = process.env["CODEX_BIN"] || "codex";
+    const resolvedModel = resolveModelForBackend(this.name, opts.model);
     const proc = spawn(codexBin, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -373,6 +412,32 @@ abstract class BaseCodexBackend implements AgentBackend {
           }
 
           consumeCodexExecJsonMessage(streamState, raw);
+          if ((raw as { type?: unknown }).type === "turn.completed") {
+            const finalized = finalizeCodexExecJsonState(streamState);
+            if (finalized.usage) {
+              const usageMsg: SDKMessage = {
+                type: "result",
+                subtype: "progress",
+                is_error: false,
+                result: "",
+                session_id: finalized.sessionId ?? "",
+                total_cost_usd: 0,
+                num_turns: finalized.numTurns,
+                modelUsage: {
+                  [resolvedModel]: {
+                    inputTokens: finalized.usage.inputTokens,
+                    outputTokens: finalized.usage.outputTokens,
+                    cacheReadInputTokens: finalized.usage.cacheReadInputTokens,
+                    cacheCreationInputTokens: 0,
+                    costUSD: 0,
+                  },
+                },
+              };
+              if (onMessage) {
+                try { await onMessage(usageMsg); } catch { /* best effort */ }
+              }
+            }
+          }
           const msg = parseCodexMessageObject(raw);
           if (!msg) return;
           if (onMessage) {
@@ -403,6 +468,17 @@ abstract class BaseCodexBackend implements AgentBackend {
           costUsd: undefined,
           numTurns: finalized.numTurns,
           durationMs,
+          modelUsage: finalized.usage
+            ? {
+                [resolvedModel]: {
+                  inputTokens: finalized.usage.inputTokens,
+                  outputTokens: finalized.usage.outputTokens,
+                  cacheReadInputTokens: finalized.usage.cacheReadInputTokens,
+                  cacheCreationInputTokens: 0,
+                  costUSD: 0,
+                },
+              }
+            : undefined,
         });
       });
     });
