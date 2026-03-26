@@ -45,7 +45,7 @@ export interface SDKResultMessage {
   session_id?: string;
   total_cost_usd?: number;
   num_turns?: number;
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+  modelUsage?: Record<string, ModelUsageStats>;
 }
 
 export interface SDKToolUseSummaryMessage {
@@ -84,6 +84,21 @@ export interface QueryOpts {
   onMessage?: (msg: SDKMessage) => void | Promise<void>;
 }
 
+export interface ModelUsageStats {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
+  cacheCreationInputTokens: number;
+  costUSD: number;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  uncachedInputTokens?: number;
+  lastInputTokens?: number;
+  lastOutputTokens?: number;
+  lastCacheReadInputTokens?: number;
+  lastTotalTokens?: number;
+}
+
 export interface QueryResult {
   text: string;
   ok: boolean;
@@ -91,7 +106,7 @@ export interface QueryResult {
   costUsd?: number;
   numTurns?: number;
   durationMs: number;
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+  modelUsage?: Record<string, ModelUsageStats>;
   toolCounts?: Record<string, number>;
   orientTurns?: number;
 }

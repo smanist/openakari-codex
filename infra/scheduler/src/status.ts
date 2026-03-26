@@ -1,6 +1,7 @@
 /** Unified status dashboard — combines active sessions, running experiments, and jobs into a single view. */
 
 import type { ExperimentInfo } from "./experiments.js";
+import type { ModelUsageStats } from "./sdk.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,7 +12,7 @@ export interface StatusSession {
   elapsedMs: number;
   costUsd: number;
   numTurns: number;
-  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
+  modelUsage: Record<string, ModelUsageStats> | null;
   lastActivity: string;
 }
 
@@ -129,7 +130,7 @@ function formatTokenCount(n: number): string {
 }
 
 function formatSessionTokens(
-  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null,
+  modelUsage: Record<string, ModelUsageStats> | null,
 ): string | null {
   if (!modelUsage) return null;
   let inputTokens = 0;

@@ -144,6 +144,11 @@ describe("Codex exec json state", () => {
       inputTokens: 17,
       outputTokens: 16,
       cacheReadInputTokens: 5,
+      uncachedInputTokens: 12,
+      lastInputTokens: 7,
+      lastOutputTokens: 11,
+      lastCacheReadInputTokens: 2,
+      lastTotalTokens: 18,
     });
   });
 });

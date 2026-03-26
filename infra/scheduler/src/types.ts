@@ -2,6 +2,7 @@
 
 import type { BackendCapability } from "./backend.js";
 import type { RuntimeRoute } from "./runtime.js";
+import type { ModelUsageStats } from "./sdk.js";
 
 export interface CronSchedule {
   kind: "cron";
@@ -146,7 +147,7 @@ export interface FleetWorkerResult {
   /** Internal runtime route used (always opencode_local for fleet workers currently). */
   runtime?: RuntimeRoute;
   /** Per-model token usage and cost breakdown. */
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+  modelUsage?: Record<string, ModelUsageStats>;
   /** Per-tool invocation counts. */
   toolCounts?: Record<string, number>;
   /** Number of assistant turns consumed by /orient (should be null for fleet — no orient). */

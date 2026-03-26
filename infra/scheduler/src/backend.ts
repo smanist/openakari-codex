@@ -2,7 +2,7 @@
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import type { QueryOpts, QueryResult, SDKMessage } from "./sdk.js";
+import type { QueryOpts, QueryResult, SDKMessage, ModelUsageStats } from "./sdk.js";
 import { computeEffectiveModel, DEFAULT_MODEL_BY_TIER } from "./model-tiers.js";
 
 export type BackendCapability =
@@ -206,6 +206,9 @@ export type CodexExecJsonState = {
   inputTokens: number;
   outputTokens: number;
   cacheReadInputTokens: number;
+  lastInputTokens: number;
+  lastOutputTokens: number;
+  lastCacheReadInputTokens: number;
   toolFallbackText: string;
   toolFallbackCommandCount: number;
   toolFallbackTruncated: boolean;
@@ -224,6 +227,9 @@ export function createCodexExecJsonState(): CodexExecJsonState {
     inputTokens: 0,
     outputTokens: 0,
     cacheReadInputTokens: 0,
+    lastInputTokens: 0,
+    lastOutputTokens: 0,
+    lastCacheReadInputTokens: 0,
     toolFallbackText: "",
     toolFallbackCommandCount: 0,
     toolFallbackTruncated: false,
@@ -253,12 +259,21 @@ export function consumeCodexExecJsonMessage(state: CodexExecJsonState, raw: unkn
       const cachedInputTokens = usage.cached_input_tokens ?? usage.cacheReadInputTokens;
       if (typeof inputTokens === "number" && Number.isFinite(inputTokens) && inputTokens > 0) {
         state.inputTokens += inputTokens;
+        state.lastInputTokens = inputTokens;
+      } else {
+        state.lastInputTokens = 0;
       }
       if (typeof outputTokens === "number" && Number.isFinite(outputTokens) && outputTokens > 0) {
         state.outputTokens += outputTokens;
+        state.lastOutputTokens = outputTokens;
+      } else {
+        state.lastOutputTokens = 0;
       }
       if (typeof cachedInputTokens === "number" && Number.isFinite(cachedInputTokens) && cachedInputTokens > 0) {
         state.cacheReadInputTokens += cachedInputTokens;
+        state.lastCacheReadInputTokens = cachedInputTokens;
+      } else {
+        state.lastCacheReadInputTokens = 0;
       }
     }
     return;
@@ -326,6 +341,11 @@ export function finalizeCodexExecJsonState(state: CodexExecJsonState): {
     inputTokens: number;
     outputTokens: number;
     cacheReadInputTokens: number;
+    uncachedInputTokens: number;
+    lastInputTokens: number;
+    lastOutputTokens: number;
+    lastCacheReadInputTokens: number;
+    lastTotalTokens: number;
   };
 } {
   const text = (state.reportedText ?? state.assistantText).trim();
@@ -338,6 +358,11 @@ export function finalizeCodexExecJsonState(state: CodexExecJsonState): {
         inputTokens: state.inputTokens,
         outputTokens: state.outputTokens,
         cacheReadInputTokens: state.cacheReadInputTokens,
+        uncachedInputTokens: Math.max(0, state.inputTokens - state.cacheReadInputTokens),
+        lastInputTokens: state.lastInputTokens,
+        lastOutputTokens: state.lastOutputTokens,
+        lastCacheReadInputTokens: state.lastCacheReadInputTokens,
+        lastTotalTokens: state.lastInputTokens + state.lastOutputTokens,
       }
     : undefined;
   return { text: finalText, numTurns, sessionId: state.sessionId, ok: !state.isError, usage };
@@ -415,6 +440,18 @@ abstract class BaseCodexBackend implements AgentBackend {
           if ((raw as { type?: unknown }).type === "turn.completed") {
             const finalized = finalizeCodexExecJsonState(streamState);
             if (finalized.usage) {
+              const usageStats: ModelUsageStats = {
+                inputTokens: finalized.usage.inputTokens,
+                outputTokens: finalized.usage.outputTokens,
+                cacheReadInputTokens: finalized.usage.cacheReadInputTokens,
+                cacheCreationInputTokens: 0,
+                costUSD: 0,
+                uncachedInputTokens: finalized.usage.uncachedInputTokens,
+                lastInputTokens: finalized.usage.lastInputTokens,
+                lastOutputTokens: finalized.usage.lastOutputTokens,
+                lastCacheReadInputTokens: finalized.usage.lastCacheReadInputTokens,
+                lastTotalTokens: finalized.usage.lastTotalTokens,
+              };
               const usageMsg: SDKMessage = {
                 type: "result",
                 subtype: "progress",
@@ -424,13 +461,7 @@ abstract class BaseCodexBackend implements AgentBackend {
                 total_cost_usd: 0,
                 num_turns: finalized.numTurns,
                 modelUsage: {
-                  [resolvedModel]: {
-                    inputTokens: finalized.usage.inputTokens,
-                    outputTokens: finalized.usage.outputTokens,
-                    cacheReadInputTokens: finalized.usage.cacheReadInputTokens,
-                    cacheCreationInputTokens: 0,
-                    costUSD: 0,
-                  },
+                  [resolvedModel]: usageStats,
                 },
               };
               if (onMessage) {
@@ -476,6 +507,11 @@ abstract class BaseCodexBackend implements AgentBackend {
                   cacheReadInputTokens: finalized.usage.cacheReadInputTokens,
                   cacheCreationInputTokens: 0,
                   costUSD: 0,
+                  uncachedInputTokens: finalized.usage.uncachedInputTokens,
+                  lastInputTokens: finalized.usage.lastInputTokens,
+                  lastOutputTokens: finalized.usage.lastOutputTokens,
+                  lastCacheReadInputTokens: finalized.usage.lastCacheReadInputTokens,
+                  lastTotalTokens: finalized.usage.lastTotalTokens,
                 },
               }
             : undefined,

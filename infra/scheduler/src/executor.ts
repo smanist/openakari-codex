@@ -6,7 +6,7 @@ import type { Job } from "./types.js";
 import { resolveBackend } from "./backend.js";
 import { runtimeRouteForBackend, type RuntimeRoute } from "./runtime.js";
 import { spawnAgent, AGENT_PROFILES, generateSessionId, resolveProfileForBackend } from "./agent.js";
-import type { SDKMessage } from "./sdk.js";
+import type { SDKMessage, ModelUsageStats } from "./sdk.js";
 import { notifySessionStarted, notifySessionComplete } from "./slack.js";
 import { getPendingApprovals } from "./notify.js";
 import { countMetrics } from "./metrics.js";
@@ -53,24 +53,34 @@ export function formatExecutionSummary(agentResult: {
   durationMs: number;
   costUsd: number;
   numTurns: number;
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+  modelUsage?: Record<string, ModelUsageStats>;
 }): string {
   let line = `# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}`;
   if (agentResult.modelUsage) {
     let inputTokens = 0;
     let outputTokens = 0;
     let cachedInputTokens = 0;
+    let uncachedInputTokens = 0;
+    let lastTotalTokens = 0;
     for (const usage of Object.values(agentResult.modelUsage)) {
       inputTokens += usage.inputTokens ?? 0;
       outputTokens += usage.outputTokens ?? 0;
       cachedInputTokens += usage.cacheReadInputTokens ?? 0;
+      uncachedInputTokens += usage.uncachedInputTokens ?? Math.max(0, (usage.inputTokens ?? 0) - (usage.cacheReadInputTokens ?? 0));
+      lastTotalTokens += usage.lastTotalTokens ?? (
+        (usage.lastInputTokens ?? 0) + (usage.lastOutputTokens ?? 0)
+      );
     }
     if (inputTokens > 0 || outputTokens > 0 || cachedInputTokens > 0) {
       line += `, Tokens: ${formatTokenCount(inputTokens + outputTokens)} total (${formatTokenCount(inputTokens)} in, ${formatTokenCount(outputTokens)} out`;
       if (cachedInputTokens > 0) {
         line += `, ${formatTokenCount(cachedInputTokens)} cached`;
       }
-      line += ")";
+      line += `, ${formatTokenCount(uncachedInputTokens)} uncached in`;
+      if (lastTotalTokens > 0) {
+        line += `, ${formatTokenCount(lastTotalTokens)} last-step`;
+      }
+      line += `)`;
     }
   }
   return line;
@@ -89,7 +99,7 @@ export interface ExecutionResult {
   timedOut?: boolean;
   sessionId?: string;
   triggerSource?: "scheduler" | "slack" | "manual" | "fleet";
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+  modelUsage?: Record<string, ModelUsageStats>;
   toolCounts?: Record<string, number>;
   orientTurns?: number;
   ranFullOrient?: boolean;

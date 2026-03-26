@@ -4,6 +4,7 @@ import { readFile, appendFile, mkdir, open, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomBytes } from "node:crypto";
 import { runtimeRouteFromLegacyBackend, type RuntimeRoute } from "./runtime.js";
+import type { ModelUsageStats } from "./sdk.js";
 
 const DEFAULT_METRICS_PATH = new URL(
   "../../../.scheduler/metrics/sessions.jsonl",
@@ -100,7 +101,7 @@ export interface SessionMetrics {
   verification: VerificationMetrics | null;
   knowledge: KnowledgeMetrics | null;
   budgetGate: BudgetGateMetrics | null;
-  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
+  modelUsage: Record<string, ModelUsageStats> | null;
   toolCounts: Record<string, number> | null;
   orientTurns: number | null;
   injectedOrientTier?: "fast" | "full" | null;

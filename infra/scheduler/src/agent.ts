@@ -2,7 +2,7 @@
 
 import { resolveBackend, type BackendQueryOpts, type SessionHandle, type BackendName, type BackendCapability } from "./backend.js";
 import { runtimeRouteForBackend } from "./runtime.js";
-import type { QueryOpts, SDKMessage } from "./sdk.js";
+import type { QueryOpts, SDKMessage, ModelUsageStats } from "./sdk.js";
 import {
   registerSession,
   unregisterSession,
@@ -88,7 +88,7 @@ export interface AgentResult {
   durationMs: number;
   timedOut: boolean;
   /** Per-model token usage and cost breakdown from the SDK. */
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+  modelUsage?: Record<string, ModelUsageStats>;
   /** Per-tool invocation counts (e.g. { Read: 15, Bash: 5, Edit: 3 }). */
   toolCounts?: Record<string, number>;
   /** Number of assistant turns consumed by the /orient skill. Null if orient was not detected. */

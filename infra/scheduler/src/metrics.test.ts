@@ -88,6 +88,11 @@ describe("SessionMetrics modelUsage", () => {
         cacheReadInputTokens: 42000,
         cacheCreationInputTokens: 8000,
         costUSD: 1.5,
+        uncachedInputTokens: 8000,
+        lastInputTokens: 600,
+        lastOutputTokens: 120,
+        lastCacheReadInputTokens: 500,
+        lastTotalTokens: 720,
       },
     };
     const metrics = session({ modelUsage: usage });
@@ -97,6 +102,8 @@ describe("SessionMetrics modelUsage", () => {
     const parsed = JSON.parse(raw.trim());
     expect(parsed.modelUsage["claude-opus-4-6"].cacheReadInputTokens).toBe(42000);
     expect(parsed.modelUsage["claude-opus-4-6"].cacheCreationInputTokens).toBe(8000);
+    expect(parsed.modelUsage["claude-opus-4-6"].uncachedInputTokens).toBe(8000);
+    expect(parsed.modelUsage["claude-opus-4-6"].lastTotalTokens).toBe(720);
   });
 
   it("roundtrips cache metrics through readMetrics", async () => {

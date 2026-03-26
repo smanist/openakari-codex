@@ -1,7 +1,7 @@
 /** In-memory registry of active agent sessions for supervision via Slack. */
 
 import type { SessionHandle } from "./backend.js";
-import type { SDKMessage } from "./sdk.js";
+import type { SDKMessage, ModelUsageStats } from "./sdk.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ export interface ActiveSession {
   watchers: Set<string>;
   costUsd: number;
   numTurns: number;
-  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
+  modelUsage: Record<string, ModelUsageStats> | null;
 }
 
 export interface SessionInfo {
@@ -35,7 +35,7 @@ export interface SessionInfo {
   messageCount: number;
   costUsd: number;
   numTurns: number;
-  modelUsage: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }> | null;
+  modelUsage: Record<string, ModelUsageStats> | null;
   lastActivity: string;
 }
 
@@ -106,7 +106,7 @@ export function updateSessionStats(
   id: string,
   costUsd: number,
   numTurns: number,
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>,
+  modelUsage?: Record<string, ModelUsageStats>,
 ): void {
   const session = sessions.get(id);
   if (!session) return;

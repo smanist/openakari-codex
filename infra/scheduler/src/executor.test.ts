@@ -388,13 +388,18 @@ describe("formatExecutionSummary", () => {
           cacheReadInputTokens: 200,
           cacheCreationInputTokens: 0,
           costUSD: 0,
+          uncachedInputTokens: 1000,
+          lastInputTokens: 1200,
+          lastOutputTokens: 300,
+          lastCacheReadInputTokens: 200,
+          lastTotalTokens: 1500,
         },
       },
     });
 
     expect(summary).toContain("Duration: 300s");
     expect(summary).toContain("Turns: 1");
-    expect(summary).toContain("Tokens: 1,500 total (1,200 in, 300 out, 200 cached)");
+    expect(summary).toContain("Tokens: 1,500 total (1,200 in, 300 out, 200 cached, 1,000 uncached in, 1,500 last-step)");
   });
 
   it("omits token counts when modelUsage is missing", () => {
