@@ -123,6 +123,19 @@
   Done when: A dated analysis computes post-intervention non-zero-findings rate and failed-session rate over the next 10 scheduler sessions, compares against baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and records pass/refute/ambiguous outcome.
   Priority: high
 
+- [x] Diagnose scheduler work-cycle cadence gap blocking 10-session findings evaluation [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: Mission gap — the intervention impact task is blocked at `9/10` post-intervention scheduler sessions because no scheduler `work-cycle` sessions were recorded after `2026-03-26T11:06:37Z`, so the project cannot complete the fixed-window measurement loop.
+  Done when: A dated diagnosis in `projects/akari/diagnosis/` quantifies expected vs observed scheduler `work-cycle` cadence for the post-intervention window, identifies at least one evidence-backed cause for the gap, and adds at least one concrete follow-up task or unblock condition to `projects/akari/TASKS.md`.
+  Priority: high
+  Evidence: `projects/akari/diagnosis/diagnosis-scheduler-work-cycle-cadence-gap-2026-03-26.md`
+  Evidence: `projects/akari/diagnosis/scheduler-work-cycle-cadence-gap-window-2026-03-26.json`
+  Verification: `./akari status` -> `Daemon: stopped`, `Jobs: 1/2 enabled`, `“work-cycle” [disabled]`.
+
+- [ ] Restore scheduler-driven `work-cycle` cadence needed for findings-first 10-session evaluation [requires-frontier] [skill: execute] [zero-resource]
+  Why: Follow-up from `projects/akari/diagnosis/diagnosis-scheduler-work-cycle-cadence-gap-2026-03-26.md` — the evaluation task is blocked at `9/10` because the `work-cycle` scheduler path is disabled/stopped.
+  Done when: `./akari status` reports `Daemon: running` and `“work-cycle” [enabled]`, and `.scheduler/metrics/sessions.jsonl` contains at least one new `triggerSource:\"scheduler\"` `work-cycle` row after `2026-03-26T11:06:37.442Z`.
+  Priority: high
+
 - [x] Quantify interim findings-first trend at 9/10 post-intervention sessions [requires-frontier] [skill: analyze] [zero-resource]
   Why: Mission gap — the final impact task remains externally blocked until 10 sessions, but the project Done-when requires continuous measurement of whether interventions improve knowledge output over time.
   Done when: A dated analysis in `projects/akari/analysis/` computes current post-intervention non-zero-findings and failed-session rates at the 9-session checkpoint (using `.scheduler/metrics/sessions.jsonl`), compares against the baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and states trend classification (`improving`, `flat`, or `worse`) with explicit arithmetic and data provenance.

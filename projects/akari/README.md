@@ -14,6 +14,60 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Orient akari + scheduler cadence-gap diagnosis at 9/10)
+
+Ran `/orient akari` for `SESSION_ID=work-session-mn7pu8ez`, then selected and completed a new mission-gap diagnosis task because the only pre-existing open task was externally blocked at `9/10` post-intervention scheduler sessions.
+
+Orient findings:
+- Repo state at orient start: clean tracked workspace (`git status --short` had no modified tracked files).
+- No pending approvals in `APPROVAL_QUEUE.md`.
+- No horizon-scan reports under `.scheduler/skill-reports/`.
+- Findings-first gate remains enabled: rolling scheduler `work-cycle` non-zero-findings rate is `0/10 = 0.0%`.
+- External blocker status: `Evaluate findings-first gate impact after 10 scheduler sessions` remains blocked at `9/10` (not stale, dated `2026-03-26`).
+- Budget/deadline status: only `projects/pca_vs_ttd/budget.yaml` exists (`llm_api_calls 0/0`, `cpu_hours 0/0.1`, deadline `2026-06-01T00:00:00Z`), no `progress.json` `consumption_audit` entries found for reconciliation.
+
+Task selection and claim:
+- Selected task: `Diagnose scheduler work-cycle cadence gap blocking 10-session findings evaluation`.
+- Claim API attempt failed:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...`
+  - `curl: (7) Failed to connect to localhost port 8420 after 0 ms: Couldn't connect to server`
+  - Proceeded without claim per SOP fallback.
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) - local diagnosis and documentation only; no LLM API calls, external APIs, GPU compute, or long-running jobs.
+
+Completed work:
+- Added cadence data snapshot: `projects/akari/diagnosis/scheduler-work-cycle-cadence-gap-window-2026-03-26.json`.
+- Added diagnosis artifact: `projects/akari/diagnosis/diagnosis-scheduler-work-cycle-cadence-gap-2026-03-26.md`.
+- Updated `projects/akari/TASKS.md`:
+  - completed the selected diagnosis task with evidence and verification lines.
+  - added follow-up task `Restore scheduler-driven work-cycle cadence needed for findings-first 10-session evaluation`.
+
+Key finding:
+- The blocker is operational state, not analysis quality: `work-cycle` is disabled in `.scheduler/jobs.json` and the scheduler daemon is stopped, so the 10th scheduler-triggered session cannot arrive until cadence is restored.
+
+Verification:
+- `node - <<'NODE' ... NODE` (cadence extractor) ->
+  - `post: 9`
+  - `enabled: false`
+  - `pid: false`
+  - `missing: 5`
+- `./akari status` ->
+  - `Daemon: stopped`
+  - `Jobs: 1/2 enabled`
+  - `“work-cycle” [disabled]`
+
+Session-type: autonomous
+Duration: 20
+Task-selected: Diagnose scheduler work-cycle cadence gap blocking 10-session findings evaluation
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 (Orient akari + interim findings-first trend check at 9/10)
 
 Ran `/orient akari` for `SESSION_ID=work-session-mn7or5lw`, generated one mission-gap task because the only open task was externally blocked, selected and completed that task.

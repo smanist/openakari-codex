@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-03-26T17:01:43.275Z",
+  "source_files": [
+    ".scheduler/metrics/sessions.jsonl",
+    ".scheduler/jobs.json"
+  ],
+  "intervention_timestamp_utc": "2026-03-26T03:05:39.000Z",
+  "scheduler_window": {
+    "post_intervention_scheduler_work_cycle_sessions": 9,
+    "latest_scheduler_work_cycle_timestamp": "2026-03-26T11:06:37.442Z",
+    "session_timestamps_utc": [
+      "2026-03-26T03:05:58.144Z",
+      "2026-03-26T04:05:07.969Z",
+      "2026-03-26T05:06:28.666Z",
+      "2026-03-26T06:09:20.878Z",
+      "2026-03-26T07:06:02.533Z",
+      "2026-03-26T08:06:05.141Z",
+      "2026-03-26T09:05:58.671Z",
+      "2026-03-26T10:08:04.737Z",
+      "2026-03-26T11:06:37.442Z"
+    ],
+    "median_inter_session_gap_minutes": 59.967816666666664,
+    "minutes_since_last_scheduler_work_cycle": 355.09721666666667,
+    "expected_missing_runs_from_median_gap_floor": 5
+  },
+  "job_state": {
+    "job_id": "i5aufndv",
+    "job_name": "“work-cycle”",
+    "enabled": false,
+    "schedule_kind": "cron",
+    "schedule_expr": "0 * * * *",
+    "schedule_tz": "UTC",
+    "next_run_at_ms": 1774526400000,
+    "next_run_at_utc": "2026-03-26T12:00:00.000Z",
+    "last_run_at_ms": 1774542746773,
+    "last_run_at_utc": "2026-03-26T16:32:26.773Z"
+  },
+  "daemon_state": {
+    "scheduler_pid_file_present": false
+  },
+  "conclusion_inputs": {
+    "block_target_sessions": 10,
+    "remaining_sessions_to_unblock": 1
+  }
+}
