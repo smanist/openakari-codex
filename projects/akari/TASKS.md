@@ -122,3 +122,15 @@
   Why: Intervention follow-up — once the findings-first gate is active, we need a fixed-window post analysis to test whether non-zero-findings rate improves without increasing failures.
   Done when: A dated analysis computes post-intervention non-zero-findings rate and failed-session rate over the next 10 scheduler sessions, compares against baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and records pass/refute/ambiguous outcome.
   Priority: high
+
+- [x] Diagnose persistent zero-findings sessions after gate rollout [requires-opus] [skill: diagnose] [zero-resource]
+  Why: Mission gap — the project still needs operational-gap identification from current data, and the rolling scheduler work-cycle non-zero-findings rate remains `0/9` after gate rollout.
+  Done when: A dated diagnosis in `projects/akari/diagnosis/` quantifies knowledge-output patterns for the latest scheduler `work-cycle` window, identifies at least two evidence-backed causes for zero findings, and adds at least one concrete follow-up task to `projects/akari/TASKS.md`.
+  Priority: high
+  Evidence: `projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md`
+  Evidence: `projects/akari/diagnosis/zero-findings-window-2026-03-26.json`
+
+- [ ] Implement findings accounting for quantified diagnosis/analysis artifacts [requires-opus] [skill: execute] [zero-resource]
+  Why: Follow-up from `projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md` — `2/9` scheduler work-cycle sessions produced new analysis files and `3/9` created tasks, but findings stayed `0/9`, indicating taxonomy undercount.
+  Done when: Scheduler knowledge extraction increments a findings metric for diagnosis/analysis artifacts that include explicit quantified findings with provenance, and regression tests cover one positive and one negative fixture.
+  Priority: high

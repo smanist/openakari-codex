@@ -14,6 +14,57 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Orient akari + zero-findings persistence diagnosis)
+
+Ran `/orient akari` for `SESSION_ID=work-session-mn707j4n`, then selected and completed a mission-gap diagnosis task from `projects/akari/TASKS.md`.
+
+Orient findings:
+- Repo state clean at session start (`git status --short` returned no rows).
+- No pending approvals in `APPROVAL_QUEUE.md`.
+- `docs/roadmap.md` is still absent (`sed: docs/roadmap.md: No such file or directory`).
+- Findings-first gate remains enabled from scheduler work-cycle metrics: `0/9 = 0.0%` non-zero-findings sessions.
+- External blocker freshness: one external blocker in `projects/akari/TASKS.md`, dated `2026-03-26` (not stale).
+- Mission-gap task supply at session start was empty for unblocked work (`open_tasks_at_session_start=1`, `unblocked_open_tasks_at_session_start=0`), so a new mission-gap task was generated.
+
+Task selection and claim:
+- Selected task: `Diagnose persistent zero-findings sessions after gate rollout`.
+- Claim API:
+  - `curl -s -X POST http://localhost:8420/api/tasks/claim ...`
+  - `{"ok":true,"claim":{"claimId":"dc097038fb28f3b0","taskId":"fdbaa88bb65f","taskText":"Diagnose persistent zero-findings sessions after gate rollout","project":"akari","agentId":"work-session-mn707j4n",...}}`
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) — diagnosis/documentation only; no LLM API calls, external APIs, GPU compute, or long-running jobs.
+
+Completed work:
+- Added diagnosis artifact: `projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md`.
+- Added reproducible window snapshot: `projects/akari/diagnosis/zero-findings-window-2026-03-26.json`.
+- Updated `projects/akari/TASKS.md`:
+  - generated and completed the mission-gap diagnosis task,
+  - added follow-up task `Implement findings accounting for quantified diagnosis/analysis artifacts`.
+
+Verification:
+- `rg -n 'Non-zero findings rate|Sessions with analysis artifacts|Hypothesis 1|Hypothesis 2|post-rollout sample' projects/akari/diagnosis/diagnosis-zero-findings-after-gate-2026-03-26.md`
+  - confirms quantified rates (`0/9`, `2/9`) and root-cause hypotheses are recorded.
+- `node - <<'NODE' ... require('./projects/akari/diagnosis/zero-findings-window-2026-03-26.json') ... NODE`
+  - `window_n 9`
+  - `non_zero_findings_sessions 0`
+  - `analysis_sessions 2`
+  - `tasks_created_total 4`
+  - `turns_avg 0.4444`
+- `rg -n 'Diagnose persistent zero-findings sessions after gate rollout|Implement findings accounting for quantified diagnosis/analysis artifacts' projects/akari/TASKS.md`
+  - diagnosis task marked complete; follow-up implementation task present.
+
+Session-type: autonomous
+Duration: 26
+Task-selected: Diagnose persistent zero-findings sessions after gate rollout
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 (Orient akari + zero-cost KPI definition)
 
 Ran `/orient akari` (full scoped orient) for `SESSION_ID=work-session-mn6y2d6g`, then completed the selected analysis task.
