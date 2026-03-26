@@ -14,6 +14,58 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Orient akari + zero-cost KPI definition)
+
+Ran `/orient akari` (full scoped orient) for `SESSION_ID=work-session-mn6y2d6g`, then completed the selected analysis task.
+
+Orient findings:
+- Repo state clean (`git status --short` returned no rows).
+- No pending approvals (`APPROVAL_QUEUE.md` pending section empty).
+- No horizon-scan reports found under `.scheduler/skill-reports/`.
+- Findings-first gate: enabled (`0/8 = 0.0%` scheduler work-cycle sessions with non-zero findings).
+- Efficiency summary (latest 10 sessions): `findings/$ = n/a` (`costUsd` sum is `0`), genuine waste `3/10 = 30.0%`, orient overhead `n/a` (no sessions with `numTurns > 10`), avg cost/session `$0.00`, avg turns/session `1.0`.
+- Cross-session patterns from `infra/scheduler/src/patterns.ts` logic: none detected in latest 10-session window.
+- External-work status: no stale external blockers in `projects/akari/TASKS.md` (`[blocked-by: external ... (2026-03-26)]` is current-day).
+
+Task selection and claim:
+- Selected task: `Define a primary efficiency KPI for zero-cost sessions`.
+- Claim API:
+  - `curl -s -X POST http://localhost:8420/api/tasks/claim ...`
+  - `{\"ok\":true,\"claim\":{\"claimId\":\"75e3e16bc093a58b\",\"taskId\":\"ea3a4972327d\",...}}`
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) — analysis/documentation only; no LLM API calls, external APIs, GPU work, or long-running compute.
+
+Completed work:
+- Added `projects/akari/analysis/zero-cost-efficiency-kpi-2026-03-26.md` with:
+  - primary KPI: `findings_per_session = sum(findings_i) / N`,
+  - fallback KPI: `non_zero_findings_rate = count(findings_i > 0) / N`,
+  - denominator-switch rule for orient reporting when `sum(costUsd) == 0`.
+- Updated `projects/akari/TASKS.md` to complete `Define a primary efficiency KPI for zero-cost sessions` with evidence.
+
+Verification:
+- `rg -n "Primary KPI \(zero-cost\)|Fallback KPI \(zero-cost\)|denominator switch rule|findings_per_session|non_zero_findings_rate|sum\(costUsd\) == 0" projects/akari/analysis/zero-cost-efficiency-kpi-2026-03-26.md`
+  - matched KPI formulas and orient switch-rule lines.
+- `rg -n "Define a primary efficiency KPI for zero-cost sessions|zero-cost-efficiency-kpi-2026-03-26.md|Evaluate findings-first gate impact" projects/akari/TASKS.md`
+  - task marked complete with evidence; follow-up evaluation task remains open/blocked.
+- `node - <<'NODE' ... NODE` (scheduler work-cycle window)
+  - `scheduler_work_cycle_window=8`
+  - `findings_per_session=0/8=0.000`
+  - `non_zero_findings_rate=0/8=0.0%`
+
+Compound (fast): no actions. Fleet spot-check: no recent `"triggerSource":"fleet"` sessions in `.scheduler/metrics/sessions.jsonl`.
+
+Session-type: autonomous
+Duration: 20
+Task-selected: Define a primary efficiency KPI for zero-cost sessions
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 (Implement findings-first orient gate intervention)
 
 Ran `/orient akari` (full scoped orient) for `SESSION_ID=work-session-mn6vx78h`, then completed the selected intervention task.

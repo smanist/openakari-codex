@@ -112,10 +112,11 @@
   Evidence: Gate rules added in `.agents/skills/orient/SKILL.md` (fast + full orient sections).
   Evidence: Follow-up task `Evaluate findings-first gate impact after 10 scheduler sessions` added below.
 
-- [ ] Define a primary efficiency KPI for zero-cost sessions [requires-opus] [skill: analyze] [zero-resource]
+- [x] Define a primary efficiency KPI for zero-cost sessions [requires-opus] [skill: analyze] [zero-resource]
   Why: Compound follow-up from `projects/akari/analysis/strategic-alignment-snapshot-2026-03-26.md` — `findings/$` is undefined when `costUsd` is zero across the evaluation window.
   Done when: A short analysis defines the primary KPI and fallback KPI for zero-cost sessions, with exact formulas and a recommendation for orient reporting.
   Priority: high
+  Evidence: `projects/akari/analysis/zero-cost-efficiency-kpi-2026-03-26.md`
 
 - [ ] Evaluate findings-first gate impact after 10 scheduler sessions [requires-opus] [skill: analyze] [zero-resource] [blocked-by: external: wait for 10 post-intervention scheduler sessions (2026-03-26)]
   Why: Intervention follow-up — once the findings-first gate is active, we need a fixed-window post analysis to test whether non-zero-findings rate improves without increasing failures.
