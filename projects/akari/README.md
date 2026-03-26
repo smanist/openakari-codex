@@ -14,6 +14,56 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Orient akari + findings accounting implementation)
+
+Ran `/orient akari` for `SESSION_ID=work-session-mn72cp1k`, selected the only unblocked high-priority task, implemented it, then ran `/compound fast`.
+
+Orient findings:
+- Repo state clean at session start (`git status --short --branch` showed only `## main...origin/main`).
+- No pending approvals in `APPROVAL_QUEUE.md`.
+- Findings-first gate remains enabled from scheduler work-cycle metrics: `0/10 = 0.0%`.
+- Efficiency summary for latest 10 work-cycle sessions: `findings/$ = n/a` (`costUsd` total `0`), genuine waste `1/10 = 10.0%`, orient overhead `n/a` (no `numTurns > 10` sessions), avg cost/session `$0.00`, avg turns/session `0.7`.
+- Cross-session patterns from `infra/scheduler/src/patterns.ts` logic: none in the latest 10-session window.
+- External blocker freshness: `Evaluate findings-first gate impact...` is tagged `[blocked-by: external ... (2026-03-26)]` and is not stale.
+- No recent horizon-scan reports under `.scheduler/skill-reports/`.
+
+Task selection and claim:
+- Selected task: `Implement findings accounting for quantified diagnosis/analysis artifacts`.
+- Claim API:
+  - `curl -s -X POST http://localhost:8420/api/tasks/claim ...`
+  - `{"ok":true,"claim":{"claimId":"6256eae1572ae1c4","taskId":"555dbbe39b7c","taskText":"Implement findings accounting for quantified diagnosis/analysis artifacts","project":"akari","agentId":"work-session-mn72cp1k",...}}`
+
+Scope classification:
+- `STRUCTURAL (verifiable)` with `consumes_resources: false` (local infra code + tests only; no model/API/GPU/long-running execution).
+
+Completed work:
+- Updated `infra/scheduler/src/verify.ts` (`parseKnowledgeFromDiff`) to increment `logEntryFindings` for numbered, quantified findings in `projects/*/(analysis|diagnosis|postmortem)/*.md` only when provenance signals are present.
+- Added provenance-gated regression fixtures in `infra/scheduler/src/verify-knowledge.test.ts`:
+  - positive fixture: quantified diagnosis findings with explicit evidence/source lines,
+  - negative fixture: quantified findings without provenance (must not count).
+- Updated `projects/akari/TASKS.md` to mark the implementation task complete with evidence.
+
+Verification:
+- `cd infra/scheduler && npx vitest run src/verify-knowledge.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  77 passed (77)`
+- `cd infra/scheduler && npx vitest run src/verify.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  1 passed (1)`
+
+Compound (fast): no actions. Fleet spot-check: no recent `"triggerSource":"fleet"` sessions in `.scheduler/metrics/sessions.jsonl`.
+
+Session-type: autonomous
+Duration: 8
+Task-selected: Implement findings accounting for quantified diagnosis/analysis artifacts
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 (Orient akari + zero-findings persistence diagnosis)
 
 Ran `/orient akari` for `SESSION_ID=work-session-mn707j4n`, then selected and completed a mission-gap diagnosis task from `projects/akari/TASKS.md`.
