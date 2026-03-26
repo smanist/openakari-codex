@@ -21,10 +21,10 @@ Use tags to coordinate across autonomous sessions:
 Routing metadata (if used):
 
 - `[fleet-eligible]` — should be executable by fleet workers.
-- `[requires-opus]` — requires higher reasoning capacity.
+- `[requires-frontier]` — requires higher reasoning capacity.
+- Legacy alias: `[requires-opus]` (accepted for backward compatibility; prefer `[requires-frontier]`).
 - `[skill: <type>]` — routing by dominant capability.
 
 ## Partial completion rule
 
 Do not mark `[x]` with “(partial)”. Split tasks or update the open task with remaining work.
-

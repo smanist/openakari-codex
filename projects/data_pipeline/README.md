@@ -14,6 +14,13 @@ The user provided a non-`nn.Module` reference implementation and tests in `/User
 
 ## Log
 
+### 2026-03-26 — Routing tag rename to `[requires-frontier]`
+
+Updated `projects/data_pipeline/TASKS.md` routing tags from `[requires-opus]` to `[requires-frontier]` to match current model-tier conventions while preserving scheduler compatibility with legacy tags.
+
+Verification:
+- `cd infra/scheduler && npm test -- task-parser.test.ts event-agents.test.ts verify-approval.test.ts verify-knowledge.test.ts` -> `Test Files 4 passed`, `Tests 216 passed`
+
 ### 2026-03-26 — Project created
 
 Project initiated via `/project scaffold` from a human request for a PyTorch-native transform pipeline over list-of-array datasets with reusable fitted state, arbitrary ordered composition, and inverse-transform support. The initial scaffold treats the existing `modules/data_pipeline/` submodule as the execution module and uses the attached legacy compose/tests as behavioral reference only.

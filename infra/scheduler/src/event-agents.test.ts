@@ -410,7 +410,7 @@ Read the user's request and extract key information.`;
     expect(prompt).toContain("Fleet workers");
     expect(prompt).toContain("[fleet-eligible]");
     expect(prompt).toContain("30 seconds");
-    expect(prompt).toContain("[requires-opus]");
+    expect(prompt).toContain("[requires-frontier]");
   });
 
   it("fleet guidance mentions zero-cost fleet workers", () => {

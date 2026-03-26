@@ -1,6 +1,6 @@
 # Data Pipeline — Tasks
 
-- [x] Define the PyTorch transform interface and pipeline contract [requires-opus] [skill: multi]
+- [x] Define the PyTorch transform interface and pipeline contract [requires-frontier] [skill: multi]
   Why: The project needs one stable abstraction for fit/transform/inverse-transform semantics over list-of-array datasets before individual transforms can be implemented without drift.
   Done when: `modules/data_pipeline/` documents the base transform and pipeline API, including dataset shape assumptions, fitted-state lifecycle, inverse-transform contract for lossy stages, and how `nn.Module` integration works.
   Priority: high

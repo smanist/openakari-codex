@@ -126,9 +126,9 @@ curl -s -X PATCH http://localhost:8420/api/fleet/config \
 | Missing `[fleet-eligible]` tag | `fleetEligible: false` | Add tag to tasks in TASKS.md |
 | Stale claims | Claims files exist but sessions ended | Delete stale claims: `rm .scheduler/claims/*` |
 | Fleet disabled | `maxWorkers: 0` | Scale up via API |
-| Tasks require Opus | `[requires-opus]` tag | Create fleet-eligible subtasks |
+| Tasks require frontier reasoning | `[requires-frontier]` tag | Create fleet-eligible subtasks |
 
-**Quick fix — generate tasks via Opus:**
+**Quick fix — generate tasks via frontier supervisor:**
 ```bash
 # Trigger an Opus supervisor session to create fleet tasks
 curl -s -X POST http://localhost:8420/api/jobs/opus-supervisor/run
@@ -159,7 +159,7 @@ curl -s http://localhost:8420/api/fleet/tasks | jq 'group_by(.project) | map({pr
 
 **If supply < FLEET_SIZE:**
 1. Check for stale blockers (tasks completed but `[blocked-by]` not removed)
-2. Decompose `[requires-opus]` tasks into fleet-eligible subtasks
+2. Decompose `[requires-frontier]` tasks into fleet-eligible subtasks
 3. Create standing tasks: compliance audits, session analysis, documentation
 
 ---
@@ -193,7 +193,7 @@ curl -s http://localhost:8420/api/fleet/tasks | jq '.[] | select(.taskId == "<id
 
 **Fix:**
 - Max 3 retries per task before exclusion
-- If task is genuinely broken, mark `[requires-opus]` for human review
+- If task is genuinely broken, mark `[requires-frontier]` for human review
 - Check if task's "Done when" is achievable
 
 #### Worker timeout

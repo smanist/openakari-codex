@@ -194,7 +194,7 @@ After saving the diagnosis, convert improvement roadmap items to tasks for items
    - Tag: `[fleet-eligible] [skill: execute]` for code fixes, `[skill: record]` for documentation
    - `Done when:` derived from the fix description
    - `Why:` referencing this diagnosis file path
-4. For "Patterns" section items suggesting deeper systemic issues: create `[requires-opus]` investigation tasks
+4. For "Patterns" section items suggesting deeper systemic issues: create `[requires-frontier]` investigation tasks
 
 This ensures lower-priority improvements from slack diagnoses enter the task pipeline rather than being forgotten after the urgent fix is applied.
 

@@ -121,7 +121,7 @@ describe("parseKnowledgeFromDiff", () => {
 +++ b/projects/akari/TASKS.md
 @@ -10,0 +11,2 @@
 +- [ ] New task one [fleet-eligible]
-+- [ ] New task two [requires-opus]
++- [ ] New task two [requires-frontier]
 `;
     const result = parseKnowledgeFromDiff(diff, [
       "projects/akari/TASKS.md",

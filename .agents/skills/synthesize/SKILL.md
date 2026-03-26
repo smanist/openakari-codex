@@ -78,7 +78,7 @@ After saving the synthesis, convert actionable implications to tasks:
    - Check the project's TASKS.md for an existing task covering the same action
    - If no existing task, create one:
      - Imperative description derived from the implication
-     - `[fleet-eligible]` or `[requires-opus]` per fleet-eligibility checklist
+     - `[fleet-eligible]` or `[requires-frontier]` per fleet-eligibility checklist
      - `[skill: ...]` tag matching the work type
      - `Done when:` from the implication's expected outcome
      - `Why:` referencing this synthesis file path

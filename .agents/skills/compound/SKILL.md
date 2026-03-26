@@ -116,7 +116,7 @@ For each file: check if recommendations are relevant to this session's area, tri
 
 **Anti-loop check**: For recommendations about analyzing running experiments, split into preliminary + final analysis tasks per [decisions/0023-incremental-analysis-throttling.md](../../../decisions/0023-incremental-analysis-throttling.md).
 
-**Fleet routing (ADR 0045)**: When creating new tasks (from recommendations, implied tasks, or any other source), untagged tasks default to fleet-eligible. Only apply `[requires-opus]` when a task fails the fleet-eligibility checklist from AGENTS.md. When a recommended action can be decomposed into subtasks, prefer creating multiple fleet-eligible subtasks over a single complex task.
+**Fleet routing (ADR 0045)**: When creating new tasks (from recommendations, implied tasks, or any other source), untagged tasks default to fleet-eligible. Only apply `[requires-frontier]` when a task fails the fleet-eligibility checklist from AGENTS.md. When a recommended action can be decomposed into subtasks, prefer creating multiple fleet-eligible subtasks over a single complex task.
 
 #### Part B: Implied tasks from experiment findings
 

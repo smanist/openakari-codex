@@ -114,7 +114,7 @@ After saving the report, convert unfixed issues to tasks:
 
 1. For each P1/P2 issue NOT fixed in this session (Auto only implements one fix):
    - Create a task in the akari project's TASKS.md
-   - `[fleet-eligible] [skill: execute]` for code fixes, `[requires-opus]` for redesigns
+   - `[fleet-eligible] [skill: execute]` for code fixes, `[requires-frontier]` for redesigns
    - `Done when:` derived from the issue description and verification criteria
    - `Why:` referencing the architecture scan report file path
 2. Skip issues that are P3 (efficiency) unless effort is "trivial"

@@ -107,7 +107,7 @@ export interface FleetTask {
   priority: "high" | "medium" | "low";
   /** Whether the task is tagged [fleet-eligible]. */
   fleetEligible: boolean;
-  /** Whether the task is tagged [requires-opus]. */
+  /** Whether the task is tagged [requires-frontier]. */
   requiresOpus: boolean;
   /** Whether the task is tagged [zero-resource]. */
   zeroResource: boolean;

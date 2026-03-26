@@ -51,7 +51,7 @@ export const RECURRING_TEMPLATES: RecurringTaskTemplate[] = [
     id: "task-tag-audit",
     text: "Audit tasks for missing fleet routing tags",
     why: "Untagged tasks are invisible to fleet workers. Periodic audit ensures new tasks get proper routing tags.",
-    doneWhen: "All open tasks in projects/*/TASKS.md scanned. Untagged tasks listed. At least 50% of untagged tasks receive appropriate [fleet-eligible] or [requires-opus] tags.",
+    doneWhen: "All open tasks in projects/*/TASKS.md scanned. Untagged tasks listed. At least 50% of untagged tasks receive appropriate [fleet-eligible] or [requires-frontier] tags.",
     priority: "low",
     cooldownDays: 7,
   },

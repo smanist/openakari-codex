@@ -12,7 +12,7 @@
   Done when: BLEU, METEOR, CIDEr, and CLIPScore computed for all pilot captions. Correlation with human ratings documented.
   Priority: high
 
-- [ ] Design human evaluation protocol [requires-opus] [skill: orient] [zero-resource]
+- [ ] Design human evaluation protocol [requires-frontier] [skill: orient] [zero-resource]
   Why: Need a reliable human evaluation rubric before collecting judgments
   Done when: Evaluation rubric with 3+ dimensions (accuracy, detail, fluency), inter-annotator agreement target (κ ≥ 0.6), and annotation interface specified.
   Priority: medium
@@ -24,7 +24,7 @@
   Done when: All 500 images captioned by 5+ models, evaluated with top-performing automated metrics.
   Priority: high
 
-- [ ] Analyze per-category performance patterns [requires-opus] [skill: analyze] [zero-resource] [blocked-by: full-scale evaluation]
+- [ ] Analyze per-category performance patterns [requires-frontier] [skill: analyze] [zero-resource] [blocked-by: full-scale evaluation]
   Why: Category-level analysis reveals model strengths and systematic failure modes
   Done when: Per-category accuracy breakdown for all models. Statistical tests for category effects.
   Priority: medium

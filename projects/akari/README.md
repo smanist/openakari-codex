@@ -14,6 +14,13 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Task-routing label migration to frontier tiers)
+
+Migrated task-routing language from `[requires-opus]` to `[requires-frontier]` across active conventions, scheduler prompts/tests, and project task files. Added parser back-compat so legacy `[requires-opus]` still routes correctly during transition (`[requires-frontier]` is now canonical).
+
+Verification:
+- `cd infra/scheduler && npm test -- task-parser.test.ts event-agents.test.ts verify-approval.test.ts verify-knowledge.test.ts` -> `Test Files 4 passed`, `Tests 216 passed`
+
 ### 2026-03-26 — New project: Data Pipeline
 
 Created `projects/data_pipeline/` via `/project scaffold`. Mission: build a reusable PyTorch-native data transformation pipeline that fits on one dataset, applies the learned transform to other datasets, and reconstructs data through inverse transforms where mathematically possible.

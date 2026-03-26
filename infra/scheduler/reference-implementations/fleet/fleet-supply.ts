@@ -9,7 +9,7 @@ const BLOCKED_RE = /\[blocked-by:\s*([^\]]+)\]/i;
 const IN_PROGRESS_RE = /\[in-progress:\s*[^\]]+\]/i;
 const APPROVAL_NEEDED_RE = /\[approval-needed\]/i;
 const APPROVED_RE = /\[approved:\s*[^\]]+\]/i;
-const REQUIRES_OPUS_RE = /\[requires-opus\]/i;
+const REQUIRES_FRONTIER_RE = /\[(?:requires-frontier|requires-opus)\]/i;
 const FLEET_ELIGIBLE_RE = /\[fleet-eligible\]/i;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -30,15 +30,15 @@ export interface TaskSupplySnapshot {
   fleetEligibleBlocked: number;
   /** Blocked task summary: blocker description -> count. */
   blockedSummary: Record<string, number>;
-  /** Tasks without [fleet-eligible] or [requires-opus] tag. */
+  /** Tasks without [fleet-eligible] or [requires-frontier] tag. */
   untaggedCount: number;
-  /** Tasks with [requires-opus] tag. */
+  /** Tasks with [requires-frontier] tag. */
   requiresOpusCount: number;
   /** Total open tasks scanned. */
   totalOpenTasks: number;
   /** Per-project breakdown. */
   byProject: Record<string, ProjectTaskSupply>;
-  /** Requires-opus tasks that could be decomposed into fleet-eligible subtasks (ADR 0053). */
+  /** Requires-frontier tasks that could be decomposed into fleet-eligible subtasks (ADR 0053). */
   decomposableTasks: DecomposableTask[];
 }
 
@@ -86,7 +86,7 @@ function parseTaskBlock(taskLine: string, continuations: string[]): ParsedTask {
     approvalNeeded: APPROVAL_NEEDED_RE.test(fullText),
     approved: APPROVED_RE.test(fullText),
     fleetEligible: FLEET_ELIGIBLE_RE.test(fullText),
-    requiresOpus: REQUIRES_OPUS_RE.test(fullText),
+    requiresOpus: REQUIRES_FRONTIER_RE.test(fullText),
   };
 }
 
@@ -209,7 +209,7 @@ export function scanTaskSupply(cwd: string): TaskSupplySnapshot {
       requiresOpusCount++;
       projStats.requiresOpus++;
 
-      // Check if this requires-opus task is decomposable (ADR 0053)
+      // Check if this requires-frontier task is decomposable (ADR 0053)
       if (!task.blockedBy) {
         const trigger = detectDecompositionTrigger(task.text);
         if (trigger) {
@@ -217,7 +217,7 @@ export function scanTaskSupply(cwd: string): TaskSupplySnapshot {
         }
       }
     } else {
-      // Untagged (neither fleet-eligible nor requires-opus)
+      // Untagged (neither fleet-eligible nor requires-frontier)
       untaggedCount++;
       projStats.untagged++;
     }

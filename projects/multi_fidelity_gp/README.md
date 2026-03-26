@@ -17,6 +17,13 @@ The holdout evaluation still reports both latent and observation predictive dist
 
 ## Log
 
+### 2026-03-26 — Routing tag rename to `[requires-frontier]`
+
+Updated `projects/multi_fidelity_gp/TASKS.md` routing tags from `[requires-opus]` to `[requires-frontier]` to align with tier-based labeling. The scheduler parser now accepts both tags, so historical tasks remain routable.
+
+Verification:
+- `cd infra/scheduler && npm test -- task-parser.test.ts event-agents.test.ts verify-approval.test.ts verify-knowledge.test.ts` -> `Test Files 4 passed`, `Tests 216 passed`
+
 ### 2026-03-25 — Project created
 
 Project initiated via `/project scaffold` from a human request to study multi-fidelity modeling for `y = f(x)` using a fixed low-fidelity approximation and a Gaussian-process correction trained on high-fidelity observations. The initial project scaffold fixes a concrete synthetic benchmark, a residual-GP modeling strategy, and evaluation criteria based on holdout high-fidelity accuracy and uncertainty calibration.

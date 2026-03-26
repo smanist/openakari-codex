@@ -127,7 +127,7 @@ After saving the postmortem to disk, convert prevention actions to tasks:
    - Check the project's TASKS.md for existing tasks covering the same action before creating duplicates
 2. Tag each task:
    - Convention/skill updates → `[fleet-eligible] [skill: record]`
-   - Code changes → `[fleet-eligible] [skill: execute]` or `[requires-opus]` if complex
+   - Code changes → `[fleet-eligible] [skill: execute]` or `[requires-frontier]` if complex
    - `Done when:` derived from the prevention specification
    - `Why:` referencing this postmortem file path
 3. If the postmortem results in an ADR with migration steps, the ADR task bridge (existing convention) also applies

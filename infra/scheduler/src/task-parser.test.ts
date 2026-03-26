@@ -4,6 +4,7 @@ import {
   IN_PROGRESS_RE,
   APPROVAL_NEEDED_RE,
   APPROVED_RE,
+  REQUIRES_FRONTIER_RE,
   REQUIRES_OPUS_RE,
   FLEET_ELIGIBLE_RE,
   ZERO_RESOURCE_RE,
@@ -56,10 +57,21 @@ describe("task-parser", () => {
       });
     });
 
-    describe("REQUIRES_OPUS_RE", () => {
+    describe("REQUIRES_FRONTIER_RE", () => {
       it.each([
-        ["[requires-opus]", true],
+        ["[requires-frontier]", true],
+        ["[REQUIRES-FRONTIER]", true],
         ["[REQUIRES-OPUS]", true],
+        ["[fleet-eligible]", false],
+      ])("matches %s: %s", (input, expected) => {
+        expect(REQUIRES_FRONTIER_RE.test(input)).toBe(expected);
+      });
+    });
+
+    describe("REQUIRES_OPUS_RE (deprecated alias)", () => {
+      it.each([
+        ["[requires-frontier]", true],
+        ["[requires-opus]", true],
         ["[fleet-eligible]", false],
       ])("matches %s: %s", (input, expected) => {
         expect(REQUIRES_OPUS_RE.test(input)).toBe(expected);
@@ -70,7 +82,7 @@ describe("task-parser", () => {
       it.each([
         ["[fleet-eligible]", true],
         ["[FLEET-ELIGIBLE]", true],
-        ["[requires-opus]", false],
+        ["[requires-frontier]", false],
       ])("matches %s: %s", (input, expected) => {
         expect(FLEET_ELIGIBLE_RE.test(input)).toBe(expected);
       });
@@ -135,7 +147,7 @@ describe("task-parser", () => {
       ["  - [ ] Indented task", "Indented task"],
       ["- [ ] Do work [fleet-eligible]", "Do work [fleet-eligible]"],
       ["- [ ] Task   ", "Task"],
-      ["- [ ] Implement feature X [requires-opus] [fleet-eligible]", "Implement feature X [requires-opus] [fleet-eligible]"],
+      ["- [ ] Implement feature X [requires-frontier] [fleet-eligible]", "Implement feature X [requires-frontier] [fleet-eligible]"],
     ])("extracts from %s", (input, expected) => {
       expect(extractTaskText(input)).toBe(expected);
     });

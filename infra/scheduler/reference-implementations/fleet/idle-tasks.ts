@@ -422,7 +422,7 @@ Project: ${topic.project}
 Verify that TASKS.md follows akari conventions:
 
 1. **Fleet routing tags**: Every open task (- [ ]) should have [fleet-eligible] or
-   [requires-opus]. Tag any untagged tasks using the fleet-eligibility checklist.
+   [requires-frontier]. Tag any untagged tasks using the fleet-eligibility checklist.
 2. **Done when conditions**: Every task should have a "Done when:" line with a
    verifiable completion condition.
 3. **Imperative verb**: Task descriptions should start with an imperative verb
@@ -472,7 +472,7 @@ Read the project's README.md and TASKS.md. Check for compliance with AGENTS.md c
 - Tasks follow the task schema (imperative verb, Done when, fleet routing tag)
 - Log entries follow the log entry schema (### YYYY-MM-DD header, Sources line)
 - No orphaned [blocked-by] tags referencing resolved conditions
-- No tasks missing fleet routing tags ([fleet-eligible] or [requires-opus])
+- No tasks missing fleet routing tags ([fleet-eligible] or [requires-frontier])
 
 ## Output rules
 - If you find violations: add a log entry to the project README listing the findings

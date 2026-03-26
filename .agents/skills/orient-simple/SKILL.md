@@ -32,16 +32,16 @@ Read all `projects/*/TASKS.md` files. For each task, note:
 
 ### Step 3: Routing tag check
 
-While reading TASKS.md files (Step 2), verify that `[requires-opus]` tags are applied correctly:
+While reading TASKS.md files (Step 2), verify that `[requires-frontier]` tags are applied correctly:
 
-**Tag `[requires-opus]` if ANY true:**
+**Tag `[requires-frontier]` if ANY true:**
 1. NOT self-contained (needs multi-file context beyond task text + project README)
 2. Unclear done-when condition (requires judgment to verify)
 3. Multiple concerns ("do X, then Y, then Z")
 4. Deep reasoning required (synthesis, strategic decisions, multi-step planning)
 5. Convention changes (modifies AGENTS.md, decisions/, or infra/)
 
-If your repo uses routing tags, untagged tasks may default to fleet-eligible. Only apply `[requires-opus]` when a task genuinely needs Opus-level capability.
+If your repo uses routing tags, untagged tasks may default to fleet-eligible. Only apply `[requires-frontier]` when a task genuinely needs frontier-tier capability.
 
 ### Step 4: Task supply generation and decomposition (ADR 0047, ADR 0053)
 
@@ -49,7 +49,7 @@ If task supply is thin, improve it before proceeding. In repos that enable fleet
 
 **How to generate (in order):**
 1. Remove stale `[blocked-by: ...]` tags where the referenced condition is resolved (prerequisite task already completed)
-2. **Decompose `[requires-opus]` tasks** that have >2 independent steps, >3 files, or mix mechanical + judgment work. Split into smaller subtasks. **Write subtasks directly to TASKS.md** — replace the original task with its subtasks. Do NOT just flag or propose — proposals die with the session.
+2. **Decompose `[requires-frontier]` tasks** that have >2 independent steps, >3 files, or mix mechanical + judgment work. Split into smaller subtasks. **Write subtasks directly to TASKS.md** — replace the original task with its subtasks. Do NOT just flag or propose — proposals die with the session.
 3. Create maintenance tasks: `Run /self-audit on <project>` for projects that haven't been audited in the last 7 days. To check: run `ls projects/*/diagnosis/compliance-audit-*.md 2>/dev/null | xargs -I{} basename {}` to list audit files. Extract dates from filenames (pattern: YYYY-MM-DD). Skip projects with audits within 7 days of today.
 4. Create documentation or analysis tasks from standing inventory (see AGENTS.md "Fleet supply maintenance")
 

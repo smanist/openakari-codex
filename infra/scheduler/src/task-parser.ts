@@ -9,7 +9,9 @@ export const BLOCKED_RE = /\[blocked-by:\s*[^\]]+\]/i;
 export const IN_PROGRESS_RE = /\[in-progress:\s*[^\]]+\]/i;
 export const APPROVAL_NEEDED_RE = /\[approval-needed\]/i;
 export const APPROVED_RE = /\[approved:\s*[^\]]+\]/i;
-export const REQUIRES_OPUS_RE = /\[requires-opus\]/i;
+export const REQUIRES_FRONTIER_RE = /\[(?:requires-frontier|requires-opus)\]/i;
+// Deprecated alias retained for back-compat with existing imports/tests.
+export const REQUIRES_OPUS_RE = REQUIRES_FRONTIER_RE;
 export const FLEET_ELIGIBLE_RE = /\[fleet-eligible\]/i;
 export const ZERO_RESOURCE_RE = /\[zero-resource\]/i;
 export const ESCALATE_RE = /\[escalate(?::\s*[^\]]+)?\]/i;

@@ -266,7 +266,7 @@ describe("stale approval-needed tag detection (integration)", () => {
 
     const tasksContent = `# Test Tasks
 
-- [ ] Create public repository [requires-opus] [approval-needed]
+- [ ] Create public repository [requires-frontier] [approval-needed]
   Done when: Public repo exists.
 `;
     await writeFile(join(projectDir, "TASKS.md"), tasksContent);
@@ -300,7 +300,7 @@ Date: 2026-02-27
 
     const tasksContent = `# Test Tasks
 
-- [ ] Submit paper for review [requires-opus] [approval-needed]
+- [ ] Submit paper for review [requires-frontier] [approval-needed]
   Done when: Paper submitted.
 `;
     await writeFile(join(projectDir, "TASKS.md"), tasksContent);
@@ -333,7 +333,7 @@ Type: external
 
     const tasksContent = `# Test Tasks
 
-- [ ] Increase budget limits [requires-opus] [approval-needed]
+- [ ] Increase budget limits [requires-frontier] [approval-needed]
   Done when: Budget increased.
 `;
     await writeFile(join(projectDir, "TASKS.md"), tasksContent);

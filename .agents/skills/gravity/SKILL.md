@@ -117,7 +117,7 @@ Be conservative. The repo convention is "grow structure on demand" — do not fo
 
 For candidates with verdict "formalize now":
 1. Create a task in the relevant project's TASKS.md for the migration plan
-2. Tag: `[fleet-eligible]` if the formalization is mechanical (new schema, convention update), `[requires-opus]` if it requires design decisions
+2. Tag: `[fleet-eligible]` if the formalization is mechanical (new schema, convention update), `[requires-frontier]` if it requires design decisions
 3. `Done when:` the pattern has been formalized at the target level
 4. `Why:` referencing this gravity assessment
 

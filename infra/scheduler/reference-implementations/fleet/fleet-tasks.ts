@@ -11,7 +11,7 @@ const BLOCKED_RE = /\[blocked-by:\s*[^\]]+\]/i;
 const IN_PROGRESS_RE = /\[in-progress:\s*[^\]]+\]/i;
 const APPROVAL_NEEDED_RE = /\[approval-needed\]/i;
 const APPROVED_RE = /\[approved:\s*[^\]]+\]/i;
-const REQUIRES_OPUS_RE = /\[requires-opus\]/i;
+const REQUIRES_FRONTIER_RE = /\[(?:requires-frontier|requires-opus)\]/i;
 const FLEET_ELIGIBLE_RE = /\[fleet-eligible\]/i;
 const ZERO_RESOURCE_RE = /\[zero-resource\]/i;
 const SKILL_RE = /\[skill:\s*(record|persist|govern|execute|diagnose|analyze|orient|multi)\]/i;
@@ -246,7 +246,7 @@ export function parseTasksFile(content: string, project: string, projectDir?: st
       continue;
     }
 
-    const requiresOpus = REQUIRES_OPUS_RE.test(fullText);
+    const requiresOpus = REQUIRES_FRONTIER_RE.test(fullText);
     const fleetEligible = !requiresOpus;
     const zeroResource = ZERO_RESOURCE_RE.test(fullText);
     const skillType = extractSkillType(fullText) ?? classifyTaskSkill(fullText);

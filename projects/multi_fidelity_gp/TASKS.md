@@ -20,14 +20,14 @@
   Verification: `python projects/multi_fidelity_gp/experiments/residual-gp/demo.py`
   Priority: high
 
-- [x] Evaluate accuracy and uncertainty on holdout high-fidelity data [requires-opus] [skill: analyze]
+- [x] Evaluate accuracy and uncertainty on holdout high-fidelity data [requires-frontier] [skill: analyze]
   Why: The project’s research value is the measured trade-off between predictive accuracy and calibrated uncertainty, not the implementation alone.
   Done when: A report or experiment record compares RMSE, MAE, negative log likelihood, interval coverage, and average interval width for all models on a disjoint high-fidelity test set.
   Evidence: `projects/multi_fidelity_gp/experiments/holdout-eval/`
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: high
 
-- [x] Improve GP hyperparameter selection for calibrated uncertainty [requires-opus] [skill: diagnose]
+- [x] Improve GP hyperparameter selection for calibrated uncertainty [requires-frontier] [skill: diagnose]
   Why: The initial holdout evaluation shows severe 95% interval undercoverage (≪95%) and extremely large Gaussian NLL, suggesting the current heuristic hyperparameters yield overconfident uncertainty.
   Done when: A documented hyperparameter selection method (e.g., marginal likelihood optimization or a simple grid search) is implemented and the holdout evaluation is re-run with updated calibration metrics.
   Evidence: `projects/multi_fidelity_gp/experiments/residual-gp/gp.py`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`
@@ -48,7 +48,7 @@
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 
-- [x] Decide which uncertainty definition to optimize for calibration [requires-opus] [skill: analyze]
+- [x] Decide which uncertainty definition to optimize for calibration [requires-frontier] [skill: analyze]
   Why: The project currently mixes modeling choices (noise variance, observation vs latent uncertainty) with calibration metrics; we need an explicit target so “calibrated uncertainty” is well-defined.
   Done when: A short note in `projects/multi_fidelity_gp/README.md` (Context or a new section) states whether calibration targets latent or observation uncertainty (and why), and the holdout evaluation reflects that choice.
   Evidence: `projects/multi_fidelity_gp/README.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.md`, `projects/multi_fidelity_gp/experiments/holdout-eval/results.json`
@@ -69,7 +69,7 @@
   Verification: `python projects/multi_fidelity_gp/experiments/holdout-eval/evaluate.py`
   Priority: medium
 
-- [ ] Diagnose residual GP overconfidence at ultra-sparse N_train (e.g., 4 points) [requires-opus] [skill: diagnose]
+- [ ] Diagnose residual GP overconfidence at ultra-sparse N_train (e.g., 4 points) [requires-frontier] [skill: diagnose]
   Why: The HF-size sweep shows the residual correction GP can become catastrophically overconfident at `N_train=4` (95% coverage ≈ `0.0125` with huge NLL), even though it outperforms the HF GP on RMSE at `N_train=8`.
   Done when: The root cause is identified and a documented safeguard (e.g., hyperparameter bounds/priors, jitter/noise floor strategy, or alternative selection objective) yields non-degenerate uncertainty metrics at `N_train=4` without regressing `N_train=8/12`.
   Priority: medium

@@ -149,15 +149,15 @@ Use these tags in `TASKS.md` to coordinate across sessions:
 - `[approved: YYYY-MM-DD]` — human approved, ready to execute
 - `[zero-resource]` — task consumes no budget resources (analysis, documentation, planning)
 - `[fleet-eligible]` — task can be assigned to fleet workers (GLM-5 on opencode backend). **This is the default for well-scoped tasks.** Apply unless the task fails the fleet-eligibility checklist below. Per ADR 0042-v2, ADR 0045.
-- `[requires-opus]` — task requires Codex Opus capability (complex reasoning, multi-file refactors, ambiguous decisions). Not fleet-eligible. Fleet workers skip these tasks.
+- `[requires-frontier]` — task requires frontier-tier reasoning capability (complex reasoning, multi-file refactors, ambiguous decisions). Not fleet-eligible. Fleet workers skip these tasks. Frontier tier currently maps to `gpt-5.4`.
 - `[escalate]` — fleet worker should escalate to Opus supervisor when encountering unexpected complexity, blockers not in task description, or quality concerns. Used during fleet execution, not during task definition.
-- `[skill: <type>]` — skill-typed routing tag that classifies tasks by dominant capability (ADR 0062). Replaces binary fleet-eligible/requires-opus with finer-grained routing:
+- `[skill: <type>]` — skill-typed routing tag that classifies tasks by dominant capability (ADR 0062). Replaces binary fleet-eligible/requires-frontier with finer-grained routing:
 
   | Skill type | Worker role | Model tier | Cost |
   |------------|-------------|------------|------|
   | record, persist, govern | Knowledge worker | GLM-5 | $0 (self-hosted) |
   | execute | Implementation worker | Best available* | Varies |
-  | diagnose, analyze, orient, multi | Reasoning worker | Opus | API cost |
+  | diagnose, analyze, orient, multi | Reasoning worker | Frontier (`gpt-5.4`) | API cost |
 
   **Skill definitions:**
   - `[skill: record]` → Knowledge management: documentation, status updates, archival
@@ -169,13 +169,13 @@ Use these tags in `TASKS.md` to coordinate across sessions:
   - `[skill: orient]` → Strategic: task selection, priority assessment, planning
   - `[skill: multi]` → Multi-factor: requires reasoning + implementation + knowledge
 
-  **Backward compatibility:** `[fleet-eligible]` → `[skill: record]`, `[requires-opus]` → `[skill: multi]`. Both old tags remain valid. Skill tags are additive — prefer them for new tasks.
+  **Backward compatibility:** `[fleet-eligible]` → `[skill: record]`, `[requires-frontier]` → `[skill: multi]`, legacy `[requires-opus]` → `[requires-frontier]`. Both old tags remain valid. Skill tags are additive — prefer them for new tasks.
 
   *Implementation worker: currently falls through to Opus supervisor. When GPT-5.2, Composer, or Gemini arrive on opencode, EXECUTE tasks route to those models.
 
 ### Fleet-first task creation (ADR 0045)
 
-**Every new task should be assessed for fleet-eligibility at creation time.** The fleet is akari's primary execution engine. Untagged tasks default to fleet-eligible and are assigned by the fleet scheduler. Only tasks explicitly tagged `[requires-opus]` are excluded from fleet assignment and reserved for the Opus supervisor. Apply skill tags (`[skill: record]`, `[skill: execute]`, etc.) for better routing precision.
+**Every new task should be assessed for fleet-eligibility at creation time.** The fleet is akari's primary execution engine. Untagged tasks default to fleet-eligible and are assigned by the fleet scheduler. Only tasks explicitly tagged `[requires-frontier]` are excluded from fleet assignment and reserved for the Opus supervisor. Apply skill tags (`[skill: record]`, `[skill: execute]`, etc.) for better routing precision.
 
 **Prefer skill tags over binary classification.** Use `[skill: <type>]` tags (see above) for finer-grained routing. They're additive — a task can have both `[fleet-eligible]` and `[skill: record]`, but skill tags provide better routing precision.
 
@@ -186,12 +186,12 @@ Use these tags in `TASKS.md` to coordinate across sessions:
 4. **No deep reasoning**: Does not require research synthesis, strategic decisions, or multi-step planning
 5. **No convention evolution**: Does not modify AGENTS.md, decisions/, or infra/ code
 
-If ANY check fails → tag `[requires-opus]`. If ALL pass → tag `[fleet-eligible]`.
+If ANY check fails → tag `[requires-frontier]`. If ALL pass → tag `[fleet-eligible]`.
 
 **Recommended tagging flow:**
 1. Apply skill tag first: `[skill: record]`, `[skill: execute]`, etc. (see skill definitions above)
 2. Add `[fleet-eligible]` if the task passes the checklist
-3. Add `[requires-opus]` if it fails the checklist
+3. Add `[requires-frontier]` if it fails the checklist
 4. Old tags alone still work, but skill tags enable better routing
 
 **When in doubt, prefer `[fleet-eligible]`.** Fleet workers that encounter unexpected complexity can escalate via `[escalate]`. An optimistically-tagged task that gets escalated wastes one fleet session (~5 min, $0). An untagged task that sits in the queue wastes days of potential fleet throughput.
@@ -219,7 +219,7 @@ After (fleet-decomposed):
   Done when: Script runs without error on 1 sample
 - [ ] Run experiment via experiment runner [fleet-eligible]
   Done when: Experiment submitted with progress.json
-- [ ] Analyze experiment results [requires-opus]
+- [ ] Analyze experiment results [requires-frontier]
   Done when: Findings section in EXPERIMENT.md with per-dimension scores
 ```
 

@@ -52,7 +52,7 @@ Read the following in parallel:
 
 ### Task supply and decomposition
 
-Improve task quality and supply while scanning. If your repo enables fleet-style execution, you may also maintain fleet-ready task supply; otherwise treat `[fleet-eligible]` / `[requires-opus]` as optional routing metadata only.
+Improve task quality and supply while scanning. If your repo enables fleet-style execution, you may also maintain fleet-ready task supply; otherwise treat `[fleet-eligible]` / `[requires-frontier]` as optional routing metadata only.
 
 ### Mission gap check (ADR 0049)
 
@@ -80,7 +80,7 @@ Extract unblocked tasks from TASKS.md files. Apply project priority grouping fir
 
 **Stale blocker check**: While scanning TASKS.md files, note any `[blocked-by: external: ... (YYYY-MM-DD)]` tags older than 7 days. These tasks may be actionable if the blocker has resolved — flag them for re-verification in the task recommendation rationale.
 
-**Routing tag check (ADR 0045)**: If your repo uses routing tags, tag any untagged task with `[fleet-eligible]` or `[requires-opus]` using the checklist from `AGENTS.md`. If your repo does not use fleet execution, skip tagging and proceed with normal task selection.
+**Routing tag check (ADR 0045)**: If your repo uses routing tags, tag any untagged task with `[fleet-eligible]` or `[requires-frontier]` using the checklist from `AGENTS.md`. If your repo does not use fleet execution, skip tagging and proceed with normal task selection.
 
 If the candidate task has `consumes_resources: true` or is tagged with a budget-related note, also read the project's `budget.yaml` and compute remaining budget from `ledger.yaml` before recommending.
 
@@ -239,7 +239,7 @@ Extract all unblocked tasks from `TASKS.md` files. For each task, assess:
 **Priority tiebreaker:** Within tasks at the same criterion level, prefer `Priority: high` > `Priority: medium` > `Priority: low` > untagged.
 
 **Decomposition scan (ADR 0045):** While scanning tasks, check for decomposition opportunities:
-1. **Requires-Opus tasks**: If your repo uses routing tags, tasks tagged `[requires-opus]` need higher-capability handling. Check if they're correctly scoped.
+1. **Requires-frontier tasks**: If your repo uses routing tags, tasks tagged `[requires-frontier]` need higher-capability handling. Check if they're correctly scoped.
 2. **Decomposable tasks**: Any task with >2 independent steps, >3 files, or mixed mechanical+judgment work should be decomposed into smaller subtasks.
 3. **Report in output**: Include any task-supply or decomposition updates you made.
 

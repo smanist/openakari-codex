@@ -1345,12 +1345,12 @@ export async function notifyFleetStarvation(
   const lines = [
     `:blue_car: :warning: *Fleet starvation* — 0 fleet-eligible tasks available`,
     `Fleet size: ${fleetSize} workers (using idle exploration — ADR 0048)`,
-    `Tasks scanned: ${totalTasksScanned} (all blocked, in-progress, or requires-opus)`,
+    `Tasks scanned: ${totalTasksScanned} (all blocked, in-progress, or requires-frontier)`,
   ];
 
   if (decomposableTasks && decomposableTasks.length > 0) {
     lines.push("");
-    lines.push(`*${decomposableTasks.length} requires-opus task(s) could be decomposed into fleet-eligible subtasks:*`);
+    lines.push(`*${decomposableTasks.length} requires-frontier task(s) could be decomposed into fleet-eligible subtasks:*`);
     for (const t of decomposableTasks.slice(0, 5)) {
       const truncated = t.text.length > 70 ? t.text.slice(0, 67) + "..." : t.text;
       lines.push(`  • \`${t.project}\`: ${truncated} _(${t.trigger})_`);
