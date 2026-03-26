@@ -45,6 +45,37 @@ import { enqueuePushAndWait } from "./rebase-push.js";
 
 const LOGS_DIR = new URL("../../../.scheduler/logs", import.meta.url).pathname;
 
+function formatTokenCount(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+export function formatExecutionSummary(agentResult: {
+  durationMs: number;
+  costUsd: number;
+  numTurns: number;
+  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
+}): string {
+  let line = `# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}`;
+  if (agentResult.modelUsage) {
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cachedInputTokens = 0;
+    for (const usage of Object.values(agentResult.modelUsage)) {
+      inputTokens += usage.inputTokens ?? 0;
+      outputTokens += usage.outputTokens ?? 0;
+      cachedInputTokens += usage.cacheReadInputTokens ?? 0;
+    }
+    if (inputTokens > 0 || outputTokens > 0 || cachedInputTokens > 0) {
+      line += `, Tokens: ${formatTokenCount(inputTokens + outputTokens)} total (${formatTokenCount(inputTokens)} in, ${formatTokenCount(outputTokens)} out`;
+      if (cachedInputTokens > 0) {
+        line += `, ${formatTokenCount(cachedInputTokens)} cached`;
+      }
+      line += ")";
+    }
+  }
+  return line;
+}
+
 export interface ExecutionResult {
   ok: boolean;
   durationMs: number;
@@ -177,7 +208,7 @@ export async function executeJob(
       await mkdir(LOGS_DIR, { recursive: true });
       await writeFile(
         logFile,
-        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${runtime}\n# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}\n\n## output\n${agentResult.text}\n`,
+        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${runtime}\n${formatExecutionSummary(agentResult)}\n\n## output\n${agentResult.text}\n`,
       );
     } catch { /* best-effort logging */ }
 

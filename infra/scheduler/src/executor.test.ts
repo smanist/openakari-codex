@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { executeJob } from "./executor.js";
+import { executeJob, formatExecutionSummary } from "./executor.js";
 import type { Job, JobPayload } from "./types.js";
 import type { SpawnAgentOpts, AgentResult } from "./agent.js";
 
@@ -372,5 +372,39 @@ describe("executeJob", () => {
       const { UNCOMMITTED_FILE_WARNING_THRESHOLD } = await import("./executor.js");
       expect(UNCOMMITTED_FILE_WARNING_THRESHOLD).toBe(50);
     });
+  });
+});
+
+describe("formatExecutionSummary", () => {
+  it("includes token counts when modelUsage is present", () => {
+    const summary = formatExecutionSummary({
+      durationMs: 300_000,
+      costUsd: 0,
+      numTurns: 1,
+      modelUsage: {
+        "gpt-5.4": {
+          inputTokens: 1200,
+          outputTokens: 300,
+          cacheReadInputTokens: 200,
+          cacheCreationInputTokens: 0,
+          costUSD: 0,
+        },
+      },
+    });
+
+    expect(summary).toContain("Duration: 300s");
+    expect(summary).toContain("Turns: 1");
+    expect(summary).toContain("Tokens: 1,500 total (1,200 in, 300 out, 200 cached)");
+  });
+
+  it("omits token counts when modelUsage is missing", () => {
+    const summary = formatExecutionSummary({
+      durationMs: 300_000,
+      costUsd: 0,
+      numTurns: 1,
+    });
+
+    expect(summary).toContain("Duration: 300s");
+    expect(summary).not.toContain("Tokens:");
   });
 });

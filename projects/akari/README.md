@@ -77,11 +77,15 @@ Implemented a narrow fix in `infra/scheduler/src/backend.ts` so Codex/OpenAI-rou
 Follow-up surface work in the same session:
 - Extended session aggregation and report renderers so operational markdown/Slack outputs include token totals and average tokens per session.
 - Extended the in-memory active-session registry plus `status` formatting so live sessions can show cumulative token counts once Codex turn usage arrives.
+- Extended per-run scheduler log headers so `.scheduler/logs/*.log` also print token totals when available.
 - Added focused regression coverage for Codex usage aggregation, operational report token summaries, and live status token formatting.
+- Confirmed a deployment gotcha: the `akari` CLI runs the compiled scheduler entrypoint at `infra/scheduler/dist/cli.js`, so source-only telemetry fixes do not affect real runs until `npm run build` refreshes `dist/`.
 
 Verification:
 - `cd infra/scheduler && npm test -- backend-all.test.ts` -> `Test Files 1 passed`, `Tests 21 passed`
 - `cd infra/scheduler && npm test -- backend-all.test.ts status.test.ts report/report.test.ts` -> `Test Files 3 passed`, `Tests 69 passed`
+- `cd infra/scheduler && npm test -- backend-all.test.ts status.test.ts report/report.test.ts executor.test.ts` -> `Test Files 4 passed`, `Tests 97 passed`
+- `cd infra/scheduler && npm run build` -> success
 
 ### 2026-03-26 (Task-routing label migration to frontier tiers)
 
