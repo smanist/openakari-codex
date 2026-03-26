@@ -22,10 +22,10 @@ import yaml
 
 
 def find_repo_root() -> Path:
-    """Walk up from script location to find repo root (contains CLAUDE.md)."""
+    """Walk up from script location to find repo root (contains AGENTS.md or .git)."""
     current = Path(__file__).resolve().parent
     while current.parent != current:
-        if (current / "CLAUDE.md").exists():
+        if (current / "AGENTS.md").exists() or (current / ".git").exists():
             return current
         current = current.parent
     return Path.cwd()

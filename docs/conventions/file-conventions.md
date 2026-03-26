@@ -11,6 +11,8 @@ This repo is persistent memory. Prefer patterns that make artifacts easy to find
 ## Common locations
 
 - Projects: `projects/<project>/...`
+- Project modules: `modules/<package>/...`
+- Module registry: `modules/registry.yaml`
 - Infra code/tools: `infra/<tool>/...`
 - Decisions (ADRs): `decisions/00xx-*.md`
 - Scheduler outputs: `.scheduler/...` (generated; don’t hand-edit unless you’re fixing tooling)
@@ -19,4 +21,3 @@ This repo is persistent memory. Prefer patterns that make artifacts easy to find
 
 - Use repo-relative links.
 - If you rename/move referenced files, add a stub/redirect or update links in the same change.
-

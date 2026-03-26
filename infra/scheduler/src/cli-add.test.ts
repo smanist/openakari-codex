@@ -1,3 +1,7 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,8 +20,23 @@ describe("scheduler add message helpers", () => {
   });
 
   it("builds the project-scoped work-cycle boilerplate", () => {
-    expect(buildProjectWorkCycleMessage("pca_vs_ttd")).toBe(
-      "You are an autonomous research agent starting a work session on project pca_vs_ttd. Run /orient pca_vs_ttd. Work only on projects/pca_vs_ttd unless you must touch shared infra that directly supports this project. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient pca_vs_ttd. Step 2: Select a task from projects/pca_vs_ttd/TASKS.md. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.",
+    const repoRoot = mkdtempSync(join(tmpdir(), "cli-add-"));
+    mkdirSync(join(repoRoot, "modules"), { recursive: true });
+    writeFileSync(
+      join(repoRoot, "modules", "registry.yaml"),
+      [
+        "entries:",
+        "  - project: pca_vs_ttd",
+        "    module: pca_vs_ttd",
+        "    path: modules/pca_vs_ttd",
+        "    type: submodule",
+        "",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    expect(buildProjectWorkCycleMessage("pca_vs_ttd", repoRoot)).toBe(
+      "You are an autonomous research agent starting a work session on project pca_vs_ttd. Run /orient pca_vs_ttd. Work in projects/pca_vs_ttd and its registered module modules/pca_vs_ttd unless you must touch shared infra that directly supports this project. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient pca_vs_ttd. Step 2: Select a task from projects/pca_vs_ttd/TASKS.md. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.",
     );
   });
 
@@ -30,8 +49,23 @@ describe("scheduler add message helpers", () => {
   });
 
   it("resolves the project boilerplate from --message-project", () => {
-    expect(resolveAddMessage({ "message-project": "pca_vs_ttd" })).toBe(
-      buildProjectWorkCycleMessage("pca_vs_ttd"),
+    const repoRoot = mkdtempSync(join(tmpdir(), "cli-add-message-"));
+    mkdirSync(join(repoRoot, "modules"), { recursive: true });
+    writeFileSync(
+      join(repoRoot, "modules", "registry.yaml"),
+      [
+        "entries:",
+        "  - project: pca_vs_ttd",
+        "    module: pca_vs_ttd",
+        "    path: modules/pca_vs_ttd",
+        "    type: submodule",
+        "",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    expect(resolveAddMessage({ "message-project": "pca_vs_ttd" }, repoRoot)).toBe(
+      buildProjectWorkCycleMessage("pca_vs_ttd", repoRoot),
     );
   });
 

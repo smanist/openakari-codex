@@ -74,18 +74,6 @@ export async function checkConsumesResources(cwd: string, filePath: string): Pro
 }
 
 /**
- * Check if an experiment directory has a run.sh script.
- */
-async function hasRunScript(cwd: string, experimentDir: string): Promise<boolean> {
-  try {
-    await stat(join(cwd, experimentDir, "run.sh"));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Check if an experiment is registered with the scheduler (has progress.json with valid status).
  */
 async function isSchedulerRegistered(cwd: string, experimentDir: string): Promise<boolean> {
@@ -113,6 +101,32 @@ export async function getExperimentStatus(cwd: string, filePath: string): Promis
   }
 }
 
+function requiresModuleMetadata(frontmatter: Map<string, string> | null): boolean {
+  if (!frontmatter) return false;
+  const taskType = frontmatter.get("type") ?? "experiment";
+  const consumesResources = frontmatter.get("consumes_resources") === "true";
+  return taskType !== "analysis" || consumesResources;
+}
+
+/** Check whether an EXPERIMENT.md includes required module metadata for executable work. */
+export function checkExperimentModuleMetadata(content: string): string[] {
+  const frontmatter = parseExperimentFrontmatter(content);
+  if (!requiresModuleMetadata(frontmatter)) return [];
+
+  const issues: string[] = [];
+  const moduleName = frontmatter?.get("module");
+  const artifactsDir = frontmatter?.get("artifacts_dir");
+
+  if (!moduleName) issues.push("missing frontmatter field: module");
+  if (!artifactsDir) {
+    issues.push("missing frontmatter field: artifacts_dir");
+  } else if (!artifactsDir.startsWith("modules/")) {
+    issues.push("artifacts_dir must live under modules/<package>/");
+  }
+
+  return issues;
+}
+
 /**
  * Check if an EXPERIMENT.md contains an explicit fire-and-forget waiver comment.
  * Waiver format: <!-- consumes-resources-waiver: <reason> -->
@@ -128,6 +142,10 @@ export function hasConsumesResourcesWaiver(content: string): boolean {
 
 /** File extensions that represent work artifacts (not binary/generated output). */
 const WORK_EXTENSIONS = /\.(md|yaml|yml|py|ts|js|json|toml|bib|txt|csv|sh)$/;
+const PROJECT_CODE_FILE_RE = /^projects\/[^/]+\/.*\.(py|ts|js|tsx|jsx|ipynb|sh)$/;
+const PROJECT_EXPERIMENT_RUNTIME_RE = /^projects\/[^/]+\/experiments\/[^/]+\/(?:results|artifacts|outputs?)\//;
+const PROJECT_EXPERIMENT_RUNTIME_FILE_RE = /^projects\/[^/]+\/experiments\/[^/]+\/(?:output\.log|canary\.log|runner_stderr\.log|progress\.json|\.experiment\.lock)$/;
+const PROJECT_EXPERIMENT_LIGHTWEIGHT_RE = /^projects\/[^/]+\/experiments\/[^/]+\/(?:EXPERIMENT\.md|[^/]+\.(md|yaml|yml|json|txt))$/;
 
 /** Paths that are always expected (never orphaned), regardless of content. */
 const ALWAYS_EXPECTED_PATTERNS = [
@@ -184,8 +202,10 @@ export function classifyUncommittedFiles(
       continue;
     }
 
-    // Files inside active experiment directories are expected output
-    if (activeExperimentDirs.some((dir) => filePath.startsWith(dir + "/"))) {
+    // Active experiment directories under projects/ keep only lightweight progress metadata.
+    if (
+      activeExperimentDirs.some((dir) => filePath === `${dir}/progress.json` || filePath === `${dir}/progress.json.tmp`)
+    ) {
       expected.push(line);
       continue;
     }
@@ -207,6 +227,31 @@ export function classifyUncommittedFiles(
   }
 
   return { orphaned, expected };
+}
+
+/** Flag files committed under projects/ that should live in modules/<package> instead. */
+export function checkProjectLayoutViolations(changedFiles: string[]): string[] {
+  const violations: string[] = [];
+
+  for (const file of changedFiles) {
+    if (!file.startsWith("projects/")) continue;
+
+    if (PROJECT_CODE_FILE_RE.test(file)) {
+      violations.push(`${file} — source code must live under modules/<package>/, not projects/`);
+      continue;
+    }
+
+    if (PROJECT_EXPERIMENT_RUNTIME_RE.test(file) || PROJECT_EXPERIMENT_RUNTIME_FILE_RE.test(file)) {
+      violations.push(`${file} — runtime artifacts must live under modules/<package>/artifacts/<experiment-id>/`);
+      continue;
+    }
+
+    if (file.includes("/experiments/") && !PROJECT_EXPERIMENT_LIGHTWEIGHT_RE.test(file)) {
+      violations.push(`${file} — only lightweight experiment metadata may be committed under projects/<project>/experiments/`);
+    }
+  }
+
+  return violations;
 }
 
 export interface VerificationResult {
@@ -644,8 +689,8 @@ export async function verifySession(
   }
 
   // 7. Fire-and-forget compliance check (ADR 0017) — L0 enforcement
-  // Detect EXPERIMENT.md with consumes_resources: true that lack run.sh, scheduler registration,
-  // or explicit waiver comment. This is an L0 (code-enforced) check, not an L2 convention.
+  // Detect EXPERIMENT.md with consumes_resources: true that lack scheduler registration,
+  // required module metadata, or explicit waiver comment.
   let fireAndForgetViolation = false;
   if (hasCommit && headBefore) {
     try {
@@ -664,17 +709,18 @@ export async function verifySession(
 
         // Check for waiver comment in EXPERIMENT.md content
         let hasWaiver = false;
+        let content = "";
         try {
-          const content = await readFile(join(cwd, filePath), "utf-8");
+          content = await readFile(join(cwd, filePath), "utf-8");
           hasWaiver = hasConsumesResourcesWaiver(content);
         } catch { /* file read error */ }
 
         if (hasWaiver) continue;
 
         const experimentDir = filePath.replace("/EXPERIMENT.md", "");
-        const hasRun = await hasRunScript(cwd, experimentDir);
         const isRegistered = await isSchedulerRegistered(cwd, experimentDir);
         const status = await getExperimentStatus(cwd, filePath);
+        const moduleMetadataIssues = checkExperimentModuleMetadata(content);
 
         if (status === "running") {
           if (!isRegistered) {
@@ -684,10 +730,10 @@ export async function verifySession(
             );
           }
         } else {
-          if (!hasRun && !isRegistered) {
+          if (!isRegistered && moduleMetadataIssues.length > 0) {
             fireAndForgetViolation = true;
             warnings.push(
-              `Fire-and-forget violation: ${filePath} has consumes_resources: true but no run.sh, no scheduler registration, and no waiver comment. Per ADR 0017, resource-consuming experiments must be launched via experiment runner with --detach and registered with scheduler, or include <!-- consumes-resources-waiver: reason --> if exempted.`,
+              `Fire-and-forget violation: ${filePath} has consumes_resources: true but is missing module execution metadata (${moduleMetadataIssues.join("; ")}), no scheduler registration, and no waiver comment. Per ADR 0017, resource-consuming experiments must declare module/artifact ownership or be registered with the scheduler.`,
             );
           }
         }
@@ -742,6 +788,11 @@ export async function verifySession(
         }
       }
 
+      const layoutViolations = checkProjectLayoutViolations(changedFilesList);
+      for (const violation of layoutViolations) {
+        warnings.push(`Project layout violation (L0): ${violation}`);
+      }
+
       for (const file of newFilesList) {
         if (file.includes("/literature/") && file.endsWith(".md")) {
           try {
@@ -780,6 +831,12 @@ export async function verifySession(
           l2ChecksPerformed++; // L2 check: model provenance
           try {
             const content = await readFile(join(cwd, file.trim()), "utf-8");
+            const moduleIssues = checkExperimentModuleMetadata(content);
+            for (const issue of moduleIssues) {
+              warnings.push(
+                `Experiment module metadata violation (L0): ${file.trim()} — ${issue}. Executable work records must declare module ownership and artifacts_dir.`,
+              );
+            }
             const result = checkModelProvenance(content);
             if (result) {
               if (result.missingModel) {

@@ -1,7 +1,7 @@
 """Tests for experiment validation: consumes_resources, literature citation verification,
 spot-check validators for CSV row counts and config values.
 
-TDD: tests written before implementation per CLAUDE.md conventions.
+TDD: tests written before implementation per AGENTS.md conventions.
 """
 
 import tempfile
@@ -1351,7 +1351,7 @@ class TestExperimentOnlyMode:
         """
         root = tmp_path / "repo"
         root.mkdir()
-        (root / "CLAUDE.md").write_text("# Repo root marker\n")
+        (root / "AGENTS.md").write_text("# Repo root marker\n")
 
         # Valid experiment
         exp_dir = root / "projects" / "test" / "experiments" / "good-exp"
@@ -1399,7 +1399,7 @@ class TestExperimentOnlyMode:
 
         root = tmp_path / "repo"
         root.mkdir()
-        (root / "CLAUDE.md").write_text("# Repo root marker\n")
+        (root / "AGENTS.md").write_text("# Repo root marker\n")
 
         # Invalid experiment (missing required sections)
         exp_dir = root / "projects" / "test" / "experiments" / "bad-exp"
@@ -1428,7 +1428,7 @@ class TestExperimentOnlyMode:
 
         root = tmp_path / "repo"
         root.mkdir()
-        (root / "CLAUDE.md").write_text("# Root\n")
+        (root / "AGENTS.md").write_text("# Root\n")
         (root / "APPROVAL_QUEUE.md").write_text(
             "# Queue\n\n## Resolved\n\n"
             "### 2026-02-26 — Fix widget\nDecision: approved\n"

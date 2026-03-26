@@ -224,7 +224,7 @@ Wait for response before proceeding.
 
 ### Step 5: Scaffold the project
 
-Create `projects/<slug>/` with the following files:
+Create `projects/<slug>/` and register a matching execution module at `modules/<slug>/` in `modules/registry.yaml`.
 
 **README.md** — following AGENTS.md project README schema:
 ```markdown
@@ -268,6 +268,14 @@ Operational project:
 
 **budget.yaml + ledger.yaml** — only if the human indicated resource consumption.
 
+**modules/registry.yaml** — append:
+```yaml
+- project: <slug>
+  module: <slug>
+  path: modules/<slug>
+  type: submodule
+```
+
 ### Step 6: Present for review
 
 Show the human:
@@ -279,6 +287,7 @@ Files:
 - README.md — Mission: <summary>
 - TASKS.md — <N> initial tasks
 - budget.yaml — <resource summary> (if created)
+- modules/registry.yaml — module path `modules/<slug>`
 
 Does this look right? I can adjust anything before committing.
 ```

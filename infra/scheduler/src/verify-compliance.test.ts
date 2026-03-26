@@ -1,7 +1,7 @@
 /** Tests for Tier 1 convention checks and compliance verification in verify.ts. */
 
 import { describe, it, expect } from "vitest";
-import { classifyUncommittedFiles, checkPartialCompletionBan, checkFalseTaskCompletion, CODE_SIGNAL_PATTERNS, checkIncrementalCommits, checkLiteratureVerified, checkZeroTurnDurationViolation, ZERO_TURN_DURATION_THRESHOLD_MS, checkModelSelectionRationale, isL2Violation, checkRepoStaleness, verifySession, checkVisualArtifactViolation, checkActionableImplications, DIAGNOSIS_MD_RE, POSTMORTEM_MD_RE, ARCHITECTURE_MD_RE, SYNTHESIS_MD_RE, hasExampleWebappUIChanges, hasExampleWebappArtifacts } from "./verify.js";
+import { classifyUncommittedFiles, checkPartialCompletionBan, checkFalseTaskCompletion, CODE_SIGNAL_PATTERNS, checkIncrementalCommits, checkLiteratureVerified, checkZeroTurnDurationViolation, ZERO_TURN_DURATION_THRESHOLD_MS, checkModelSelectionRationale, isL2Violation, checkRepoStaleness, verifySession, checkVisualArtifactViolation, checkActionableImplications, DIAGNOSIS_MD_RE, POSTMORTEM_MD_RE, ARCHITECTURE_MD_RE, SYNTHESIS_MD_RE, hasExampleWebappUIChanges, hasExampleWebappArtifacts, checkProjectLayoutViolations } from "./verify.js";
 import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -29,18 +29,13 @@ describe("classifyUncommittedFiles", () => {
 
   it("classifies active experiment output as expected", () => {
     const lines = [
-      "?? projects/sample-project/experiments/full-scale-flash-240/output.log",
-      "?? projects/sample-project/experiments/full-scale-flash-240/results/",
       "?? projects/sample-project/experiments/full-scale-flash-240/progress.json",
-      "?? projects/sample-project/experiments/full-scale-flash-240/canary.log",
-      "?? projects/sample-project/experiments/full-scale-flash-240/runner_stderr.log",
-      "?? projects/sample-project/experiments/full-scale-flash-240/.experiment.lock",
     ];
     const result = classifyUncommittedFiles(lines, [
       "projects/sample-project/experiments/full-scale-flash-240",
     ]);
     expect(result.orphaned).toEqual([]);
-    expect(result.expected).toHaveLength(6);
+    expect(result.expected).toHaveLength(1);
   });
 
   it("classifies .failed-evolution.json as expected", () => {
@@ -128,8 +123,8 @@ describe("classifyUncommittedFiles", () => {
     const result = classifyUncommittedFiles(lines, [
       "projects/sample-project/experiments/flash-240",
     ]);
-    expect(result.expected).toHaveLength(4); // node_modules, render, .failed-evolution, active experiment
-    expect(result.orphaned).toHaveLength(2); // modified README, diagnosis file
+    expect(result.expected).toHaveLength(3); // node_modules, render, .failed-evolution
+    expect(result.orphaned).toHaveLength(3); // modified README, diagnosis file, runtime artifact in projects/
   });
 
   it("returns empty arrays for empty input", () => {
@@ -185,14 +180,13 @@ describe("classifyUncommittedFiles", () => {
   it("classifies staged files inside active experiment dirs as expected", () => {
     // Staged (A, AM) files inside active experiment dirs should also be excluded
     const lines = [
-      "A  projects/sample-project/experiments/running-exp/results/new-result.csv",
-      "AM projects/sample-project/experiments/running-exp/output.log",
+      "A  projects/sample-project/experiments/running-exp/progress.json",
     ];
     const result = classifyUncommittedFiles(lines, [
       "projects/sample-project/experiments/running-exp",
     ]);
     expect(result.orphaned).toEqual([]);
-    expect(result.expected).toHaveLength(2);
+    expect(result.expected).toHaveLength(1);
   });
 
   it("correctly parses paths with leading dots when status has leading space", () => {
@@ -229,6 +223,34 @@ describe("classifyUncommittedFiles", () => {
     const result = classifyUncommittedFiles(lines);
     expect(result.orphaned).toEqual([]);
     expect(result.expected).toHaveLength(3);
+  });
+});
+
+describe("checkProjectLayoutViolations", () => {
+  it("flags executable code under projects", () => {
+    expect(checkProjectLayoutViolations([
+      "projects/foo/experiments/bar/run.py",
+    ])).toEqual([
+      "projects/foo/experiments/bar/run.py — source code must live under modules/<package>/, not projects/",
+    ]);
+  });
+
+  it("flags runtime artifacts under project experiment directories", () => {
+    expect(checkProjectLayoutViolations([
+      "projects/foo/experiments/bar/output.log",
+      "projects/foo/experiments/bar/results/out.csv",
+    ])).toEqual([
+      "projects/foo/experiments/bar/output.log — runtime artifacts must live under modules/<package>/artifacts/<experiment-id>/",
+      "projects/foo/experiments/bar/results/out.csv — runtime artifacts must live under modules/<package>/artifacts/<experiment-id>/",
+    ]);
+  });
+
+  it("allows lightweight experiment metadata in projects", () => {
+    expect(checkProjectLayoutViolations([
+      "projects/foo/experiments/bar/EXPERIMENT.md",
+      "projects/foo/experiments/bar/config.yaml",
+      "projects/foo/README.md",
+    ])).toEqual([]);
   });
 });
 

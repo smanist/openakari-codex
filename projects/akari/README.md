@@ -14,6 +14,36 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Codex-only module-oriented repo policy)
+
+Implemented the repo split that keeps `projects/` as the durable memory layer and moves project-owned code plus heavy runtime artifacts to `modules/`. Added `modules/registry.yaml` as the project-to-module registry, updated experiment schema/conventions to require `module` and `artifacts_dir` for executable work records, and refactored the experiment runner so `progress.json` stays next to `EXPERIMENT.md` while runtime logs, lock files, watched CSVs, and heavy outputs live under `modules/<package>/artifacts/<experiment-id>/`.
+
+Added L0 enforcement for the new layout in scheduler verification: committed source files and runtime artifact trees under `projects/` now fail verification, executable `EXPERIMENT.md` records without module metadata now fail verification, and active experiment directories only treat lightweight progress files as expected worktree changes. Also updated active scheduler prompts and current Codex-facing docs/skills to resolve module context from `modules/registry.yaml` and removed retired agent-specific references from active paths.
+
+Artifacts:
+- `modules/registry.yaml`
+- `projects/akari/plans/2026-03-25-codex-only-module-oriented-repo-policy.md`
+
+Verification:
+- `pytest infra/experiment-runner/test_run.py infra/experiment-validator/test_validate.py`
+  - `226 passed in 7.86s`
+- `npm test --prefix infra/scheduler -- src/cli-add.test.ts src/verify-experiment.test.ts src/verify-compliance.test.ts src/codex-only-references.test.ts`
+  - `Test Files  4 passed (4)`
+  - `Tests  205 passed (205)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - passed
+
+Session-type: interactive
+Duration: 60
+Task-selected: Implement the Codex-only module-oriented repo policy
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 27
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Self-improvement loop example + re-run health watchdog)
 
 Completed a concrete, repo-local self-improvement loop write-up by recomputing the “before” error distribution from `.scheduler/metrics/sessions.jsonl`, then re-running the scheduler watchdog over the latest 20 sessions.

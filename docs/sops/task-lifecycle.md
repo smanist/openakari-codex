@@ -93,7 +93,7 @@ When an approval request is denied in APPROVAL_QUEUE.md:
 The validator (`verify.ts`) detects orphaned `[approval-needed]` tags where the corresponding approval was denied.
 
 ```markdown
-- [x] Add feature X mention to CLAUDE.md
+- [x] Add feature X mention to AGENTS.md
   Denied: 2026-02-26. Rejected by user request. See APPROVAL_QUEUE.md.
 ```
 

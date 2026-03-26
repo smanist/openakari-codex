@@ -65,7 +65,7 @@ Before referencing any production code path in the design:
 2. For any path referenced from production modules:
    - Use full file paths including exact function/class (e.g., `modules/example-service/src/config.py:ServiceConfig.get_default_config()`)
    - Verify the path exists: `ls -la <path>` or equivalent
-   - Verify the path is used in project scripts: `rg "<path_or_module>" projects/<project>/`
+   - Verify the path is used in the project's registered module or experiment metadata: `rg "<path_or_module>" modules/<package>/ projects/<project>/experiments/`
    - If no usage found, check if the path is in a "DO NOT USE" section of production-code.md
    - Never anchor on batch scripts (`batch_eval/`), deprecated files (`*_deprecated.py`), or test utilities
 3. Cross-reference credentials: verify that required environment variables exist in `infra/.env`

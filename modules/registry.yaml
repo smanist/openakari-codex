@@ -1,0 +1,9 @@
+entries:
+  - project: akari
+    module: akari
+    path: modules/akari
+    type: submodule
+  - project: pca_vs_ttd
+    module: pca_vs_ttd
+    path: modules/pca_vs_ttd
+    type: submodule

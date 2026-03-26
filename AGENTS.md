@@ -94,9 +94,10 @@ Everything else does **not** need approval, including: infrastructure fixes (val
   training loops with multiple epochs routinely consume 5-20+ minutes and cause session
   timeouts. If a process will run longer than ~2 minutes, launch it via the experiment
   runner and register it with the scheduler for tracking:
-  1. `python infra/experiment-runner/run.py --detach --project-dir <project-dir> --max-retries <N> --watch-csv <output-csv> --total <N> <experiment-dir> -- <command...>`
+  1. `python infra/experiment-runner/run.py --detach --artifacts-dir <modules/<package>/artifacts/<experiment-id>> --project-dir <project-dir> --max-retries <N> --watch-csv <output-csv> --total <N> <experiment-dir> -- <command...>`
   2. `curl -s -X POST http://localhost:8420/api/experiments/register -H 'Content-Type: application/json' -d '{"dir":"<abs-path>","project":"<project>","id":"<experiment-id>"}'`
   **Mandatory flags for resource-consuming experiments** (per [decisions/0027-experiment-resource-safeguards.md](decisions/0027-experiment-resource-safeguards.md)):
+  - `--artifacts-dir`: moves logs, runtime outputs, and heavy result files under `modules/<package>/artifacts/<experiment-id>`. Resource-consuming experiments must not write heavy artifacts under `projects/`.
   - `--project-dir`: enables budget pre-check AND post-completion consumption audit. Omitting this silently disables both safeguards.
   - `--max-retries`: must be explicit (never rely on default). Forces the launcher to decide how many retries are appropriate.
   - `--watch-csv` + `--total`: enables the retry progress guard. Without these, the runner cannot detect stalled or duplicate-producing retries.
@@ -264,4 +265,4 @@ All schemas are minimal by design — add fields only when a real need arises. S
 
 `infra/` holds shared tooling built by the group — experiment harnesses, data pipelines, experiment launchers, plotting utilities. Each tool gets its own subdirectory with a README following the same schema as projects.
 
-Unlike `projects/`, infra directories contain source code. This is the one place in the repo where code lives. Projects consume infra as local imports; external users install from the respective infra subdirectory.
+`projects/` is the durable memory layer: README logs, tasks, budgets, experiment records, and analysis. Project-owned code, run scripts, and heavy experiment artifacts belong under `modules/<package>/`, with ownership declared in `modules/registry.yaml`. `infra/` remains the shared tooling layer used across projects.

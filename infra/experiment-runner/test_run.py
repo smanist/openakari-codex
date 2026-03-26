@@ -1079,6 +1079,22 @@ class TestRunExperiment(unittest.TestCase):
         self.assertTrue(log_path.exists())
         self.assertIn("test-output", log_path.read_text())
 
+    def test_artifacts_dir_redirects_runtime_outputs(self):
+        artifacts_dir = self.tmpdir / "modules" / "demo" / "artifacts" / "test-experiment"
+        exit_code = run.run_experiment(
+            self.exp_dir,
+            ["bash", "-c", "echo test-output && touch result.txt"],
+            poll_interval=0.1,
+            artifacts_dir=artifacts_dir,
+        )
+        self.assertEqual(exit_code, 0)
+
+        self.assertTrue((self.exp_dir / "progress.json").exists())
+        self.assertFalse((self.exp_dir / "output.log").exists())
+        self.assertTrue((artifacts_dir / "output.log").exists())
+        self.assertTrue((artifacts_dir / "result.txt").exists())
+        self.assertIn("test-output", (artifacts_dir / "output.log").read_text())
+
     def test_lock_prevents_concurrent_runs(self):
         """Acquiring lock on an already-locked dir should fail."""
         lock_fd = run.acquire_lock(self.exp_dir)
@@ -1709,6 +1725,7 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             max_retries=3,
             watch_csv=Path("/some/output.csv"),
             total=100,
+            artifacts_dir=Path("/some/module/artifacts/exp"),
         )
         self.assertEqual(missing, [])
 
@@ -1718,6 +1735,7 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             max_retries=3,
             watch_csv=Path("/some/output.csv"),
             total=100,
+            artifacts_dir=Path("/some/module/artifacts/exp"),
         )
         self.assertIn("--project-dir", missing)
 
@@ -1727,6 +1745,7 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             max_retries=None,
             watch_csv=Path("/some/output.csv"),
             total=100,
+            artifacts_dir=Path("/some/module/artifacts/exp"),
         )
         self.assertIn("--max-retries", missing)
 
@@ -1736,6 +1755,7 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             max_retries=3,
             watch_csv=None,
             total=100,
+            artifacts_dir=Path("/some/module/artifacts/exp"),
         )
         self.assertIn("--watch-csv", missing)
 
@@ -1745,8 +1765,19 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             max_retries=3,
             watch_csv=Path("/some/output.csv"),
             total=None,
+            artifacts_dir=Path("/some/module/artifacts/exp"),
         )
         self.assertIn("--total", " ".join(missing))
+
+    def test_missing_artifacts_dir(self):
+        missing = run.validate_mandatory_flags(
+            project_dir=Path("/some/project"),
+            max_retries=3,
+            watch_csv=Path("/some/output.csv"),
+            total=100,
+            artifacts_dir=None,
+        )
+        self.assertIn("--artifacts-dir", missing)
 
     def test_all_missing(self):
         missing = run.validate_mandatory_flags(
@@ -1754,8 +1785,9 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             max_retries=None,
             watch_csv=None,
             total=None,
+            artifacts_dir=None,
         )
-        self.assertEqual(len(missing), 3)  # project-dir, max-retries, watch-csv
+        self.assertEqual(len(missing), 4)
 
     def test_detach_with_missing_flags_exits_4(self):
         tmpdir = Path(tempfile.mkdtemp())
@@ -1780,6 +1812,7 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
             self.assertIn("--project-dir", result.stderr)
             self.assertIn("--max-retries", result.stderr)
             self.assertIn("--watch-csv", result.stderr)
+            self.assertIn("--artifacts-dir", result.stderr)
         finally:
             import shutil
             shutil.rmtree(tmpdir)
@@ -1795,6 +1828,7 @@ class TestMandatoryFlagsValidation(unittest.TestCase):
                     sys.executable,
                     str(Path(__file__).parent / "run.py"),
                     "--detach",
+                    "--artifacts-dir", str(tmpdir / "modules" / "exp" / "artifacts"),
                     "--project-dir", str(tmpdir),
                     "--max-retries", "0",
                     "--watch-csv", str(csv_path),

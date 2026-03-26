@@ -72,6 +72,23 @@ SKIP_DIRS = {
 }
 
 
+def is_repo_root(path: Path) -> bool:
+    """Return True when the directory looks like the openakari repo root."""
+    return (path / "AGENTS.md").exists() or (path / ".git").exists()
+
+
+def find_repo_root(start: Path) -> Path:
+    """Walk up to the repo root using AGENTS.md or .git as the marker."""
+    current = start.resolve()
+    if current.is_file():
+        current = current.parent
+    while current.parent != current:
+        if is_repo_root(current):
+            return current
+        current = current.parent
+    return start.resolve()
+
+
 def _in_skip_dir(path: Path, root: Path) -> bool:
     """Return True if path is inside any SKIP_DIRS relative to root."""
     try:
@@ -187,6 +204,17 @@ def validate_experiment(exp_dir: Path, root: Path | None = None) -> list[Issue]:
         # the resource-signal checklist (see decisions/0012-task-system.md).
         if task_type == "experiment" and not cr_bool:
             issues.append(Issue("error", "type 'experiment' must have consumes_resources: true"))
+
+    requires_module_metadata = task_type != "analysis" or cr_raw == "true"
+    module_fm = fm.get("module", "")
+    artifacts_dir_fm = fm.get("artifacts_dir", "")
+    if requires_module_metadata:
+        if not module_fm:
+            issues.append(Issue("error", "Missing 'module' in frontmatter for executable work"))
+        if not artifacts_dir_fm:
+            issues.append(Issue("error", "Missing 'artifacts_dir' in frontmatter for executable work"))
+        elif not str(artifacts_dir_fm).startswith("modules/"):
+            issues.append(Issue("error", "'artifacts_dir' must point under modules/<package>/"))
 
     # evidence_for validation (optional field)
     evidence_for = fm.get("evidence_for", "")
@@ -1227,12 +1255,7 @@ def main() -> int:
     if args:
         root = Path(args[0]).resolve()
     else:
-        # Default: find repo root (look for CLAUDE.md)
-        root = Path(__file__).resolve()
-        while root.parent != root:
-            if (root / "CLAUDE.md").exists():
-                break
-            root = root.parent
+        root = find_repo_root(Path(__file__).resolve())
 
     experiments = find_experiments(root)
     if not experiments:
@@ -1301,13 +1324,9 @@ def main() -> int:
 
         # Cross-reference checks (markdown links across the repo)
         # Only run when validating from repo root (not a single experiment dir)
-        repo_root = root
-        while repo_root.parent != repo_root:
-            if (repo_root / "CLAUDE.md").exists():
-                break
-            repo_root = repo_root.parent
+        repo_root = find_repo_root(root)
 
-        if (repo_root / "CLAUDE.md").exists():
+        if is_repo_root(repo_root):
             xref_issues = validate_cross_references(repo_root)
             xref_errors = [i for i in xref_issues if i.level == "error"]
             xref_warnings = [i for i in xref_issues if i.level == "warning"]
@@ -1325,7 +1344,7 @@ def main() -> int:
                 print("[PASS] cross-references")
 
         # Literature citation verification (per-project)
-        if (repo_root / "CLAUDE.md").exists():
+        if is_repo_root(repo_root):
             projects_dir = repo_root / "projects"
             if projects_dir.is_dir():
                 for project_path in sorted(projects_dir.iterdir()):

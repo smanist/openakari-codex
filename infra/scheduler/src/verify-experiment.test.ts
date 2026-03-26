@@ -1,7 +1,7 @@
 /** Tests for experiment-related verification functions in verify.ts. */
 
 import { describe, it, expect } from "vitest";
-import { parseExperimentFrontmatter, hasConsumesResourcesWaiver, checkConsumesResources, getExperimentStatus, checkModelProvenance, checkFindingsProvenance } from "./verify.js";
+import { parseExperimentFrontmatter, hasConsumesResourcesWaiver, checkConsumesResources, getExperimentStatus, checkModelProvenance, checkFindingsProvenance, checkExperimentModuleMetadata } from "./verify.js";
 import { mkdtemp, writeFile, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -274,6 +274,58 @@ Test experiment.
     const result = await getExperimentStatus(tmpDir, "EXPERIMENT.md");
     expect(result).toBe("planned");
     await rm(tmpDir, { recursive: true });
+  });
+});
+
+describe("checkExperimentModuleMetadata", () => {
+  it("requires module metadata for executable experiment records", () => {
+    const content = `---
+id: test-exp
+type: experiment
+status: planned
+date: 2026-03-25
+project: akari
+consumes_resources: true
+---
+## Design
+Test.
+`;
+    expect(checkExperimentModuleMetadata(content)).toEqual([
+      "missing frontmatter field: module",
+      "missing frontmatter field: artifacts_dir",
+    ]);
+  });
+
+  it("passes when module metadata is present", () => {
+    const content = `---
+id: test-exp
+type: experiment
+status: planned
+date: 2026-03-25
+project: akari
+consumes_resources: true
+module: akari
+artifacts_dir: modules/akari/artifacts/test-exp
+---
+## Design
+Test.
+`;
+    expect(checkExperimentModuleMetadata(content)).toEqual([]);
+  });
+
+  it("does not require module metadata for non-executing analysis records", () => {
+    const content = `---
+id: test-analysis
+type: analysis
+status: completed
+date: 2026-03-25
+project: akari
+consumes_resources: false
+---
+## Question
+Test.
+`;
+    expect(checkExperimentModuleMetadata(content)).toEqual([]);
   });
 });
 

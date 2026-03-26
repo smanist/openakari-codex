@@ -299,6 +299,7 @@ def _parse_ledger_totals(ledger_path: Path) -> dict[str, dict[str, float]]:
 def consumption_audit(
     experiment_dir: Path,
     project_dir: Path,
+    artifacts_dir: Path | None = None,
     resource: str = "llm_api_calls",
 ) -> dict:
     """Post-completion consumption audit for an experiment.
@@ -307,7 +308,8 @@ def consumption_audit(
     against the project ledger. Returns an audit report dict suitable for
     inclusion in progress.json.
     """
-    results_dir = experiment_dir / "results"
+    runtime_dir = artifacts_dir or experiment_dir
+    results_dir = runtime_dir / "results"
     audit: dict = {
         "resource": resource,
         "experiment": experiment_dir.name,
@@ -477,6 +479,7 @@ MANDATORY_FLAGS_ERROR = """\
 Missing mandatory flags for --detach mode (per ADR 0027).
 
 Required flags:
+  --artifacts-dir DIR   Runtime/log/output directory under modules/<package>/artifacts/
   --project-dir DIR     Enables budget pre-check and consumption audit
   --max-retries N       Explicit retry count (0 = no retry, required)
   --watch-csv FILE      CSV file to monitor for progress
@@ -486,13 +489,15 @@ Rationale: These flags enable critical safeguards for resource-consuming experim
 Omitting them silently disables budget checking, retry progress guards, and consumption audits.
 
 Example:
-  python run.py --detach --project-dir projects/my-project \\
+  python run.py --detach --artifacts-dir modules/my-module/artifacts/exp1 \\
+    --project-dir projects/my-project \\
     --max-retries 3 --watch-csv results/output.csv --total 100 \\
     experiments/exp1 -- python script.py
 """
 
 
 def validate_mandatory_flags(
+    artifacts_dir: Path | None,
     project_dir: Path | None,
     max_retries: int | None,
     watch_csv: Path | None,
@@ -503,6 +508,8 @@ def validate_mandatory_flags(
     Returns a list of missing flag descriptions. Empty list if all required.
     """
     missing = []
+    if artifacts_dir is None:
+        missing.append("--artifacts-dir")
     if project_dir is None:
         missing.append("--project-dir")
     if max_retries is None:
@@ -636,14 +643,18 @@ def run_canary(
     experiment_dir: Path,
     canary_cmd: list[str],
     timeout: float = 120.0,
+    runtime_dir: Path | None = None,
 ) -> tuple[bool, str]:
     """Run a canary command before the full experiment.
 
     The canary validates config, API connectivity, and basic execution.
     Returns (success, message). Writes canary output to canary.log in the
-    experiment directory.
+    runtime artifact directory while keeping progress.json in the experiment
+    record directory.
     """
-    canary_log = experiment_dir / "canary.log"
+    runtime_dir = runtime_dir or experiment_dir
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    canary_log = runtime_dir / "canary.log"
     canary_progress = {
         "status": "canary",
         "canary_command": canary_cmd,
@@ -658,7 +669,7 @@ def run_canary(
                 canary_cmd,
                 stdout=log_fh,
                 stderr=subprocess.STDOUT,
-                cwd=str(experiment_dir),
+                cwd=str(runtime_dir),
             )
     except OSError as e:
         msg = f"Canary failed to start: {e}"
@@ -701,6 +712,7 @@ def run_canary(
 def run_experiment(
     experiment_dir: Path,
     command: list[str],
+    artifacts_dir: Path | None = None,
     watch_csv: Path | None = None,
     total: int | None = None,
     poll_interval: float = 5.0,
@@ -719,8 +731,13 @@ def run_experiment(
     are automatically retried. The log file is opened in append mode on retries
     to preserve previous output.
     """
-    log_path = experiment_dir / LOG_FILE
+    runtime_dir = artifacts_dir or experiment_dir
+    log_path = runtime_dir / LOG_FILE
     experiment_dir.mkdir(parents=True, exist_ok=True)
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+
+    if watch_csv is not None and not watch_csv.is_absolute():
+      watch_csv = runtime_dir / watch_csv
 
     # Resolve command file paths: the subprocess runs with cwd=experiment_dir,
     # but the caller may have specified paths relative to their own cwd.
@@ -737,10 +754,10 @@ def run_experiment(
         canary_cmd = resolve_command(canary_cmd)
 
     # Acquire exclusive lock to prevent concurrent runs
-    lock_fd = acquire_lock(experiment_dir)
+    lock_fd = acquire_lock(runtime_dir)
     if lock_fd is None:
         # Check who holds the lock
-        lock_path = experiment_dir / LOCK_FILE
+        lock_path = runtime_dir / LOCK_FILE
         holder_pid = "unknown"
         try:
             holder_pid = lock_path.read_text().strip()
@@ -751,6 +768,7 @@ def run_experiment(
                 "error": f"Experiment directory is locked by PID {holder_pid}. "
                 "Another experiment is running in this directory.",
                 "experiment_dir": str(experiment_dir),
+                "artifacts_dir": str(runtime_dir),
                 "hint": f"Wait for the other experiment to complete, or if crashed, remove {LOCK_FILE}",
             }),
             file=sys.stderr,
@@ -762,7 +780,7 @@ def run_experiment(
     try:
         # Run canary before the full experiment
         if canary_cmd:
-            ok, msg = run_canary(experiment_dir, canary_cmd, canary_timeout)
+            ok, msg = run_canary(experiment_dir, canary_cmd, canary_timeout, runtime_dir)
             if not ok:
                 print(f"CANARY FAILED — aborting experiment: {msg}", file=sys.stderr)
                 progress = {
@@ -779,12 +797,12 @@ def run_experiment(
             print(f"Canary passed, proceeding with full experiment", file=sys.stderr)
 
         return _run_experiment_inner(
-            experiment_dir, command, watch_csv, total,
+            experiment_dir, runtime_dir, command, watch_csv, total,
             poll_interval, max_retries, retry_delay, started_at,
             waste_ratio_threshold,
         )
     finally:
-        release_lock(lock_fd, experiment_dir)
+        release_lock(lock_fd, runtime_dir)
 
 
 def _count_unique_csv_rows(csv_path: Path) -> int:
@@ -832,6 +850,7 @@ def _count_unique_csv_rows_simple(csv_path: Path) -> int:
 
 def _run_experiment_inner(
     experiment_dir: Path,
+    runtime_dir: Path,
     command: list[str],
     watch_csv: Path | None,
     total: int | None,
@@ -842,7 +861,7 @@ def _run_experiment_inner(
     waste_ratio_threshold: float,
 ) -> int:
     """Inner experiment runner (separated for lock management)."""
-    log_path = experiment_dir / LOG_FILE
+    log_path = runtime_dir / LOG_FILE
     prev_unique_rows = 0  # Track unique CSV rows for retry progress guard
     watch_csv_warned = False  # Track if we've warned about missing --watch-csv file
 
@@ -858,6 +877,7 @@ def _run_experiment_inner(
             "updated_at": now_iso(),
             "log_file": str(log_path),
             "experiment_dir": str(experiment_dir),
+            "artifacts_dir": str(runtime_dir),
             "attempt": attempt,
             "max_retries": max_retries,
         }
@@ -882,7 +902,7 @@ def _run_experiment_inner(
                 command,
                 stdout=log_fh,
                 stderr=subprocess.STDOUT,
-                cwd=str(experiment_dir),
+                cwd=str(runtime_dir),
             )
         except OSError as e:
             log_fh.close()
@@ -974,7 +994,7 @@ def _run_experiment_inner(
 
         # If not watching a specific CSV, check results/ for success/failure counts
         if not watch_csv:
-            results_dir = experiment_dir / "results"
+            results_dir = runtime_dir / "results"
             csv_files = sorted(results_dir.glob("*.csv")) if results_dir.exists() else []
             if csv_files:
                 sf_counts = count_success_failure_rows(csv_files[0])
@@ -1067,7 +1087,7 @@ def _run_experiment_inner(
                 current_total = _count_csv_rows(watch_csv)
             else:
                 # Try to find a CSV in results/ directory
-                results_dir = experiment_dir / "results"
+                results_dir = runtime_dir / "results"
                 csv_files = sorted(results_dir.glob("*.csv")) if results_dir.exists() else []
                 if csv_files:
                     current_unique = _count_unique_csv_rows(csv_files[0])
@@ -1178,6 +1198,7 @@ def detach_and_run(raw_args: list[str]) -> int:
     resolved: list[str] = []
     i = 0
     experiment_dir_abs: str | None = None
+    artifacts_dir_abs: str | None = None
     while i < len(clean_args):
         arg = clean_args[i]
         if arg == "--":
@@ -1195,7 +1216,17 @@ def detach_and_run(raw_args: list[str]) -> int:
             break
         elif arg == "--watch-csv" and i + 1 < len(clean_args):
             resolved.append(arg)
-            resolved.append(str(Path(clean_args[i + 1]).resolve()))
+            watch_csv_arg = clean_args[i + 1]
+            watch_csv_path = Path(watch_csv_arg)
+            resolved.append(str(watch_csv_path.resolve()) if watch_csv_path.is_absolute() else watch_csv_arg)
+            i += 2
+            continue
+        elif arg in {"--artifacts-dir", "--project-dir"} and i + 1 < len(clean_args):
+            resolved.append(arg)
+            resolved_path = str(Path(clean_args[i + 1]).resolve())
+            resolved.append(resolved_path)
+            if arg == "--artifacts-dir":
+                artifacts_dir_abs = resolved_path
             i += 2
             continue
         elif arg.startswith("--") and i + 1 < len(clean_args) and not clean_args[i + 1].startswith("--"):
@@ -1217,7 +1248,7 @@ def detach_and_run(raw_args: list[str]) -> int:
         i += 1
 
     script = str(Path(__file__).resolve())
-    stderr_path = Path(experiment_dir_abs or ".") / "runner_stderr.log"
+    stderr_path = Path(artifacts_dir_abs or experiment_dir_abs or ".") / "runner_stderr.log"
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
 
     stderr_fh = open(stderr_path, "w")
@@ -1320,6 +1351,12 @@ def main() -> int:
         help="Project directory containing budget.yaml/ledger.yaml for pre-execution budget check",
     )
     parser.add_argument(
+        "--artifacts-dir",
+        type=Path,
+        default=None,
+        help="Runtime/log/output directory under modules/<package>/artifacts/",
+    )
+    parser.add_argument(
         "--ignore-budget",
         action="store_true",
         help="Skip budget pre-check even if --project-dir is set",
@@ -1367,7 +1404,7 @@ def main() -> int:
 
     if args.detach:
         missing = validate_mandatory_flags(
-            args.project_dir, args.max_retries, args.watch_csv, args.total
+            args.artifacts_dir, args.project_dir, args.max_retries, args.watch_csv, args.total
         )
         if missing:
             print(
@@ -1377,10 +1414,16 @@ def main() -> int:
             return 4
         return detach_and_run(sys.argv[1:])
 
+    watch_csv = args.watch_csv
+    runtime_dir = args.artifacts_dir or args.experiment_dir
+    if watch_csv is not None and not watch_csv.is_absolute():
+        watch_csv = runtime_dir / watch_csv
+
     exit_code = run_experiment(
         experiment_dir=args.experiment_dir,
         command=command,
-        watch_csv=args.watch_csv,
+        artifacts_dir=args.artifacts_dir,
+        watch_csv=watch_csv,
         total=args.total,
         poll_interval=args.poll_interval,
         max_retries=args.max_retries if args.max_retries is not None else 0,
@@ -1393,7 +1436,7 @@ def main() -> int:
     # Post-completion consumption audit (runs on ALL exit codes, not just success,
     # to detect resource waste from retried failures — see postmortem flash-240-retry-waste)
     if args.project_dir:
-        audit = consumption_audit(args.experiment_dir, args.project_dir)
+        audit = consumption_audit(args.experiment_dir, args.project_dir, args.artifacts_dir)
         # Update progress.json with audit results
         progress_path = args.experiment_dir / PROGRESS_FILE
         if progress_path.exists():

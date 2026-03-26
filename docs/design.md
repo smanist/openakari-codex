@@ -29,6 +29,6 @@ This repo is not just storage — it is the agents' shared brain. Human research
 
 1. **Everything is plain text.** Diff-friendly, grep-able, LLM-native.
 2. **Projects are self-contained.** An agent pointed at one project directory has full context.
-3. **Research code lives elsewhere.** Projects hold research orchestration: plans, surveys, configs, analysis, write-ups. Implementation code is imported from external libraries.
-4. **Shared tooling lives in `infra/`.** Experiment harnesses, data pipelines, and utilities that serve multiple projects are the one exception to "code lives elsewhere." Each tool gets its own subdirectory with the same README schema as projects.
+3. **Projects are memory, modules are execution.** `projects/<project>/` holds research orchestration: plans, tasks, configs, analysis, and write-ups. Project-owned code, scripts, and heavy artifacts live in `modules/<package>/`.
+4. **Shared tooling lives in `infra/`.** Experiment harnesses, data pipelines, and utilities that serve multiple projects live in `infra/`. Package-specific implementation lives in `modules/`, not `projects/`.
 5. **Grow structure on demand.** Don't create directories or files until they're needed. An agent can always create them later.

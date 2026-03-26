@@ -145,13 +145,13 @@ Files: <N> | Issues: <N>
 
 Before changing anything, internalize these:
 
-1. **Source code lives only in `infra/`**. Projects contain research artifacts, not code.
+1. **Projects are memory, modules/infra are code.** `projects/` contains research artifacts and lightweight experiment records. Project-owned code and heavy outputs live in `modules/`; shared tooling lives in `infra/`.
 2. **`decisions/` are binding.** Read decisions relevant to the code you're touching. Do not contradict them. If a decision is wrong, note it but do not override.
 3. **File size convention**: ~150 lines per file. Files above this are split candidates.
 4. **One file, one concern**. Cross-cutting state is passed via arguments or injected at startup, not via module-level globals (exception: in-memory caches).
 5. **Type safety**: Every edit must pass `cd infra/scheduler && npx tsc --noEmit`.
 6. **Crash safety**: Persistence uses atomic write (.tmp + rename). No new write patterns.
-7. **Backend abstraction**: `backend.ts` provides a unified interface over Codex SDK and Cursor CLI. Do not break the backend-agnostic contract.
+7. **Runtime contracts**: Preserve the current Codex-first execution contracts and any compatibility shims still used by active scheduler code.
 8. **Security boundary**: `security.ts` validates all external input. Validation must happen before execution, never after.
 
 ---
@@ -164,7 +164,7 @@ Produce a complete architectural map of the system or a subsystem. Read-only —
 
 1. **Read all source files** in the target subsystem (default: `infra/scheduler/src/`).
 2. **Trace imports** to build a dependency graph.
-3. **Identify every agent spawn point** — everywhere the system creates a Codex/Cursor session (check `agent.ts`, `chat.ts`, `event-agents.ts`, `executor.ts`). For each:
+3. **Identify every agent spawn point** — everywhere the system creates an agent session (check `agent.ts`, `chat.ts`, `event-agents.ts`, `executor.ts`). For each:
    - Trigger: what causes it to spawn (cron, Slack message, experiment failure, CLI command)
    - System prompt: what instructions does it get (read the actual prompt-building code)
    - Tools: what `allowedTools` array is passed

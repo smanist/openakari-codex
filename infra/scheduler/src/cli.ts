@@ -85,6 +85,7 @@ import { listExperiments } from "./experiments.js";
 import { wasFullOrient } from "./orient-tier.js";
 import { getUnifiedStatus, formatUnifiedStatus, toStatusExperiment, type StatusSession, type StatusExperiment, type StatusJob } from "./status.js";
 import { getExecutableBursts, markBurstExecuted } from "./approval-burst.js";
+import { resolveRegisteredModulePath } from "./project-modules.js";
 
 const HELP = `
 akari — Cron scheduler for autonomous agent sessions
@@ -289,12 +290,17 @@ export function buildDefaultWorkCycleMessage(): string {
   return "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.";
 }
 
-export function buildProjectWorkCycleMessage(project: string): string {
-  return `You are an autonomous research agent starting a work session on project ${project}. Run /orient ${project}. Work only on projects/${project} unless you must touch shared infra that directly supports this project. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient ${project}. Step 2: Select a task from projects/${project}/TASKS.md. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.`;
+export function buildProjectWorkCycleMessage(project: string, repoRoot = process.cwd()): string {
+  const modulePath = resolveRegisteredModulePath(repoRoot, project);
+  const scope = modulePath
+    ? `Work in projects/${project} and its registered module ${modulePath} unless you must touch shared infra that directly supports this project.`
+    : `Work only on projects/${project} unless you must touch shared infra that directly supports this project.`;
+  return `You are an autonomous research agent starting a work session on project ${project}. Run /orient ${project}. ${scope} You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient ${project}. Step 2: Select a task from projects/${project}/TASKS.md. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.`;
 }
 
 export function resolveAddMessage(
   opts: Record<string, string | boolean>,
+  repoRoot = process.cwd(),
 ): string {
   const hasExplicit = typeof opts["message"] === "string";
   const hasDefault = opts["message-default"] === true;
@@ -314,7 +320,7 @@ export function resolveAddMessage(
   if (hasDefault) {
     return buildDefaultWorkCycleMessage();
   }
-  return buildProjectWorkCycleMessage(String(opts["message-project"]));
+  return buildProjectWorkCycleMessage(String(opts["message-project"]), repoRoot);
 }
 
 export function resolveRepoRoot(importMetaUrl = import.meta.url): string {
@@ -935,7 +941,7 @@ async function cmdAdd(args: string[]): Promise<void> {
     return fail("Error: --name is required.");
   }
   try {
-    message = resolveAddMessage(opts);
+    message = resolveAddMessage(opts, cwd);
   } catch (err) {
     return fail(err instanceof Error ? err.message : String(err));
   }
