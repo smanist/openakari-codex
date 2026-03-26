@@ -49,6 +49,40 @@ Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
 
+### 2026-03-26 — Implemented initial transform set and reference behavior tests
+
+Ran `/orient data_pipeline` and selected the highest-priority unblocked task: "Implement initial transform set: min-max normalization, truncated SVD, and polynomial lifting." No approval items were pending in `APPROVAL_QUEUE.md`, and task-claim API was unavailable.
+
+Scope classification: structural (verifiable), `consumes_resources: false` (no LLM/API calls, GPU work, or long-running compute).
+
+Implemented concrete transforms in `modules/data_pipeline/src/data_pipeline/transforms.py`:
+- `MinMaxNormalizeTransform` (feature-wise 0-1 normalization with exact inverse)
+- `TruncatedSVDTransform` (optionally centered projection with approximate inverse)
+- `PolynomialLiftingTransform` (cross-monomial lifting with linear-term inverse)
+
+Decision recorded: polynomial lifting now uses deterministic lexicographic exponent ordering from the Cartesian product of per-feature monomial powers and requires each feature order to be at least 2 so inverse reconstruction can recover original linear coordinates exactly.
+
+Expanded verification coverage in `modules/data_pipeline/tests/test_transforms.py`:
+- Min-max output/inverse checked against explicit reference arithmetic from merged fit data.
+- Truncated SVD projection/inverse checked against manual `torch.linalg.svd` basis math.
+- Polynomial lifting validated against explicit cross-term construction and exact inverse.
+- Pipeline integration validated for min-max + polynomial lift + truncated SVD composition.
+
+Verification:
+- `cd modules/data_pipeline && pytest -q` -> `9 passed in 0.70s`
+- `curl -s -o /tmp/data_pipeline_claim.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim service unavailable; proceeded per SOP fallback)
+
+Session-type: autonomous
+Duration: 31 minutes
+Task-selected: Implement initial transform set: min-max normalization, truncated SVD, and polynomial lifting
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ## Open questions
 
-- How should polynomial lifting define and order interaction terms so that serialization and inverse/reconstruction behavior remain stable across versions?
+- None currently.

@@ -10,7 +10,7 @@
   Done when: `modules/data_pipeline/` contains a pipeline module that fits transforms in sequence on a training dataset and applies `transform` and `inverse_transform` in forward and reverse order on new datasets.
   Priority: high
 
-- [ ] Implement initial transform set: min-max normalization, truncated SVD, and polynomial lifting [skill: execute]
+- [x] Implement initial transform set: min-max normalization, truncated SVD, and polynomial lifting [skill: execute]
   Why: These three transforms define the first concrete use case and exercise both lossless and lossy inverse-transform behavior.
   Done when: `modules/data_pipeline/` exposes working implementations for 0-1 normalization, truncated SVD, and polynomial lifting that can participate in the pipeline contract.
   Priority: high
