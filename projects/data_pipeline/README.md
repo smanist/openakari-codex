@@ -109,6 +109,40 @@ Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
 
+### 2026-03-26 — Ported legacy compose/range behavior checks into automated tests
+
+Ran `/orient data_pipeline` for `SESSION_ID=work-session-mn7iza4n` and selected the remaining unblocked task: "Port and extend the legacy behavior checks into automated tests."
+
+Orient checks:
+- No pending items in `APPROVAL_QUEUE.md`.
+- Task-claim API was unavailable (`curl .../api/tasks/claim` returned `000`), so execution proceeded per SOP fallback.
+- Findings-first gate remained enabled from scheduler work-cycle metrics (`0/10 = 0.0%` non-zero findings in the latest scheduler window).
+- No budget file exists for `projects/data_pipeline/`; budget gate is `n/a`.
+
+Scope classification: structural (verifiable), `consumes_resources: false` (no LLM/API calls, external paid APIs, GPU compute, or long-running jobs).
+
+Implemented legacy-parity and PyTorch-specific reuse coverage in `modules/data_pipeline/tests/test_legacy_behavior.py`:
+- Ported compose-style reference assertions using the original legacy dataset and evaluation sample.
+- Added explicit partial-range checks for `transform_range(start:end)` and `inverse_transform_range(start:end)` to preserve legacy `Compose(..., rng=[start, end])` semantics.
+- Added state-dict reload parity for range-based execution to verify serialized `nn.Module` state preserves compose behavior after restore.
+
+Decision recorded: partial-range pipeline execution preserves stage-local semantics from the legacy compose interface - selected stages are applied directly to the provided dataset, and inverse range runs in reverse order over the same selected stage window.
+
+Verification:
+- `cd modules/data_pipeline && pytest -q` -> `14 passed in 0.83s`
+- `curl -s -o /tmp/data_pipeline_claim_mn7iza4n.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim service unavailable; proceeded per SOP fallback)
+
+Session-type: autonomous
+Duration: 18 minutes
+Task-selected: Port and extend the legacy behavior checks into automated tests
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ## Open questions
 
 - None currently.

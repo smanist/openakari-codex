@@ -20,7 +20,9 @@
   Done when: Tests verify that a fitted pipeline can be serialized via PyTorch module state, reconstructed, and used to transform and inverse-transform a second dataset with the same feature dimension.
   Priority: medium
 
-- [ ] Port and extend the legacy behavior checks into automated tests [skill: execute]
+- [x] Port and extend the legacy behavior checks into automated tests [skill: execute]
   Why: The attached legacy implementation provides concrete expected behavior for composition, inverse-transform ordering, and fitted-transform reuse that should be preserved where applicable.
   Done when: The test suite in `modules/data_pipeline/` or the repo-level Python tests covers the reference compose scenarios and adds PyTorch-specific checks for module composition and state reuse.
   Priority: medium
+  Evidence: Added `modules/data_pipeline/tests/test_legacy_behavior.py` with legacy-style compose assertions for full composition, partial-range forward/inverse (`start:end`) behavior, and state-dict reload parity.
+  Verification: `cd modules/data_pipeline && pytest -q` -> `14 passed in 0.83s`
