@@ -1,6 +1,6 @@
 # Data Pipeline
 
-Status: active
+Status: completed
 Mission: Build a reusable PyTorch-native data transformation pipeline that fits on one dataset, applies the learned transform to other datasets, and reconstructs data through inverse transforms where mathematically possible.
 Done when: The project provides a documented `nn.Module` pipeline in `modules/data_pipeline/` that composes arbitrary ordered transforms over list-of-array datasets, supports fit/transform/inverse-transform reuse across datasets, and verifies the reference normalization/SVD/polynomial-lift behaviors with automated tests.
 
@@ -44,7 +44,7 @@ Task-selected: Define the PyTorch transform interface and pipeline contract
 Task-completed: yes
 Approvals-created: 0
 Files-changed: 8
-Commits: 2
+Commits: 3
 Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
@@ -127,6 +127,7 @@ Implemented legacy-parity and PyTorch-specific reuse coverage in `modules/data_p
 - Added state-dict reload parity for range-based execution to verify serialized `nn.Module` state preserves compose behavior after restore.
 
 Decision recorded: partial-range pipeline execution preserves stage-local semantics from the legacy compose interface - selected stages are applied directly to the provided dataset, and inverse range runs in reverse order over the same selected stage window.
+Decision recorded: project status is now `completed`; all `Done when` criteria are satisfied by the current `modules/data_pipeline/` implementation and test suite coverage.
 
 Verification:
 - `cd modules/data_pipeline && pytest -q` -> `14 passed in 0.83s`
