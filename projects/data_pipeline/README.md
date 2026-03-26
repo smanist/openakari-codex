@@ -14,6 +14,36 @@ The user provided a non-`nn.Module` reference implementation and tests in `/User
 
 ## Log
 
+### 2026-03-26 — Completion-state orient and regression verification (`SESSION_ID=work-session-mn7o1zmx`)
+
+Ran `/orient data_pipeline` (full, project-scoped) and confirmed the project remains `Status: completed` with no open tasks in `projects/data_pipeline/TASKS.md`.
+
+Orient checks recorded in-session:
+- Recommended task context: no actionable open tasks; selected completed task "Port and extend the legacy behavior checks into automated tests" for regression re-verification.
+- Findings-first gate: enabled from scheduler work-cycle window (`0/6 = 0.0%` sessions with non-zero findings in the latest 10-session window).
+- Efficiency summary (latest 10 sessions): findings/$ `n/a` (all `costUsd=0`), genuine waste `0/10 = 0.0%`, orient overhead `n/a` (no sessions with `numTurns > 10`), avg cost/session `$0.00`, avg turns `1.0`.
+- Cross-session patterns (threshold `>=3/10`): none detected.
+- Budget/deadline status: `projects/pca_vs_ttd/budget.yaml` remains within limits (`llm_api_calls 0/0`, `cpu_hours 0/0.1`, deadline `2026-06-01`); no ledger reconciliation warnings.
+- External work status: `APPROVAL_QUEUE.md` pending section empty; one external blocker tag in `projects/akari/TASKS.md` dated `2026-03-26` (0 days old, not stale).
+- Horizon-scan intel: no `horizon-scan-*.md` report found under `.scheduler/skill-reports/`.
+
+Scope classification for execution: routine / structural-verifiable, `consumes_resources: false` (no LLM/API calls, GPU compute, or long-running jobs).
+
+Verification:
+- `curl -s -o /tmp/data_pipeline_claim_mn7o1zmx.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim API unavailable; proceeded per SOP fallback)
+- `cd modules/data_pipeline && pytest -q` -> `14 passed in 2.20s`
+
+Session-type: autonomous
+Duration: 18 minutes
+Task-selected: Port and extend the legacy behavior checks into automated tests (regression re-verification)
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 2
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 — Routing tag rename to `[requires-frontier]`
 
 Updated `projects/data_pipeline/TASKS.md` routing tags from `[requires-opus]` to `[requires-frontier]` to match current model-tier conventions while preserving scheduler compatibility with legacy tags.

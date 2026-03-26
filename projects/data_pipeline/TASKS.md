@@ -26,3 +26,4 @@
   Priority: medium
   Evidence: Added `modules/data_pipeline/tests/test_legacy_behavior.py` with legacy-style compose assertions for full composition, partial-range forward/inverse (`start:end`) behavior, and state-dict reload parity.
   Verification: `cd modules/data_pipeline && pytest -q` -> `14 passed in 0.83s`
+  Re-verification (2026-03-26): `cd modules/data_pipeline && pytest -q` -> `14 passed in 2.20s`
