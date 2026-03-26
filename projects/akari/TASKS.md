@@ -98,10 +98,17 @@
   Priority: high
   Evidence: `projects/akari/analysis/strategic-alignment-snapshot-2026-03-26.md`
 
-- [ ] Design an intervention to increase non-zero-findings session rate [requires-opus] [skill: design] [zero-resource]
+- [x] Design an intervention to increase non-zero-findings session rate [requires-opus] [skill: design] [zero-resource]
   Why: Mission gap — the latest 10 session metrics show only 2/10 sessions with non-zero findings (`newExperimentFindings + logEntryFindings`), and there is no open task directly targeting this KPI.
   Done when: A plan in `projects/akari/plans/` defines one measurable intervention, a before/after window, and a concrete success threshold.
   Priority: high
+  Evidence: `projects/akari/plans/2026-03-25-findings-rate-intervention.md`
+
+- [ ] Implement the findings-first orient gate intervention [requires-opus] [skill: execute] [zero-resource]
+  Why: The intervention is now designed but not applied; without implementation, the non-zero-findings KPI cannot improve or be measured post-change.
+  Done when: `/orient` task selection behavior enforces the findings-first gate when rolling non-zero-findings rate is below 30%, and a follow-up analysis task is added to evaluate the next 10 scheduler sessions.
+  Priority: high
+  Evidence: Design spec in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`.
 
 - [ ] Define a primary efficiency KPI for zero-cost sessions [requires-opus] [skill: analyze] [zero-resource]
   Why: Compound follow-up from `projects/akari/analysis/strategic-alignment-snapshot-2026-03-26.md` — `findings/$` is undefined when `costUsd` is zero across the evaluation window.
