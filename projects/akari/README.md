@@ -14,6 +14,60 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Orient akari + interim findings-first trend check at 9/10)
+
+Ran `/orient akari` for `SESSION_ID=work-session-mn7or5lw`, generated one mission-gap task because the only open task was externally blocked, selected and completed that task.
+
+Orient findings:
+- Repo state clean at session start (`git status --short` returned no rows).
+- `docs/roadmap.md` is still absent (`sed: docs/roadmap.md: No such file or directory`).
+- No pending approvals in `APPROVAL_QUEUE.md`.
+- No horizon-scan reports under `.scheduler/skill-reports/`.
+- Findings-first gate remains enabled: scheduler work-cycle rolling non-zero-findings rate is `0/10 = 0.0%`.
+- Efficiency summary (latest 10 work-cycle sessions): `findings/$ = n/a` (`costUsd` total `0`), genuine waste `0/10 = 0.0%`, orient overhead `n/a` (no `numTurns > 10` sessions), avg cost/session `$0.00`, avg turns/session `1.0`.
+- Cross-session patterns (using `infra/scheduler/src/patterns.ts` logic over last 10 sessions): none.
+- External blocker freshness: `Evaluate findings-first gate impact after 10 scheduler sessions` is not stale (`[blocked-by: external ... (2026-03-26)]`) and now has post-intervention scheduler window count `9/10`.
+- Budget/deadline status: only `projects/pca_vs_ttd/budget.yaml` exists (`llm_api_calls 0/0`, `cpu_hours 0/0.1`, deadline `2026-06-01T00:00:00Z`), `ledger.yaml` is empty, and no `progress.json` files with `consumption_audit` were found for reconciliation.
+
+Task supply update:
+- Added one mission-gap task to `projects/akari/TASKS.md`:
+  - `Quantify interim findings-first trend at 9/10 post-intervention sessions`
+
+Task selection and claim:
+- Selected task: `Quantify interim findings-first trend at 9/10 post-intervention sessions`.
+- Claim API attempt:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...`
+  - `curl: (7) Failed to connect to localhost port 8420 after 0 ms: Couldn't connect to server`
+  - Proceeded without claim per SOP fallback.
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) - local metrics analysis and documentation only; no LLM API calls, external APIs, GPU compute, or long-running jobs.
+
+Completed work:
+- Added interim data snapshot: `projects/akari/analysis/findings-first-interim-window-2026-03-26-9of10.json`.
+- Added analysis artifact: `projects/akari/analysis/findings-first-interim-trend-2026-03-26-9of10.md`.
+- Updated `projects/akari/TASKS.md`:
+  - added and completed the 9/10 mission-gap task with evidence and verification output.
+
+Verification:
+- `node - <<'NODE' ... d.derived ... NODE`
+  - `post_window_scheduler_work_cycles 9`
+  - `post_non_zero_findings_sessions 0`
+  - `post_failed_sessions 0`
+- `rg -n "Baseline non-zero-findings rate|Post-intervention non-zero-findings rate|Post-intervention failed-session rate|Interim trend classification|Remaining sessions until unblock threshold" projects/akari/analysis/findings-first-interim-trend-2026-03-26-9of10.md`
+  - matched baseline and post-window rate lines (`2/9`, `0/9`, `0/9`), trend label (`worse`), and remaining-session arithmetic (`10 - 9 = 1`).
+
+Session-type: autonomous
+Duration: 18
+Task-selected: Quantify interim findings-first trend at 9/10 post-intervention sessions
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 (Codex token-usage capture for scheduler metrics)
 
 Recorded a telemetry gap discovered while checking whether zero-cost Codex-local sessions could still track usage: the Codex CLI JSON stream fixture already includes per-turn token counts on `turn.completed.usage`, but the scheduler backend was not aggregating or persisting them.
