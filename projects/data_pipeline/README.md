@@ -1,6 +1,6 @@
 # Data Pipeline
 
-Status: active
+Status: completed
 Mission: Build a reusable PyTorch-native data transformation pipeline that fits on one dataset, applies the learned transform to other datasets, and reconstructs data through inverse transforms where mathematically possible.
 Done when: The project provides a documented `nn.Module` pipeline in `modules/data_pipeline/` that composes arbitrary ordered transforms over list-of-array datasets, supports fit/transform/inverse-transform reuse across datasets, and verifies the reference normalization/SVD/polynomial-lift behaviors with automated tests.
 
@@ -13,6 +13,37 @@ The initial motivating examples are min-max normalization, truncated SVD, and po
 The user provided a non-`nn.Module` reference implementation and tests in `/Users/daninghuang/Repos/dymad-dev/src/dymad/transform/collection.py` and `/Users/daninghuang/Repos/dymad-dev/tests/test_assert_transform.py`. The execution module for this project already exists at `modules/data_pipeline/`.
 
 ## Log
+
+### 2026-03-26 — Implemented signed min-max transform (`SESSION_ID=work-session-mn7vr4vd`)
+
+Ran `/orient data_pipeline` (full, project-scoped) and selected the only open unblocked high-priority task: "Implement signed min-max transform to map features into `[-1, 1]`."
+
+Orient checks recorded in-session:
+- Findings-first gate: enabled (`0/10 = 0.0%`, scheduler work-cycle sessions with non-zero findings in the latest window).
+- Efficiency summary (latest 10 sessions): findings/$ `n/a` (all `costUsd=0`), genuine waste `0/10 = 0.0%`, orient overhead `n/a` (no sessions with `numTurns > 10`), avg cost/session `$0.00`, avg turns `1.0`.
+- Budget/deadline status: `projects/pca_vs_ttd/budget.yaml` remains within limits (`llm_api_calls 0/0`, `cpu_hours 0/0.1`, deadline `2026-06-01`); no ledger reconciliation warnings detected.
+- External work status: `APPROVAL_QUEUE.md` pending section empty; one external blocker tag in `projects/akari/TASKS.md` dated `2026-03-26` (0 days old, not stale).
+- Horizon-scan intel: no `horizon-scan-*.md` reports found under `.scheduler/skill-reports/`.
+
+Scope classification: structural (verifiable), `consumes_resources: false` (no LLM/API calls, paid external APIs, GPU compute, or long-running jobs).
+
+Implemented `SignedMinMaxNormalizeTransform` in `modules/data_pipeline/` with exact inverse support and deterministic zero-range handling (unit scale fallback for near-zero fitted range). Added export wiring, module documentation, and tests covering reference arithmetic plus zero-range behavior.
+Decision recorded: project status returns to `completed`; all currently requested data-pipeline transform capabilities are implemented with passing tests.
+
+Verification:
+- `curl -s -o /tmp/data_pipeline_claim_mn7vr4vd.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim API unavailable; proceeded per SOP fallback)
+- `cd modules/data_pipeline && pytest -q` -> `19 passed in 0.45s`
+
+Session-type: autonomous
+Duration: 25 minutes
+Task-selected: Implement signed min-max transform to map features into `[-1, 1]`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
 
 ### 2026-03-26 — Reopened project to add signed min-max transform task
 

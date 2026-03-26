@@ -1,9 +1,11 @@
 # Data Pipeline — Tasks
 
-- [ ] Implement signed min-max transform to map features into `[-1, 1]` [fleet-eligible] [skill: execute]
+- [x] Implement signed min-max transform to map features into `[-1, 1]` [fleet-eligible] [skill: execute]
   Why: Some downstream models and preprocessing pipelines expect centered bounded inputs, so a `[-1, 1]` affine scaling option is a distinct useful complement to the existing `[0, 1]` min-max normalization transform.
   Done when: `modules/data_pipeline/` exposes a transform that learns per-feature minimum and maximum from the fit dataset, maps fitted ranges into `[-1, 1]` on new datasets, supports inverse transformation back to the original feature space, and includes automated tests covering explicit reference arithmetic plus deterministic handling of zero-range features.
   Priority: high
+  Evidence: Added `SignedMinMaxNormalizeTransform` in `modules/data_pipeline/src/data_pipeline/transforms.py`, exported it from `src/data_pipeline/__init__.py`, and documented it in `modules/data_pipeline/README.md`.
+  Verification: `cd modules/data_pipeline && pytest -q` -> `19 passed in 0.45s`
 
 - [x] Implement z-score standardization transform [fleet-eligible] [skill: execute]
   Why: Z-score standardization is a common reusable preprocessing stage that fits the pipeline mission and complements the existing min-max normalization option.
