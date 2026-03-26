@@ -2,7 +2,7 @@
 name: lit-review
 description: "Use when a research topic needs literature review, or when papers need to be found and documented for a project"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Write", "Grep", "Glob", "WebSearch", "WebFetch", "Bash(git *)"]
 ---

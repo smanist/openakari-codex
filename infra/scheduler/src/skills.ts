@@ -5,8 +5,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-type SkillComplexity = "opus-only" | "high" | "medium" | "low";
-type SkillModelMinimum = "opus" | "sonnet" | "glm-5" | "gpt-5" | "fast-model";
+type SkillComplexity = "very_high" | "high" | "medium" | "low";
+type SkillModelMinimum = "frontier" | "strong" | "standard" | "fast";
 
 export interface SkillInfo {
   name: string;
@@ -15,7 +15,7 @@ export interface SkillInfo {
   interview: boolean;
   /** Instructions for the chat agent's interview, extracted from ## Chat Interview in SKILL.md. */
   interviewPrompt?: string;
-  /** Skill complexity level: opus-only, high, medium, low. */
+  /** Skill complexity level: very_high, high, medium, low. */
   complexity?: SkillComplexity;
   /** Minimum model capability required. */
   modelMinimum?: SkillModelMinimum;
@@ -27,17 +27,21 @@ function skillDirs(repoDir: string): string[] {
 }
 
 const MAX_SKILL_CONTENT_CHARS = 8000;
-const SKILL_COMPLEXITIES = new Set<SkillComplexity>(["opus-only", "high", "medium", "low"]);
+const SKILL_COMPLEXITIES = new Set<SkillComplexity>(["very_high", "high", "medium", "low"]);
 const SKILL_MODEL_MINIMA = new Set<SkillModelMinimum>([
-  "opus",
-  "sonnet",
-  "glm-5",
-  "gpt-5",
-  "fast-model",
+  "frontier",
+  "strong",
+  "standard",
+  "fast",
 ]);
 
 function parseFrontmatterField(content: string, field: string): string | undefined {
-  const match = content.match(new RegExp(`^${field}:\\s*(?:"([^"]+)"|([^\\n]+))\\s*$`, "m"));
+  const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Allow leading indentation so we can parse Codex-style frontmatter where keys
+  // may be indented with tabs/spaces inside the YAML block.
+  const match = content.match(
+    new RegExp(`^[\\t ]*${escaped}:\\s*(?:"([^"]+)"|([^\\n]+))\\s*$`, "m"),
+  );
   const value = match?.[1] ?? match?.[2];
   return value?.trim();
 }
@@ -96,7 +100,7 @@ export async function listSkills(repoDir: string): Promise<SkillInfo[]> {
           const description = parseFrontmatterField(skillMd, "description");
           const complexity = parseFrontmatterField(skillMd, "complexity");
           const modelMinimum = parseFrontmatterField(skillMd, "model-minimum");
-          const interview = /^interview:\s*true\s*$/m.test(skillMd);
+          const interview = /^[\t ]*interview:\s*true\s*$/m.test(skillMd);
           const interviewPrompt = interview ? extractInterviewSection(skillMd) : undefined;
 
           skillsByName.set(entry.name, {
@@ -238,14 +242,17 @@ export function formatSkillListDetailed(skills: SkillInfo[], exclude?: string[])
 }
 
 /** Check if a skill can be routed to fleet workers instead of requiring Opus deep work.
- *  Fleet-eligible skills have complexity medium/low and model-minimum glm-5 (or unset). */
+ *  Fleet-eligible skills have complexity medium/low and model-minimum standard/fast (or unset). */
 export function isFleetEligibleSkill(skill: SkillInfo): boolean {
-  if (!skill.complexity || skill.complexity === "high" || skill.complexity === "opus-only") {
+  if (!skill.complexity || skill.complexity === "high" || skill.complexity === "very_high") {
     return false;
   }
-  if (skill.modelMinimum === "opus" || skill.modelMinimum === "sonnet" || skill.modelMinimum === "gpt-5") {
-    return false;
-  }
+  // Unset => eligible; unknown => conservatively not eligible.
+  if (
+    skill.modelMinimum
+    && skill.modelMinimum !== "fast"
+    && skill.modelMinimum !== "standard"
+  ) return false;
   return true;
 }
 
@@ -258,7 +265,7 @@ const BACKEND_TIER: Record<string, number> = {
 
 /** Skill complexity tiers. Higher values require more capable backends. */
 const COMPLEXITY_TIER: Record<string, number> = {
-  "opus-only": 3,
+  very_high: 3,
   high: 2,
   medium: 1,
   low: 0,
@@ -275,11 +282,13 @@ export function canRunSkill(
   
   if (skill.modelMinimum) {
     const minimumTier =
-      skill.modelMinimum === "opus"
+      skill.modelMinimum === "frontier"
         ? 3
-        : skill.modelMinimum === "sonnet" || skill.modelMinimum === "gpt-5"
+        : skill.modelMinimum === "strong"
           ? 2
-          : 1;
+          : skill.modelMinimum === "standard"
+            ? 1
+            : 0;
     if (backendTier < minimumTier) {
       return {
         canRun: false,

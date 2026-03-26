@@ -2,7 +2,7 @@
 name: compound-simple
 description: Use at the end of a work session to embed learnings into conventions. Simplified for models with lower reasoning capacity.
 complexity: medium
-model-minimum: fast-model
+model-minimum: fast
 ---
 
 # compound-simple

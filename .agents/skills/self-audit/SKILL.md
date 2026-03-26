@@ -2,7 +2,7 @@
 name: self-audit
 description: "Use when sessions have committed code and you need to check compliance with AGENTS.md conventions, log entry standards, and experiment validation"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 argument-hint: "[time range, e.g. '24h' or '3d', or 'last-session']"

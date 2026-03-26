@@ -2,7 +2,7 @@
 name: horizon-scan
 description: "Use when akari needs to proactively scan for new GenAI developments — model releases, capability changes, relevant research — rather than waiting for human input"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Write", "Grep", "Glob", "WebSearch", "WebFetch", "Bash(git *)"]
 ---

@@ -2,7 +2,7 @@
 name: publish
 description: "Use when a paper draft exists and needs to be prepared for venue submission or arxiv preprint"
 complexity: high
-model-minimum: gpt-5
+model-minimum: strong
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Bash", "Write", "Edit"]
 argument-hint: "[project name or paper path]"

@@ -2,7 +2,7 @@
 name: simplify
 description: "Use when a plan or implementation feels over-engineered and needs a complexity check"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob"]
 argument-hint: "[file path, plan, or implementation directory]"

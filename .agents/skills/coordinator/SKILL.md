@@ -2,7 +2,7 @@
 name: coordinator
 description: "Use when the Slack bot needs to handle an operational action like launching an experiment, querying status, or processing approvals"
 complexity: low
-model-minimum: glm-5
+model-minimum: standard
 ---
 
 # /coordinator

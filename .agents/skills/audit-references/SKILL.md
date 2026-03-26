@@ -2,7 +2,7 @@
 name: audit-references
 description: "Use when literature notes exist and need citation verification, or before publishing any artifact that cites literature"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Write", "Grep", "Glob", "WebFetch", "Bash(git *)"]
 argument-hint: "[project path or publication draft path]"

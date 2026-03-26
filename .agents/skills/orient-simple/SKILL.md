@@ -2,7 +2,7 @@
 name: orient-simple
 description: Use at the start of a work session to select a task. Simplified for models with lower reasoning capacity.
 complexity: medium
-model-minimum: fast-model
+model-minimum: fast
 ---
 
 # orient-simple

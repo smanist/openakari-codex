@@ -2,7 +2,7 @@
 name: compound
 description: "Use at the end of a work session, or when accumulated findings need to be embedded into conventions, skills, or patterns"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Bash(git diff *)", "Bash(git log *)"]
 argument-hint: "[optional: 'fast', 'deep', or no argument for auto-detect]"

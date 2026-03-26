@@ -2,7 +2,7 @@
 name: develop
 description: "Use when implementing new features, fixing bugs, or modifying code in infra/"
 complexity: high
-model-minimum: gpt-5
+model-minimum: strong
 allowed-tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash(cd infra/scheduler && npm test)", "Bash(cd infra/scheduler && npx tsc --noEmit)", "Bash(cd infra/scheduler && npm run build)", "Bash(cd infra/scheduler && npm install *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)", "Bash(git push)", "Bash(curl *)"]
 argument-hint: "[feature description] or [fix <bug description>]"
 ---

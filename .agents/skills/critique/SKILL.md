@@ -1,8 +1,8 @@
 ---
 name: critique
 description: "Use when a plan, finding, or design needs adversarial review before committing to it"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob"]
 argument-hint: "[file path or description of artifact]"

@@ -1,8 +1,8 @@
 ---
 name: project
 description: "Create new research projects — either propose (agent-initiated gap analysis → formal proposal) or scaffold (human-initiated interview → project directory)"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)", "Bash(mkdir -p *)"]
 argument-hint: "propose [topic] | scaffold <description>"

@@ -1,8 +1,8 @@
 ---
 name: orient
 description: "Use at the start of every work session to assess current state and select the highest-value task"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Bash(git *)"]
 argument-hint: "[fast | full | project-name] — 'fast' for abbreviated orient, 'full' for comprehensive, or project name to scope"

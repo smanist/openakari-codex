@@ -379,9 +379,9 @@ Do stuff.`,
       `---
 name: fast-skill
 description: Fast skill without quoted description
-complexity: medium
-model-minimum: fast-model
-interview: true
+	complexity: medium
+	model-minimum: fast
+	interview: true
 ---
 # Fast Skill
 
@@ -393,12 +393,12 @@ Ask one question.`,
     const skills = await listSkills(tempDir);
     const skill = skills.find(s => s.name === "fast-skill");
     expect(skill).toBeDefined();
-    expect(skill!.description).toBe("Fast skill without quoted description");
-    expect(skill!.complexity).toBe("medium");
-    expect(skill!.modelMinimum).toBe("fast-model" as any);
-    expect(skill!.interview).toBe(true);
-    expect(skill!.interviewPrompt).toContain("Ask one question.");
-  });
+	    expect(skill!.description).toBe("Fast skill without quoted description");
+	    expect(skill!.complexity).toBe("medium");
+	    expect(skill!.modelMinimum).toBe("fast");
+	    expect(skill!.interview).toBe(true);
+	    expect(skill!.interviewPrompt).toContain("Ask one question.");
+	  });
 
   it("uses the .agents/skills copy for skill metadata", async () => {
     const agentsDir = join(tempDir, ".agents", "skills", "shared-skill");
@@ -503,43 +503,43 @@ describe("canRunSkill", () => {
     expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
-  it("blocks opus-only skill on opencode backend", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "opus-only" };
+  it("blocks very_high skill on opencode backend", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "very_high" };
     expect(canRunSkill(skill, "opencode")).toEqual({
       canRun: false,
-      reason: "/test has complexity \"opus-only\" but opencode cannot run it",
+      reason: "/test has complexity \"very_high\" but opencode cannot run it",
     });
     expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
     expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
   });
 
-  it("blocks skill with model-minimum: opus on opencode", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "opus" };
+  it("blocks skill with model-minimum: frontier on opencode", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "frontier" };
     expect(canRunSkill(skill, "opencode")).toEqual({
       canRun: false,
-      reason: "/test requires opus but opencode provides lower capability",
+      reason: "/test requires frontier but opencode provides lower capability",
     });
     expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
-  it("allows skill with model-minimum: glm-5 on any backend", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "glm-5" };
+  it("allows skill with model-minimum: standard on any backend", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "standard" };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
     expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
-  it("blocks skill with model-minimum: gpt-5 on opencode", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "gpt-5" as any };
+  it("blocks skill with model-minimum: strong on opencode", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "strong" };
     expect(canRunSkill(skill, "opencode")).toEqual({
       canRun: false,
-      reason: "/test requires gpt-5 but opencode provides lower capability",
+      reason: "/test requires strong but opencode provides lower capability",
     });
     expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
     expect(canRunSkill(skill, "codex")).toEqual({ canRun: true });
   });
 
-  it("allows skill with model-minimum: fast-model on opencode", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "fast-model" as any };
+  it("allows skill with model-minimum: fast on opencode", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, modelMinimum: "fast" };
     expect(canRunSkill(skill, "opencode")).toEqual({ canRun: true });
     expect(canRunSkill(skill, "openai")).toEqual({ canRun: true });
   });
@@ -552,13 +552,13 @@ describe("canRunSkill", () => {
 });
 
 describe("isFleetEligibleSkill", () => {
-  it("returns true for medium complexity + glm-5 minimum", () => {
-    const skill: SkillInfo = { name: "self-audit", description: "test", interview: false, complexity: "medium", modelMinimum: "glm-5" };
+  it("returns true for medium complexity + standard minimum", () => {
+    const skill: SkillInfo = { name: "self-audit", description: "test", interview: false, complexity: "medium", modelMinimum: "standard" };
     expect(isFleetEligibleSkill(skill)).toBe(true);
   });
 
-  it("returns true for low complexity + glm-5 minimum", () => {
-    const skill: SkillInfo = { name: "coordinator", description: "test", interview: false, complexity: "low", modelMinimum: "glm-5" };
+  it("returns true for low complexity + standard minimum", () => {
+    const skill: SkillInfo = { name: "coordinator", description: "test", interview: false, complexity: "low", modelMinimum: "standard" };
     expect(isFleetEligibleSkill(skill)).toBe(true);
   });
 
@@ -568,27 +568,27 @@ describe("isFleetEligibleSkill", () => {
   });
 
   it("returns false for high complexity", () => {
-    const skill: SkillInfo = { name: "develop", description: "test", interview: false, complexity: "high", modelMinimum: "gpt-5" as any };
+    const skill: SkillInfo = { name: "develop", description: "test", interview: false, complexity: "high", modelMinimum: "strong" };
     expect(isFleetEligibleSkill(skill)).toBe(false);
   });
 
-  it("returns false for opus-only complexity", () => {
-    const skill: SkillInfo = { name: "diagnose", description: "test", interview: false, complexity: "opus-only", modelMinimum: "opus" };
+  it("returns false for very_high complexity", () => {
+    const skill: SkillInfo = { name: "diagnose", description: "test", interview: false, complexity: "very_high", modelMinimum: "frontier" };
     expect(isFleetEligibleSkill(skill)).toBe(false);
   });
 
-  it("returns false for model-minimum: opus regardless of complexity", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "opus" };
+  it("returns false for model-minimum: frontier regardless of complexity", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "frontier" };
     expect(isFleetEligibleSkill(skill)).toBe(false);
   });
 
   it("returns false for model-minimum: sonnet", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "sonnet" };
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "sonnet" as any };
     expect(isFleetEligibleSkill(skill)).toBe(false);
   });
 
-  it("returns false for model-minimum: gpt-5", () => {
-    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "gpt-5" as any };
+  it("returns false for model-minimum: strong", () => {
+    const skill: SkillInfo = { name: "test", description: "test", interview: false, complexity: "medium", modelMinimum: "strong" };
     expect(isFleetEligibleSkill(skill)).toBe(false);
   });
 

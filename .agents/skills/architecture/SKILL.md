@@ -2,7 +2,7 @@
 name: architecture
 description: "Use when a file or module is too large, responsibilities are tangled, or a cross-cutting redesign is needed"
 complexity: high
-model-minimum: gpt-5
+model-minimum: strong
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash(cd * && npx tsc --noEmit)", "Bash(wc -l *)", "Bash(wc *)", "Bash(git diff *)", "Bash(git log *)"]
 argument-hint: "[file, module, 'scan', 'map', 'auto', or redesign description]"

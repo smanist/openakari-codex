@@ -2,7 +2,7 @@
 name: slack-diagnosis
 description: "Use when a Slack thread shows the bot behaving incorrectly and the root cause needs investigation"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash(curl *)", "Bash(jq *)", "Bash(wc *)", "Bash(cat *)", "Bash(cd * && npx tsc --noEmit)"]
 argument-hint: "[problem description, thread URL, channel:timestamp, or 'recent']"

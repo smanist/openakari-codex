@@ -1,8 +1,8 @@
 ---
 name: design
 description: "Use when designing a new experiment or research protocol and need to ensure methodological rigor"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "WebSearch"]
 ---

@@ -2,7 +2,7 @@
 name: review
 description: "Validate experiment metrics and findings — run metrics-first to check computations are meaningful, then findings to check conclusions are valid"
 complexity: high
-model-minimum: gpt-5
+model-minimum: strong
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob"]
 argument-hint: "[metrics | findings] <path or experiment name>"

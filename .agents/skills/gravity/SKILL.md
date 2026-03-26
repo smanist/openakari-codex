@@ -2,7 +2,7 @@
 name: gravity
 description: "Use when a manual fix or workaround keeps recurring and might need to be formalized into infrastructure"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob"]
 ---

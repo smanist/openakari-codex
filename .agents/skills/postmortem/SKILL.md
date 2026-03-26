@@ -1,8 +1,8 @@
 ---
 name: postmortem
 description: "Use when an agent produced a flawed output and you need to understand why the reasoning went wrong"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob"]
 argument-hint: "[file path, log entry, or description of the failure]"

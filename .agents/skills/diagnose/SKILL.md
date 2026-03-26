@@ -1,8 +1,8 @@
 ---
 name: diagnose
 description: "Use when experimental results are unexpected, confusing, or need interpretation"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Bash(python *)"]
 ---

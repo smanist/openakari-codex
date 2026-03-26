@@ -1,8 +1,8 @@
 ---
 name: synthesize
 description: "Use when multiple experiments or analyses have accumulated and their findings need to be interpreted together"
-complexity: opus-only
-model-minimum: opus
+complexity: very_high
+model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob"]
 argument-hint: "[project name, time range, topic, or file paths]"

@@ -2,7 +2,7 @@
 name: refresh-skills
 description: "Use when skills may be out of date with source code, after significant infra changes, or when skill descriptions need CSO compliance audit"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash(cd * && npx tsc --noEmit)", "Bash(wc -l *)", "Bash(git log *)"]
 argument-hint: "[skill name, 'all', or 'report']"

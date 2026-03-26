@@ -2,7 +2,7 @@
 name: report
 description: "Use when a status report, research digest, or experiment comparison is needed for human review"
 complexity: medium
-model-minimum: glm-5
+model-minimum: standard
 allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash(cd infra/scheduler && npx tsx src/report/run-report.ts *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)"]
 argument-hint: "<type> [project=<name>] [from=YYYY-MM-DD] [to=YYYY-MM-DD]"
 ---
