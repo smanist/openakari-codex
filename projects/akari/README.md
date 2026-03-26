@@ -14,6 +14,12 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 — New project: Data Pipeline
+
+Created `projects/data_pipeline/` via `/project scaffold`. Mission: build a reusable PyTorch-native data transformation pipeline that fits on one dataset, applies the learned transform to other datasets, and reconstructs data through inverse transforms where mathematically possible.
+
+Sources: `projects/data_pipeline/README.md`
+
 ### 2026-03-26 (Orient akari + interim findings-first trend check at 8/10)
 
 Ran `/orient akari` for `SESSION_ID=work-session-mn7d2ipt`, generated one mission-gap task because the only open task was externally blocked, completed the selected task, then ran `/compound fast`.
