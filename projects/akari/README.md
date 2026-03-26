@@ -14,6 +14,56 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Implement findings-first orient gate intervention)
+
+Ran `/orient akari` (full scoped orient) for `SESSION_ID=work-session-mn6vx78h`, then completed the selected intervention task.
+
+Orient findings:
+- Repo state clean (`git status --short` returned no rows).
+- No pending approvals (`APPROVAL_QUEUE.md` pending section empty) and no stale external blockers found in `projects/*/TASKS.md`.
+- No recent horizon-scan reports under `.scheduler/skill-reports/`.
+- Rolling scheduler work-cycle non-zero-findings rate is currently `0/7 = 0.0%`, so the findings-first gate condition (`<30%`) is active.
+
+Task selection and claim:
+- Selected task: `Implement the findings-first orient gate intervention`.
+- Claim API:
+  - `curl -s -X POST http://localhost:8420/api/tasks/claim ...`
+  - `{"ok":true,"claim":{"claimId":"f3e5f38f8476d02b","taskId":"37671df9c46f",...}}`
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) — skill/task documentation updates only; no LLM/API/GPU/long-running execution.
+
+Completed work:
+- Updated `.agents/skills/orient/SKILL.md` to add a findings-first gate in both fast and full orient:
+  - rolling scheduler work-cycle non-zero-findings metric definition,
+  - enforcement rule when rate is `<30%`,
+  - required gate-state reporting (`enabled/disabled` with arithmetic).
+- Updated `projects/akari/TASKS.md` to complete `Implement the findings-first orient gate intervention`.
+- Added follow-up task `Evaluate findings-first gate impact after 10 scheduler sessions` with a blocker until enough post-intervention scheduler sessions accumulate.
+
+Verification:
+- `rg -n "Findings-first gate \(akari intervention\)|< 30%|selected task must have a findings-producing Done-when|rolling non-zero-findings rate" .agents/skills/orient/SKILL.md`
+  - matched fast gate section, full gate section, and efficiency-summary gate metric/reporting lines.
+- `rg -n "Evaluate findings-first gate impact after 10 scheduler sessions|blocked-by: external: wait for 10 post-intervention scheduler sessions" projects/akari/TASKS.md`
+  - `118:- [ ] Evaluate findings-first gate impact after 10 scheduler sessions ...`
+- `node - <<'NODE' ... NODE` (scheduler-only work-cycle window)
+  - `scheduler_work_cycle_window=7`
+  - `non_zero_findings=0`
+  - `rate_pct=0.0`
+
+Compound (fast): no additional actions. Fleet spot-check: no recent `"triggerSource":"fleet"` sessions in `.scheduler/metrics/sessions.jsonl`.
+
+Session-type: autonomous
+Duration: 24
+Task-selected: Implement the findings-first orient gate intervention
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-26 (Orient akari + strategic alignment snapshot)
 
 Ran `/orient akari` (full scoped orient). Repo state was clean; `projects/akari/TASKS.md` had no open tasks, so mission-gap tasks were generated before selection.

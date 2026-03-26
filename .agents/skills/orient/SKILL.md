@@ -41,6 +41,7 @@ Read the following in parallel:
     - **Orient overhead**: Mean `orientTurns / numTurns` for sessions with `numTurns > 10`. Report as %. Baseline: 42% (from 154 sessions). Flag if >40%.
     - **Avg cost/session**: Mean `costUsd`. Baseline: $3.66. Flag if >$8 (2× baseline).
     - **Avg turns**: Mean `numTurns`. Flag if >80.
+    - **Rolling non-zero-findings rate (scheduler work-cycle only)**: `count(newExperimentFindings + logEntryFindings > 0) / N` across the latest up-to-10 sessions where `triggerSource == "scheduler"` and `jobName` contains `work-cycle`. Report `x/N` and %. This is the intervention trigger metric.
     
     **Fleet workers**: If this is a fleet session (check for `SESSION_ID=fleet-worker-` in prompt), compute fleet-specific KPIs instead of cost-based metrics:
     - **Task completion rate**: Fraction with `verification.hasCommit === true`. Target: ≥80%.
@@ -72,6 +73,11 @@ This prevents projects from stalling when their task queue depletes while missio
 ### Select task
 Extract unblocked tasks from TASKS.md files. Apply project priority grouping first (`high` > `medium` | untagged > `low`, per ADR 0036), then apply the same task-level ranking criteria as full orient (prevents waste > unblocks > produces knowledge > matches momentum > cost-proportionate), but skip strategic alignment check, repetition penalty scan, and compound opportunity scanning.
 
+**Findings-first gate (akari intervention)**: Before final recommendation, evaluate the rolling non-zero-findings rate from Gather Context step 4. If the scheduler work-cycle rate is `< 30%`, enable the gate:
+1. Prefer tasks whose Done-when explicitly requires a findings artifact (analysis/diagnosis with quantified results, or explicit `newExperimentFindings`/`logEntryFindings` output).
+2. If no existing unblocked task qualifies, generate one mission-gap task with a findings-producing Done-when before selecting.
+3. In the orient output, report `Findings-first gate: enabled` with the exact arithmetic (`x/N = y%`). If rate is `>= 30%`, report `disabled`.
+
 **Stale blocker check**: While scanning TASKS.md files, note any `[blocked-by: external: ... (YYYY-MM-DD)]` tags older than 7 days. These tasks may be actionable if the blocker has resolved — flag them for re-verification in the task recommendation rationale.
 
 **Routing tag check (ADR 0045)**: If your repo uses routing tags, tag any untagged task with `[fleet-eligible]` or `[requires-opus]` using the checklist from `AGENTS.md`. If your repo does not use fleet execution, skip tagging and proceed with normal task selection.
@@ -94,6 +100,7 @@ If your repo exposes a task-claim API, use it to avoid duplicate work. Otherwise
 Report these sections:
 - **Mission gaps**: For high-priority projects with ≤2 unblocked tasks
 - **Recommended task**: Task text, project, 1-line rationale
+- **Findings-first gate**: `enabled`/`disabled` with arithmetic (`x/N = y%`)
 - **Uncommitted work**: Git status summary or "clean"
 - **Budget gate**: Result if resource task, or "n/a"
 - **Task supply updates**: Any task generation, decomposition, or routing-tag updates made during orient
@@ -145,6 +152,7 @@ Read the following in parallel:
      - **Orient overhead**: Mean `orientTurns / numTurns` for sessions with `numTurns > 10`. Baseline: 42%. Flag if >40%. This is the single largest efficiency lever per baseline report Finding 2.
      - **Avg cost/session**: Mean `costUsd`. Baseline: $3.66. Flag if >$8 (>2× baseline).
      - **Avg turns**: Mean `numTurns`. Flag if >80.
+     - **Rolling non-zero-findings rate (scheduler work-cycle only)**: `count(newExperimentFindings + logEntryFindings > 0) / N` across the latest up-to-10 sessions where `triggerSource == "scheduler"` and `jobName` contains `work-cycle`. This is the findings-first gate trigger (`< 30%` enables the gate).
      Report in the "Efficiency summary" section of the output. Always report concrete numbers, not just "OK" — the numbers enable trend tracking across sessions.
      
      **Fleet workers** (sessions with `backend: "opencode"`): Cost-based metrics don't apply ($0 compute). Instead, compute and report these fleet-specific KPIs from the same 10 sessions:
@@ -217,6 +225,8 @@ Extract all unblocked tasks from `TASKS.md` files. For each task, assess:
 **Project priority grouping (ADR 0036):** Before applying task-level criteria, group candidate tasks by their project's priority: `high` > `medium` | untagged > `low`. Only consider tasks from lower-priority projects when all higher-priority projects have no actionable tasks. Within a project priority group, apply the task-level criteria below. This ensures human-set project priority takes precedence over task-level ranking.
 
 **Ranking algorithm:** Score each task by the first criterion it satisfies, in order. Criterion 1 (prevents waste) dominates criterion 2 (unblocks), which dominates criterion 3 (produces knowledge), etc. Within the same criterion, prefer lower cost.
+
+**Findings-first gate (akari intervention):** Apply this gate before final recommendation. If rolling scheduler work-cycle non-zero-findings rate (from Gather Context step 10) is `< 30%`, the selected task must have a findings-producing Done-when (explicit analysis/diagnosis findings or quantified finding output). If the top-ranked candidate does not satisfy this, choose the highest-ranked candidate that does; if none do, generate a mission-gap task that does and select it. Report gate state and arithmetic in the orientation output (`enabled: x/N = y%` or `disabled: x/N = y%`).
 
 **Strategic alignment:** When recommending, state how the task connects to an active research question from `docs/roadmap.md`. If it doesn't connect to any, flag this as potential drift — it may still be valid (infrastructure work), but the disconnect should be explicit.
 
@@ -314,7 +324,7 @@ Produce a brief orientation report with these sections:
 
 **Compound opportunities**: Unactioned recommendations and unsurfaced experiment recommendations
 
-**Efficiency summary**: Findings/$, waste %, overhead %, avg cost, avg turns with baselines and flags
+**Efficiency summary**: Findings/$, waste %, overhead %, avg cost, avg turns, rolling non-zero-findings rate, and gate state (enabled/disabled) with baselines and flags
 
 **Task supply updates**: What you generated, decomposed, or re-tagged
 
