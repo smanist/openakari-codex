@@ -123,6 +123,14 @@
   Done when: A dated analysis computes post-intervention non-zero-findings rate and failed-session rate over the next 10 scheduler sessions, compares against baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and records pass/refute/ambiguous outcome.
   Priority: high
 
+- [x] Quantify interim findings-first trend at 4/10 post-intervention sessions [requires-opus] [skill: analyze] [zero-resource]
+  Why: Mission gap — the final impact task is still blocked pending 10 sessions, but the project's Done-when requires ongoing measurement of whether changes improve knowledge output over time.
+  Done when: A dated analysis in `projects/akari/analysis/` computes current post-intervention non-zero-findings and failed-session rates (using `.scheduler/metrics/sessions.jsonl`), compares them to the baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and states interim trend classification (`improving`, `flat`, or `worse`) with explicit arithmetic and data provenance.
+  Priority: high
+  Evidence: `projects/akari/analysis/findings-first-interim-trend-2026-03-26.md`
+  Evidence: `projects/akari/analysis/findings-first-interim-window-2026-03-26.json`
+  Verification: `node - <<'NODE' ... derived.post_window_scheduler_work_cycles ... NODE` → `post_window_scheduler_work_cycles 4`, `post_non_zero_findings_sessions 0`, `post_failed_sessions 0`.
+
 - [x] Diagnose persistent zero-findings sessions after gate rollout [requires-opus] [skill: diagnose] [zero-resource]
   Why: Mission gap — the project still needs operational-gap identification from current data, and the rolling scheduler work-cycle non-zero-findings rate remains `0/9` after gate rollout.
   Done when: A dated diagnosis in `projects/akari/diagnosis/` quantifies knowledge-output patterns for the latest scheduler `work-cycle` window, identifies at least two evidence-backed causes for zero findings, and adds at least one concrete follow-up task to `projects/akari/TASKS.md`.
