@@ -2,7 +2,7 @@ Reference classification of all skills by invocation context: which skills auton
 
 # Skill Classifications
 
-Last updated: 2026-03-24
+Last updated: 2026-03-26
 Source of truth: skill frontmatter and descriptions in `.agents/skills/*/SKILL.md`.
 
 ## How to use this document
@@ -74,6 +74,7 @@ Skills that require explicit human invocation. An autonomous session should neve
 | `/feedback` | Requires PI-provided feedback text | Process human feedback — investigate root cause and implement improvements. |
 | `/report` | Requires human to specify report type and scope | Generate formatted reports with charts. |
 | `/project scaffold` | Requires human description and interactive interview | Scaffold a new project directory via structured interview. |
+| `/project augment` | Requires human direction on the target project and desired extension | Extend an existing project with new context, tasks, plans, or resource records without changing its mission or done-when. |
 | `/slack-diagnosis` | Requires human-reported problem or thread URL | Diagnose Slack bot thread failures. |
 
 ## Column definitions

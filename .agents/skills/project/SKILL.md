@@ -1,25 +1,28 @@
 ---
 name: project
-description: "Create new research projects — either propose (agent-initiated gap analysis → formal proposal) or scaffold (human-initiated interview → project directory)"
+description: "Manage research project setup and scope changes — propose new projects, scaffold new projects, or augment existing projects"
 complexity: very_high
 model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)", "Bash(mkdir -p *)"]
-argument-hint: "propose [topic] | scaffold <description>"
+argument-hint: "propose [topic] | scaffold <description> | augment <project> <request>"
 interview: true
 ---
 
 # /project <mode> [argument]
 
-Unified skill for creating new research projects. Two modes:
+Unified skill for project setup and scope changes. Three modes:
 
 - **`/project propose [topic]`** — Agent-initiated. Scans the repo for research gaps, assesses whether a gap warrants a project, and writes a formal proposal for PI review. Proposals require approval to activate. If topic is omitted, scans for candidate gaps first.
 
 - **`/project scaffold <description>`** — Human-initiated. Interactive interview to understand what the human wants, then scaffolds the project directory with all required files. No approval needed — the human requesting it has authority.
 
+- **`/project augment <project> <request>`** — Human-initiated. Interactive workflow to extend an existing project's scope with new context, tasks, plans, or resource records while keeping the project's mission and done-when fixed.
+
 **When to use which mode:**
 - You identified a research gap and want to propose an investigation → `propose`
 - A human asked you to set up a new project → `scaffold`
+- A human asked you to extend or refine an existing project → `augment`
 
 ---
 
@@ -311,7 +314,115 @@ Sources: projects/<slug>/README.md
 
 ---
 
-## Constraints (both modes)
+## Mode: augment
+
+Human-initiated existing-project extension. Interactive — requires human input when the request is ambiguous or would change the project's boundaries.
+
+### Human Input Protocol (Deep Work Sessions)
+
+When running in a deep work session (autonomous, headless), use the same question marker pattern as scaffold:
+
+```
+[QUESTION: project-augment-<unique-id>]
+skill="project"
+mode="augment"
+
+1. Which existing project should be extended?
+2. What new capability, question, or workstream should be added?
+[/QUESTION]
+```
+
+Resume when the human replies with the missing details.
+
+### Step 1: Parse the request
+
+Extract:
+- **Target project** — existing `projects/<slug>/`
+- **Requested augmentation** — new question, capability, experiment stream, or operational work
+- **Why now** — motivation, blocker, or new information
+- **Scope pressure** — whether this still fits the current mission and done-when
+
+Summarize in 2-3 sentences before editing anything.
+
+### Step 2: Load current project state
+
+Read the target project's:
+1. `README.md` — mission, done-when, context, recent log, open questions
+2. `TASKS.md` — current task inventory and blocked state
+3. `plans/` or `experiments/` entries relevant to the requested augmentation
+4. `budget.yaml` / `ledger.yaml` if the new work may consume resources
+5. `modules/registry.yaml` only if execution ownership or module linkage may need updates
+
+### Step 3: Assess fit before proceeding
+
+**Proceed with augment if:**
+- The request is a natural extension of the project's existing mission
+- The current `Done when:` still makes sense unchanged
+- The new work can be expressed as added context, tasks, plans, experiments, or budget records
+
+**Do not use augment if:**
+- The request would change the project's mission or `Done when:` (they are immutable once set)
+- The work is orthogonal enough that it should be a new project
+- The request is really an implementation task that should just be added to `TASKS.md` without project restructuring
+
+If the request does not fit, say so explicitly and redirect to `scaffold`, `propose`, or ordinary task editing as appropriate.
+
+### Step 4: Interview for missing details
+
+Ask only for the missing pieces. Common gaps:
+
+1. **Outcome** — what should be newly true after the augmentation?
+2. **Success signal** — what concrete artifact or milestone should exist?
+3. **Scope boundaries** — what should remain out of scope?
+4. **Resource implications** — new budget, external APIs, GPU, or approvals?
+5. **Execution shape** — just tasks, or also a plan, experiment scaffold, or module registration change?
+
+Interview protocol:
+- Ask in batches of 2-3 questions
+- Summarize assumptions after each batch
+- Stop after enough information exists to make a bounded update
+
+### Step 5: Apply the augmentation
+
+Update only the files needed by the request:
+
+- **`projects/<project>/README.md`** — add context, open questions, or a dated log entry describing the augmentation
+- **`projects/<project>/TASKS.md`** — add or rewrite tasks using the task schema; never mark partial work as complete
+- **`projects/<project>/plans/<name>.md`** — add a plan when the augmentation introduces a multi-step workstream
+- **`projects/<project>/budget.yaml` / `ledger.yaml`** — add only if the new work changes resource accounting
+- **`modules/registry.yaml`** — touch only if the project needs a new or corrected execution-module mapping
+
+Prefer minimal deltas. Augment should extend the project, not respecify it from scratch.
+
+### Step 6: Present the delta
+
+Show the human a concise summary:
+
+```text
+Updated project: <project>
+
+Planned changes:
+- README.md — <what changed>
+- TASKS.md — <new tasks>
+- plans/<name>.md — <if added>
+- budget.yaml — <if changed>
+
+Does this augmentation look right before commit?
+```
+
+Wait for confirmation. Apply requested adjustments.
+
+### Step 7: Commit
+
+Follow `docs/sops/commit-workflow.md`. Commit message: `project augment: <project>`
+
+### Step 8: Log completion
+
+Add a dated log entry to the target project's `README.md` summarizing what was added and why.
+
+---
+
+## Constraints (all modes)
 
 - **AGENTS.md compliance.** All generated files follow AGENTS.md schemas exactly. Mission and Done-when are immutable once set.
 - **Deduplication.** Always check for overlap with existing projects before creating.

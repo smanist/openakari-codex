@@ -46,12 +46,12 @@ Skills are not generic prompts. Each encodes a specific judgment pattern with sp
 
 <!-- staleness-signal: skill-inventory
      source: .agents/skills/*/SKILL.md + .claude/skills/*/SKILL.md
-     last-verified: 2026-02-25
-     count: 21
-     names: architecture, audit-references, compound, coordinator, critique, design, develop, diagnose, feedback, gravity, horizon-scan, lit-review, orient, postmortem, project, publish, refresh-skills, report, review, self-audit, simplify, slack-diagnosis, synthesize -->
+     last-verified: 2026-03-26
+     count: 25
+     names: architecture, audit-references, compound, compound-simple, coordinator, critique, design, develop, diagnose, feedback, gravity, horizon-scan, lit-review, orient, orient-simple, postmortem, project, publish, refresh-skills, report, review, self-audit, simplify, slack-diagnosis, synthesize -->
 <!-- classification: docs/skill-classifications.md -->
 
-Twenty-one skills organized by function (see [docs/skill-classifications.md](../../../docs/skill-classifications.md) for autonomous vs. human-triggered classification):
+Current skills organized by function (see [docs/skill-classifications.md](../../../docs/skill-classifications.md) for autonomous vs. human-triggered classification):
 
 **Session management:**
 - **orient** — session-start situational awareness. The only auto-invocable skill. Reads git state, project READMEs, and status to produce a priority recommendation. Explicitly checks for uncommitted work, decision debt, infra gaps, and gravity signals.
@@ -69,7 +69,7 @@ Twenty-one skills organized by function (see [docs/skill-classifications.md](../
 **Research methodology (3 skills):**
 - **design** — experiment and protocol design with methodological rigor. Guides hypothesis formation, metric selection with statistical justification, validity threat analysis (position bias, sample size, confounds, construct validity), and cost estimation.
 - **lit-review** — literature triage with CI layer mapping. Auto-invocable. Searches, triages (load-bearing / contextual / incremental), writes structured literature notes with verified citations and direct quotes.
-- **project** — unified project creation with two modes: `propose` (agent-initiated gap analysis → formal proposal for PI review, includes gap assessment and feasibility check) and `scaffold` (human-initiated interview → project directory with README, TASKS, budget). Merged from propose-project + new-project (2026-02-25, per skills-library-evaluation F1).
+- **project** — unified project setup and scope-change skill with three modes: `propose` (agent-initiated gap analysis → formal proposal for PI review, includes gap assessment and feasibility check), `scaffold` (human-initiated interview → new project directory with README, TASKS, budget), and `augment` (human-initiated extension of an existing project via targeted updates to README, TASKS, plans, and resource records while preserving immutable mission/done-when). Merged from propose-project + new-project (2026-02-25, per skills-library-evaluation F1), extended with augment mode on 2026-03-26.
 
 **Infrastructure (3 skills):**
 - **architecture** — analyze, redesign, and refactor infrastructure code. Operates in four modes: Auto (autonomous diagnosis and prioritized fixes following safety > clarity > efficiency hierarchy), Map (trace dependencies, agent types, data flows), Refactor (behavior-preserving structural improvement), Redesign (architectural changes with plan-mode approval). Auto mode can be invoked without specific instructions to proactively identify and fix architectural issues.

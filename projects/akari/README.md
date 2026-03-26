@@ -14,6 +14,28 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Added `/project augment` mode to the project skill)
+
+Extended the `project` skill so it now supports `/project augment <project> <request>` for human-triggered updates to existing projects. The new mode explicitly preserves immutable project `Mission:` and `Done when:` fields, routes out-of-scope requests back to `scaffold` or `propose`, and defines how to update existing project READMEs, tasks, plans, and resource records.
+
+While wiring the mode in, corrected stale skill-inventory metadata in `projects/akari/patterns/skills-architecture.md`: the inventory comment was still advertising `count: 21`, but `find .agents/skills -mindepth 1 -maxdepth 1 -type d | wc -l` returned `25`.
+
+Verification:
+- `rg -n "/project augment|argument-hint: \"propose .*augment|mode=\"augment\"|immutable mission|project setup and scope changes|project augment" .agents/skills/project/SKILL.md docs/skill-classifications.md projects/akari/patterns/skills-architecture.md`
+  - `.agents/skills/project/SKILL.md:8` shows `argument-hint: "propose [topic] | scaffold <description> | augment <project> <request>"`
+  - `.agents/skills/project/SKILL.md:20` shows the new `/project augment <project> <request>` mode
+  - `.agents/skills/project/SKILL.md:328` shows `mode="augment"` in the question marker
+  - `docs/skill-classifications.md:77` shows the new `/project augment` human-triggered entry
+  - `projects/akari/patterns/skills-architecture.md:72` shows the project skill described with three modes
+- `find .agents/skills -mindepth 1 -maxdepth 1 -type d | wc -l`
+  - `25`
+- `git status --short`
+  - `M .agents/skills/project/SKILL.md`
+  - `M docs/skill-classifications.md`
+  - `M projects/akari/patterns/skills-architecture.md`
+
+Sources: `.agents/skills/project/SKILL.md`, `docs/skill-classifications.md`, `projects/akari/patterns/skills-architecture.md`
+
 ### 2026-03-26 (Orient akari + scheduler cadence-gap diagnosis at 9/10)
 
 Ran `/orient akari` for `SESSION_ID=work-session-mn7pu8ez`, then selected and completed a new mission-gap diagnosis task because the only pre-existing open task was externally blocked at `9/10` post-intervention scheduler sessions.
