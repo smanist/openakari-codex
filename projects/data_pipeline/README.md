@@ -14,6 +14,13 @@ The user provided a non-`nn.Module` reference implementation and tests in `/User
 
 ## Log
 
+### 2026-03-26 — Simplified internal dataset validation/dimension flow
+
+Augmented the completed `data_pipeline` module with a small internal refactor in `modules/data_pipeline/src/data_pipeline/base.py`: `validate_dataset` now returns both the validated dataset and its shared feature dimension, eliminating the redundant `feature_dim()` revalidation path inside `DatasetTransform.fit`, `transform`, and `inverse_transform`. Updated transform and pipeline internals to consume the already-validated `Dataset` directly, and added a focused contract test covering the new `validate_dataset` return value.
+
+Verification:
+- `cd modules/data_pipeline && pytest -q` -> `15 passed in 0.92s`
+
 ### 2026-03-26 — Completion-state orient and regression verification (`SESSION_ID=work-session-mn7o1zmx`)
 
 Ran `/orient data_pipeline` (full, project-scoped) and confirmed the project remains `Status: completed` with no open tasks in `projects/data_pipeline/TASKS.md`.
