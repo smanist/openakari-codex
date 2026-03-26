@@ -3,6 +3,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
 import type { QueryOpts, QueryResult, SDKMessage } from "./sdk.js";
+import { computeEffectiveModel, DEFAULT_MODEL_BY_TIER } from "./model-tiers.js";
 
 export type BackendCapability =
   | "interactive_input"
@@ -83,29 +84,19 @@ async function materializeUserInput(input: AsyncIterable<UserInputMessage>): Pro
   return { content, sessionId };
 }
 
-export const CODEX_DEFAULT_MODEL = "gpt-5.2";
+export const CODEX_DEFAULT_MODEL = DEFAULT_MODEL_BY_TIER.strong;
 export const OPENCODE_MODEL = "glm5/zai-org/GLM-5-FP8";
-
-const CODEX_MODEL_ALIASES: Record<string, string> = {
-  opus: CODEX_DEFAULT_MODEL,
-  sonnet: CODEX_DEFAULT_MODEL,
-  haiku: CODEX_DEFAULT_MODEL,
-};
 
 export function resolveModelForBackend(
   backendName: BackendName,
   model?: string,
 ): string {
-  const requested = model?.trim();
-  if (!requested) {
-    return backendName === "opencode" ? OPENCODE_MODEL : CODEX_DEFAULT_MODEL;
-  }
-
   if (backendName === "opencode") {
-    return requested;
+    const requested = model?.trim();
+    return requested || OPENCODE_MODEL;
   }
 
-  return CODEX_MODEL_ALIASES[requested] ?? requested;
+  return computeEffectiveModel(model);
 }
 
 export function parseCodexMessage(line: string): SDKMessage | null {

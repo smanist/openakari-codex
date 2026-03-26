@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { readPlanFile, buildProgressHandler, buildDeepWorkPrompt, validateExperimentDir, extractFilePaths, findMissingFiles } from "./event-agents.js";
+import { computeEffectiveModel } from "./model-tiers.js";
 
 describe("readPlanFile", () => {
   let tempDir: string;
@@ -446,6 +447,15 @@ describe("spawnDeepWork backend profile override", () => {
     const profile = resolveDeepWorkProfile("codex");
     expect(profile.maxTurns).toBe(AGENT_PROFILES.deepWork.maxTurns);
     expect(profile.maxDurationMs).toBe(AGENT_PROFILES.deepWork.maxDurationMs);
+  });
+
+  it("computes effective model with skill minimum floor", async () => {
+    const { resolveDeepWorkProfile } = await import("./event-agents.js");
+    const profile = resolveDeepWorkProfile("openai");
+
+    const effective = computeEffectiveModel(profile.model, "strong");
+    // deepWork profile uses legacy alias "opus", which maps to frontier.
+    expect(effective).toBe("gpt-5.4");
   });
 });
 

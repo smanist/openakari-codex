@@ -233,6 +233,27 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-03-25 — Default tier mapping + effective model floor computation
+
+Added a default capability-tier mapping for model-driven routing and wired effective-model computation into runtime selection:
+
+- `fast` -> `gpt-5.1-codex-mini`
+- `standard` -> `gpt-5.4-mini`
+- `strong` -> `gpt-5.3-codex` (default tier)
+- `frontier` -> `gpt-5.4`
+
+Implementation:
+- Added `src/model-tiers.ts` with tier inference + `computeEffectiveModel(requested, minimumTier)`.
+- Updated `resolveModelForBackend()` in `src/backend.ts` to use tier defaults/aliases for codex/openai routes.
+- Updated deep-work spawning (`src/event-agents.ts`) to apply skill `model-minimum` as a floor when computing the effective model.
+
+Verification:
+- `cd infra/scheduler && npm test`
+  - `Test Files  66 passed (66)`
+  - `Tests  1672 passed (1672)`
+- `cd infra/scheduler && npm run build`
+  - `npx tsc` completed successfully
+
 ### 2026-03-25 — Model-only interface, runtime-route observability, skill tier migration
 
 Removed Claude/Cursor naming from the scheduler's live surfaces and made `model` the only user-facing execution selector. Internally, observability now records `runtime` routes (`codex_cli`, `openai_fallback`, `opencode_local`) instead of `backend`. Skill metadata tiers were migrated to forward-compatible `complexity` and `model-minimum` levels.

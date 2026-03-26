@@ -70,9 +70,13 @@ describe("getEffectiveBackendName", () => {
 });
 
 describe("resolveModelForBackend", () => {
-  it("maps alias models for codex/openai", () => {
-    expect(resolveModelForBackend("codex", "opus")).toBe("gpt-5.2");
-    expect(resolveModelForBackend("openai", "sonnet")).toBe("gpt-5.2");
+  it("maps tier labels and legacy aliases for codex/openai", () => {
+    expect(resolveModelForBackend("codex", "fast")).toBe("gpt-5.1-codex-mini");
+    expect(resolveModelForBackend("openai", "standard")).toBe("gpt-5.4-mini");
+    expect(resolveModelForBackend("codex", "strong")).toBe("gpt-5.3-codex");
+    expect(resolveModelForBackend("openai", "frontier")).toBe("gpt-5.4");
+    expect(resolveModelForBackend("codex", "opus")).toBe("gpt-5.4");
+    expect(resolveModelForBackend("openai", "sonnet")).toBe("gpt-5.4-mini");
   });
 
   it("uses opencode model default for opencode", () => {

@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { join } from "node:path";
 import { spawnAgent, AGENT_PROFILES, resolveProfileForBackend, summarizeToolUses, createToolBatchFlusher } from "./agent.js";
 import { resolveBackend, type UserInputMessage } from "./backend.js";
+import { computeEffectiveModel } from "./model-tiers.js";
 import { validateShellCommand, validateCommand, SecurityError } from "./security.js";
 import { SHELL_TOOL_NAMES } from "./sleep-guard.js";
 import { launchExperiment, trackExperiment } from "./experiments.js";
@@ -750,6 +751,7 @@ export async function spawnDeepWork(
   // which may not support the Skill tool)
   const skillMatch = task.match(/^Run\s+\/(\S+)/i);
   const skillName = skillMatch?.[1];
+  const selectedSkill = skillName ? skills.find((s) => s.name === skillName) : undefined;
   const skillContent = skillName
     ? await readSkillContent(repoDir, skillName)
     : null;
@@ -805,9 +807,19 @@ export async function spawnDeepWork(
   // See diagnosis-deep-work-timeout-loop-2026-02-28.
   const backend = resolveBackend({ requiredCapabilities: ["interactive_input"] });
   const profile = resolveDeepWorkProfile(backend.name);
+  const effectiveModel = computeEffectiveModel(profile.model, selectedSkill?.modelMinimum);
+  const effectiveProfile = effectiveModel === profile.model
+    ? profile
+    : { ...profile, model: effectiveModel };
+  if (effectiveModel !== profile.model) {
+    console.log(
+      `[deep-work] Model floor applied for /${selectedSkill?.name ?? "unknown"}: ` +
+      `${profile.model} -> ${effectiveModel} (minimum=${selectedSkill?.modelMinimum})`,
+    );
+  }
 
   const { sessionId, handle, result } = spawnAgent({
-    profile,
+    profile: effectiveProfile,
     prompt,
     cwd: repoDir,
     requiredCapabilities: ["interactive_input"],
