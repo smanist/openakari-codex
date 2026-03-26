@@ -123,6 +123,14 @@
   Done when: A dated analysis computes post-intervention non-zero-findings rate and failed-session rate over the next 10 scheduler sessions, compares against baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and records pass/refute/ambiguous outcome.
   Priority: high
 
+- [x] Quantify interim findings-first trend at 6/10 post-intervention sessions [requires-opus] [skill: analyze] [zero-resource]
+  Why: Mission gap — the final impact task remains externally blocked until 10 sessions, but the project Done-when requires continued measurement of whether interventions improve knowledge output over time.
+  Done when: A dated analysis in `projects/akari/analysis/` computes current post-intervention non-zero-findings and failed-session rates at the 6-session checkpoint (using `.scheduler/metrics/sessions.jsonl`), compares against the baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and states trend classification (`improving`, `flat`, or `worse`) with explicit arithmetic and data provenance.
+  Priority: high
+  Evidence: `projects/akari/analysis/findings-first-interim-trend-2026-03-26-6of10.md`
+  Evidence: `projects/akari/analysis/findings-first-interim-window-2026-03-26-6of10.json`
+  Verification: `node - <<'NODE' ... derived.post_window_scheduler_work_cycles ... NODE` -> `post_window_scheduler_work_cycles 6`, `post_non_zero_findings_sessions 0`, `post_failed_sessions 0`.
+
 - [x] Quantify interim findings-first trend at 5/10 post-intervention sessions [requires-opus] [skill: analyze] [zero-resource]
   Why: Mission gap — the final impact task remains externally blocked until 10 sessions, but the project Done-when requires ongoing measurement of whether interventions improve knowledge output over time.
   Done when: A dated analysis in `projects/akari/analysis/` computes current post-intervention non-zero-findings and failed-session rates at the 5-session checkpoint (using `.scheduler/metrics/sessions.jsonl`), compares against the baseline in `projects/akari/plans/2026-03-25-findings-rate-intervention.md`, and states trend classification (`improving`, `flat`, or `worse`) with explicit arithmetic and data provenance.
