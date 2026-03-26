@@ -83,6 +83,32 @@ Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
 
+### 2026-03-26 — Added strict state_dict reuse coverage for fitted pipelines
+
+Ran `/orient data_pipeline` for `SESSION_ID=work-session-mn7idg6v` and selected the highest-leverage unblocked task: "Add state reuse and serialization coverage." Orient checks found no pending approvals, no stale external blockers, task-claim API unavailable, and findings-first gate still enabled from scheduler work-cycle metrics (`0/8 = 0.0%` non-zero findings in the latest scheduler window).
+
+Scope classification: structural (verifiable), `consumes_resources: false` (no LLM/API calls, GPU compute, or long-running jobs).
+
+Implemented strict PyTorch state reuse support in `modules/data_pipeline/`:
+- Persisted transform metadata (`input_dim`, `output_dim`, `invertibility`) in registered buffers so fitted contracts survive `state_dict` round-trips.
+- Normalized dynamic learned buffers (`offset/scale`, `mean/basis`, polynomial exponent caches) to load cleanly into fresh module instances via `_load_from_state_dict` with shape preparation.
+- Added serialization tests that verify a fitted pipeline can be saved, restored, and reused on a second dataset without refitting, with matching transform/inverse outputs and preserved feature-dimension validation.
+
+Verification:
+- `curl -s -o /tmp/data_pipeline_claim_mn7idg6v.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...` -> `000` (task-claim service unavailable; proceeded per SOP fallback)
+- `cd modules/data_pipeline && pytest -q` -> `11 passed in 0.65s`
+
+Session-type: autonomous
+Duration: 29 minutes
+Task-selected: Add state reuse and serialization coverage
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ## Open questions
 
 - None currently.

@@ -15,7 +15,7 @@
   Done when: `modules/data_pipeline/` exposes working implementations for 0-1 normalization, truncated SVD, and polynomial lifting that can participate in the pipeline contract.
   Priority: high
 
-- [ ] Add state reuse and serialization coverage [skill: execute]
+- [x] Add state reuse and serialization coverage [skill: execute]
   Why: A fitted pipeline is only useful if the learned transform can be saved, reloaded, and applied consistently to another dataset without refitting.
   Done when: Tests verify that a fitted pipeline can be serialized via PyTorch module state, reconstructed, and used to transform and inverse-transform a second dataset with the same feature dimension.
   Priority: medium
