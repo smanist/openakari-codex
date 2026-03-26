@@ -49,10 +49,11 @@
   Evidence (E2E manual run): `.scheduler/logs/work-cycle-2026-03-25T15-23-15-092Z.log` shows `Turns: 1` and non-empty `## output` (`PING`).
   Evidence (metrics): `.scheduler/metrics/sessions.jsonl` row at `timestamp:"2026-03-25T15:23:17.280Z"` reports `jobName:"work-cycle"` and `numTurns:1` (triggerSource: `manual`).
 
-- [ ] Add one local example of a successful self-improvement loop [fleet-eligible] [skill: record] [zero-resource]
+- [x] Add one local example of a successful self-improvement loop [fleet-eligible] [skill: record] [zero-resource]
   Why: The strongest evidence for the meta-project is a full loop: detect a gap, change the system, then measure improvement.
   Done when: README log entry or analysis file records a before/after operational improvement with provenance.
   Priority: medium
+  Evidence: `projects/akari/analysis/self-improvement-loop-example-2026-03-25.md`
 
 ## Model-only migration
 
@@ -83,7 +84,8 @@
   Evidence: `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-03-25.md`
   Evidence: `infra/scheduler/src/anomaly-detection.ts`
 
-- [ ] Re-run scheduler health checks after fixes [fleet-eligible] [skill: analyze] [zero-resource]
+- [x] Re-run scheduler health checks after fixes [fleet-eligible] [skill: analyze] [zero-resource]
   Why: Confirm health monitoring no longer produces false positives for manual smoke runs and zero-cost budget-project sessions.
   Done when: A short note in `projects/akari/README.md` records the output of health + warning escalation over the most recent ≥20 sessions, with no `task_starvation` due to `triggerSource:\"manual\"` and no `ledger_inconsistent` recurrence when `costUsd: 0`.
   Priority: medium
+  Evidence: `projects/akari/README.md` (2026-03-25 log entry “Self-improvement loop example + re-run health watchdog”)

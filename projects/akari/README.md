@@ -14,6 +14,30 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-25 (Self-improvement loop example + re-run health watchdog)
+
+Completed a concrete, repo-local self-improvement loop write-up by recomputing the “before” error distribution from `.scheduler/metrics/sessions.jsonl`, then re-running the scheduler watchdog over the latest 20 sessions.
+
+Artifacts:
+- `projects/akari/analysis/self-improvement-loop-example-2026-03-25.md`
+- `projects/akari/plans/2026-03-25-work-session-mn6rn3kx.md`
+
+Verification:
+- `node infra/scheduler/dist/cli.js watchdog --limit 20`
+  - `Analyzed 20 sessions.`
+  - `:white_check_mark: Session health watchdog: all clear. No anomalies detected.`
+
+Session-type: autonomous
+Duration: 6
+Task-selected: Add one local example of a successful self-improvement loop
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Scheduler health monitoring: task starvation, duration, ledger)
 
 Diagnosed three health-monitoring signals from `.scheduler/metrics/sessions.jsonl` and applied fixes to reduce false positives:
