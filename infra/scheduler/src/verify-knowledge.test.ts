@@ -403,10 +403,10 @@ diff --git a/projects/akari/README.md b/projects/akari/README.md
 
   // ── NEW: compound actions ──
 
-  it("counts CLAUDE.md changes as compound actions", () => {
+  it("counts AGENTS.md changes as compound actions", () => {
     const diff = "";
     const result = parseKnowledgeFromDiff(diff, [
-      "CLAUDE.md",
+      "AGENTS.md",
     ], new Set());
     expect(result.compoundActions).toBe(1);
   });
@@ -414,8 +414,8 @@ diff --git a/projects/akari/README.md b/projects/akari/README.md
   it("counts skill file changes as compound actions", () => {
     const diff = "";
     const result = parseKnowledgeFromDiff(diff, [
-      ".claude/skills/orient/SKILL.md",
-      ".claude/skills/compound/SKILL.md",
+      ".agents/skills/orient/SKILL.md",
+      ".agents/skills/compound/SKILL.md",
     ], new Set());
     expect(result.compoundActions).toBe(2);
   });
@@ -466,12 +466,12 @@ diff --git a/projects/akari/README.md b/projects/akari/README.md
 `;
     const result = parseKnowledgeFromDiff(diff, [
       "projects/akari/experiments/test/EXPERIMENT.md",
-      "CLAUDE.md",
-      ".claude/skills/orient/SKILL.md",
+      "AGENTS.md",
+      ".agents/skills/orient/SKILL.md",
       "decisions/0021-compound-metric.md",
       "infra/scheduler/src/verify.ts",
     ], new Set(["decisions/0021-compound-metric.md"]));
-    expect(result.compoundActions).toBe(3); // CLAUDE.md + skill + decision
+    expect(result.compoundActions).toBe(3); // AGENTS.md + skill + decision
     expect(result.newExperimentFindings).toBe(1);
     expect(result.newDecisionRecords).toBe(1);
     expect(result.infraCodeChanges).toBe(1);
@@ -535,11 +535,11 @@ diff --git a/projects/akari/README.md b/projects/akari/README.md
   });
 
   it("does not double-count compound action files as structural changes", () => {
-    // CLAUDE.md, skills, decisions, SOPs are already compound actions — structural should not count them
+    // AGENTS.md, skills, decisions, SOPs are already compound actions — structural should not count them
     const diff = "";
     const result = parseKnowledgeFromDiff(diff, [
-      "CLAUDE.md",
-      ".claude/skills/orient/SKILL.md",
+      "AGENTS.md",
+      ".agents/skills/orient/SKILL.md",
       "decisions/0030-tiered-orient.md",
       "docs/sops/autonomous-work-cycle.md",
     ], new Set(["decisions/0030-tiered-orient.md"]));
@@ -629,7 +629,7 @@ describe("parseCrossProjectMetrics", () => {
     const result = parseCrossProjectMetrics("", [
       "projects/akari/README.md",
       "projects/sample-project/TASKS.md",
-      "CLAUDE.md",
+      "AGENTS.md",
     ]);
     expect([...result.projectsTouched].sort()).toEqual(["akari", "sample-project"]);
     expect(result.crossProjectRefs).toBe(0);
@@ -688,11 +688,11 @@ describe("parseCrossProjectMetrics", () => {
 
   it("does not count references from non-project files", () => {
     const diff = [
-      "diff --git a/CLAUDE.md b/CLAUDE.md",
+      "diff --git a/AGENTS.md b/AGENTS.md",
       "+See projects/sample-project/README.md for example.",
     ].join("\n");
 
-    const result = parseCrossProjectMetrics(diff, ["CLAUDE.md"]);
+    const result = parseCrossProjectMetrics(diff, ["AGENTS.md"]);
     expect(result.crossProjectRefs).toBe(0);
   });
 

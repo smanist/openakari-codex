@@ -326,7 +326,7 @@ const ZERO_RESOURCE_PATTERNS = [
 
 /** Patterns indicating governance/AGENTS.md changes (approval-needed). */
 const APPROVAL_PATTERNS = [
-  /\bCLAUDE\.md\b/,
+  /\bAGENTS\.md\b/,
   /\bgovernance\b/i,
   /\bapproval\b.*\b(gate|workflow|process)/i,
   /\bbudget\b.*\b(increase|extend|raise)/i,

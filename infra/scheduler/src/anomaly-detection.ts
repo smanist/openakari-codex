@@ -136,10 +136,10 @@ const PERCENTILE_METRICS = new Set<Anomaly["metric"]>(["numTurns", "durationMs"]
 
 /**
  * Detect statistical outliers across session metrics.
- * Pure function — no I/O. Segments sessions by backend before computing
- * statistics, so each backend is compared against its own baseline.
- * This prevents false positives when backends have different cost profiles
- * (e.g., Claude reports real costs while Cursor reports $0).
+ * Pure function — no I/O. Segments sessions by runtime route before computing
+ * statistics, so each route is compared against its own baseline.
+ * This prevents false positives when routes have different cost profiles
+ * (e.g., codex_cli reports real costs while opencode_local may report $0).
  *
  * Detection methods:
  * - costUsd: σ-based, high outliers (symmetric distribution)
@@ -178,13 +178,13 @@ export function detectAnomalies(
   // Statistical checks require minimum session count
   if (sessions.length < o.minSessions) return anomalies;
 
-  // Group sessions by backend to avoid bimodal-population false positives
-  const byBackend = new Map<string, SessionMetrics[]>();
+  // Group sessions by runtime to avoid bimodal-population false positives
+  const byRuntime = new Map<string, SessionMetrics[]>();
   for (const s of sessions) {
-    const key = s.backend ?? "unknown";
-    const group = byBackend.get(key);
+    const key = s.runtime;
+    const group = byRuntime.get(key);
     if (group) group.push(s);
-    else byBackend.set(key, [s]);
+    else byRuntime.set(key, [s]);
   }
 
   /** σ-based anomaly check for symmetric distributions. */
@@ -306,8 +306,8 @@ export function detectAnomalies(
     }
   }
 
-  // Run anomaly checks per backend group
-  for (const group of byBackend.values()) {
+  // Run anomaly checks per runtime group
+  for (const group of byRuntime.values()) {
     // σ-based: symmetric distributions
     // Cost: exclude $0.00 sessions (billing failures) from baseline to avoid skew
     // Also skip cost alerts for productive sessions (findings/cost > threshold)

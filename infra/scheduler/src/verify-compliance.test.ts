@@ -637,7 +637,6 @@ describe("isL2Violation", () => {
     ["partial completion ban", "Partial completion ban violation: found [x] (partial)"],
     ["incremental commit", "Incremental commit violation: 10 files changed but only 1 agent commit(s)"],
     ["model provenance", "Model provenance missing: EXPERIMENT.md is completed with consumes_resources: true"],
-    ["backend provenance", "Backend provenance missing: EXPERIMENT.md is completed with consumes_resources: true"],
     ["model line missing", "Model line missing in body: EXPERIMENT.md is completed with consumes_resources: true"],
     ["orphaned approval-needed tag", "Orphaned approval-needed tag: task has no matching pending entry"],
   ])("identifies %s as L2 violation", (_name, message) => {

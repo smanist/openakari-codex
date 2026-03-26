@@ -41,9 +41,7 @@ vi.mock("./convention-modules.js", () => ({
 
 vi.mock("./backend.js", () => ({
   resolveBackend: vi.fn().mockReturnValue({
-    name: "claude",
-    spawn: vi.fn(),
-    isAvailable: vi.fn().mockReturnValue(true),
+    name: "codex",
   }),
 }));
 
@@ -247,7 +245,7 @@ describe("executeJob", () => {
       expect(result.exitCode).toBe(1);
     });
 
-    it("records backend name in error result", async () => {
+    it("records runtime route in error result", async () => {
       vi.mocked(await import("./agent.js")).spawnAgent.mockImplementationOnce(() => {
         throw new Error("Spawn failed");
       });
@@ -255,7 +253,7 @@ describe("executeJob", () => {
       const job = createJob();
       const result = await executeJob(job);
 
-      expect(result.backend).toBe("claude");
+      expect(result.runtime).toBe("codex_cli");
     });
 
     it("captures costUsd from agent result", async () => {

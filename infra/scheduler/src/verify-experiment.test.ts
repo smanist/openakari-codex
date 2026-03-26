@@ -1,7 +1,7 @@
 /** Tests for experiment-related verification functions in verify.ts. */
 
 import { describe, it, expect } from "vitest";
-import { parseExperimentFrontmatter, hasConsumesResourcesWaiver, checkConsumesResources, getExperimentStatus, checkModelBackendProvenance, checkFindingsProvenance } from "./verify.js";
+import { parseExperimentFrontmatter, hasConsumesResourcesWaiver, checkConsumesResources, getExperimentStatus, checkModelProvenance, checkFindingsProvenance } from "./verify.js";
 import { mkdtemp, writeFile, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -277,8 +277,8 @@ Test experiment.
   });
 });
 
-describe("checkModelBackendProvenance", () => {
-  it("returns missing fields for completed resource-consuming record without model/backend", () => {
+describe("checkModelProvenance", () => {
+  it("returns missing fields for completed resource-consuming record without model provenance", () => {
     const content = `---
 id: test-exp
 status: completed
@@ -289,14 +289,13 @@ consumes_resources: true
 ## Config
 Some config without Model: line.
 `;
-    const result = checkModelBackendProvenance(content);
+    const result = checkModelProvenance(content);
     expect(result).not.toBeNull();
     expect(result!.missingModel).toBe(true);
-    expect(result!.missingBackend).toBe(true);
     expect(result!.missingModelLine).toBe(true);
   });
 
-  it("returns no missing fields when model and backend present in frontmatter and body", () => {
+  it("returns no missing fields when model provenance is present in frontmatter and body", () => {
     const content = `---
 id: test-exp
 status: completed
@@ -309,10 +308,9 @@ backend: cf-gateway
 ## Config
 Model: gemini-3-flash via CF Gateway (selected per Model Selection Guide)
 `;
-    const result = checkModelBackendProvenance(content);
+    const result = checkModelProvenance(content);
     expect(result).not.toBeNull();
     expect(result!.missingModel).toBe(false);
-    expect(result!.missingBackend).toBe(false);
     expect(result!.missingModelLine).toBe(false);
   });
 
@@ -325,7 +323,7 @@ consumes_resources: true
 ## Design
 Test.
 `;
-    const result = checkModelBackendProvenance(content);
+    const result = checkModelProvenance(content);
     expect(result).toBeNull();
   });
 
@@ -338,7 +336,7 @@ consumes_resources: false
 ## Question
 Test.
 `;
-    const result = checkModelBackendProvenance(content);
+    const result = checkModelProvenance(content);
     expect(result).toBeNull();
   });
 
@@ -354,7 +352,7 @@ backend: claude-sdk
 Model: claude-opus-4.6 via claude-sdk
 Analysis details.
 `;
-    const result = checkModelBackendProvenance(content);
+    const result = checkModelProvenance(content);
     expect(result).not.toBeNull();
     expect(result!.missingModelLine).toBe(false);
   });
@@ -363,7 +361,7 @@ Analysis details.
     const content = `# Just a regular file
 No frontmatter here.
 `;
-    const result = checkModelBackendProvenance(content);
+    const result = checkModelProvenance(content);
     expect(result).toBeNull();
   });
 });

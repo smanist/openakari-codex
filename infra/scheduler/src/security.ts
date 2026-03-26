@@ -75,8 +75,6 @@ const BLOCKED_EXECUTABLES = new Set([
   "apt", "apt-get", "dpkg", "yum", "dnf", "pacman", "snap", "flatpak",
   "pip", "pip3", "gem", "cargo",
   // npm/yarn/pnpm handled separately (run/test/start OK, install blocked)
-  // Agent/scheduler recursion
-  "claude", "cursor", "cursor-agent", "agent",
 ]);
 
 /** Dangerous pm2 subcommands that would stop the scheduler itself. */

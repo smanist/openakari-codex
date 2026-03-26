@@ -96,7 +96,7 @@ export function listSessions(): SessionInfo[] {
 }
 
 /** Update session cost and turn count (called when a result message is received).
- *  When numTurns is 0 (e.g., Cursor backend doesn't report turns), the existing
+ *  When numTurns is 0 (some runtimes don't report turns), the existing
  *  incrementally-tracked count is preserved. */
 export function updateSessionStats(id: string, costUsd: number, numTurns: number): void {
   const session = sessions.get(id);

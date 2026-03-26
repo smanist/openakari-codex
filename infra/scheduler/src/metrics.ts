@@ -3,6 +3,7 @@
 import { readFile, appendFile, mkdir, open, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomBytes } from "node:crypto";
+import { runtimeRouteFromLegacyBackend, type RuntimeRoute } from "./runtime.js";
 
 const DEFAULT_METRICS_PATH = new URL(
   "../../../.scheduler/metrics/sessions.jsonl",
@@ -89,7 +90,7 @@ export interface SessionMetrics {
   jobName: string;
   runId: string;
   triggerSource?: "scheduler" | "slack" | "manual" | "fleet";
-  backend: "codex" | "openai" | "claude" | "cursor" | "opencode";
+  runtime: RuntimeRoute;
   durationMs: number;
   costUsd: number | null;
   numTurns: number | null;
@@ -116,6 +117,12 @@ export interface SessionMetrics {
   recycledFrom?: string;
 }
 
+const RUNTIME_ROUTES = new Set<RuntimeRoute>([
+  "codex_cli",
+  "openai_fallback",
+  "opencode_local",
+]);
+
 /** Generate a unique runId for session metrics. Uses cryptographic random bytes
  *  to avoid the race condition where concurrent executions read the same runCount. */
 export function generateRunId(jobId: string): string {
@@ -129,7 +136,7 @@ export function fleetResultToMetrics(fr: import("./types.js").FleetWorkerResult)
     jobName: `fleet-worker:${fr.project}`,
     runId: fr.sessionId,
     triggerSource: "fleet",
-    backend: fr.backend ?? "opencode",
+    runtime: fr.runtime ?? "opencode_local",
     durationMs: fr.durationMs,
     costUsd: fr.costUsd ?? null,
     numTurns: fr.numTurns ?? null,
@@ -150,6 +157,22 @@ export function fleetResultToMetrics(fr: import("./types.js").FleetWorkerResult)
     ...(fr.isIdle ? { isIdle: true, explorationType: fr.explorationType } : {}),
     ...(fr.isRecycled ? { isRecycled: true, recycledFrom: fr.recycledFrom } : {}),
   };
+}
+
+function normalizeRuntime(raw: unknown): RuntimeRoute {
+  if (typeof raw === "string") {
+    const candidate = raw.trim() as RuntimeRoute;
+    if (RUNTIME_ROUTES.has(candidate)) return candidate;
+  }
+  return runtimeRouteFromLegacyBackend((raw as any) ?? "");
+}
+
+function normalizeSessionMetrics(raw: unknown): SessionMetrics {
+  if (!raw || typeof raw !== "object") return raw as SessionMetrics;
+  const record = raw as Record<string, unknown> & { backend?: unknown; runtime?: unknown };
+  const runtime = normalizeRuntime(record.runtime ?? record.backend);
+  const { backend: _backend, ...rest } = record;
+  return { ...(rest as any), runtime } as SessionMetrics;
 }
 
 /** Append one session metrics record to the JSONL file. */
@@ -217,7 +240,7 @@ export async function readMetrics(opts?: {
   if (opts?.limit && !opts?.since) {
     try {
       const lines = await readTailLines(path, opts.limit);
-      return lines.map((line) => JSON.parse(line) as SessionMetrics);
+      return lines.map((line) => normalizeSessionMetrics(JSON.parse(line)));
     } catch {
       return [];
     }
@@ -233,7 +256,7 @@ export async function readMetrics(opts?: {
   let records = content
     .split("\n")
     .filter((line) => line.trim())
-    .map((line) => JSON.parse(line) as SessionMetrics);
+    .map((line) => normalizeSessionMetrics(JSON.parse(line)));
 
   if (opts?.since) {
     records = records.filter((r) => r.timestamp >= opts.since!);

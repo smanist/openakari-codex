@@ -562,11 +562,13 @@ function isZeroKnowledge(k: KnowledgeMetrics): boolean {
 }
 
 /**
- * Check if a zero-knowledge session is genuine waste (not structural work, orphan management, or cursor).
+ * Check if a zero-knowledge session is genuine waste (not structural work, orphan management, or fleet).
  * Matches the genuine waste taxonomy from analysis/zero-knowledge-session-analysis.md.
  */
 function isGenuineWaste(s: SessionMetrics): boolean {
-  if (s.backend === "cursor") return false;
+  // Fleet sessions have different goals and cost structure; don't mix them into
+  // deep-work waste heuristics.
+  if (s.runtime === "opencode_local") return false;
   // Idle exploration sessions are designed to produce zero output when nothing
   // relevant is found. They are not waste — they checked and confirmed "nothing new".
   if (s.isIdle) return false;
@@ -586,7 +588,7 @@ function isGenuineWaste(s: SessionMetrics): boolean {
  */
 function isTaskStarvation(s: SessionMetrics): boolean {
   if (!s.verification) return false;
-  if (s.backend === "cursor") return false;
+  if (s.runtime === "opencode_local") return false;
   // Manual runs are often used as smoke checks and may legitimately produce no commits/files.
   // Counting them as "task starvation" inflates supply alarms.
   if (s.triggerSource === "manual") return false;

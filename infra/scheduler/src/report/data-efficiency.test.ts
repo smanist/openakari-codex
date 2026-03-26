@@ -5,8 +5,22 @@ import type { SessionMetrics } from "../metrics.js";
 function makeSession(overrides: Partial<SessionMetrics> = {}): SessionMetrics {
   return {
     timestamp: "2026-03-05T12:00:00Z",
-    sessionId: "test-session",
-    backend: "claude",
+    jobName: "test-job",
+    runId: "test-session",
+    runtime: "codex_cli",
+    durationMs: 1000,
+    costUsd: 0,
+    numTurns: 1,
+    timedOut: false,
+    ok: true,
+    verification: null,
+    knowledge: null,
+    budgetGate: null,
+    modelUsage: null,
+    toolCounts: null,
+    orientTurns: null,
+    crossProject: null,
+    qualityAudit: null,
     ...overrides,
   };
 }
@@ -16,7 +30,7 @@ describe("aggregateEfficiency", () => {
     it("excludes fleet workers from zeroKnowledgeRate", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "claude",
+          runtime: "codex_cli",
           knowledge: {
             newExperimentFindings: 0,
             newDecisionRecords: 0,
@@ -36,7 +50,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 0,
             newDecisionRecords: 0,
@@ -56,7 +70,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "claude",
+          runtime: "codex_cli",
           knowledge: {
             newExperimentFindings: 1,
             newDecisionRecords: 0,
@@ -84,10 +98,10 @@ describe("aggregateEfficiency", () => {
       expect(result.fleet!.totalSessions).toBe(1);
     });
 
-    it("returns zeroKnowledgeRate=0 when no claude sessions present", () => {
+    it("returns zeroKnowledgeRate=0 when no deep-work sessions present", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 0,
             newDecisionRecords: 0,
@@ -107,7 +121,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 1,
             newDecisionRecords: 0,
@@ -139,19 +153,19 @@ describe("aggregateEfficiency", () => {
     it("computes task completion rate from hasCommit", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: true },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: false },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, hasLogEntry: false },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: true },
         }),
       ];
@@ -164,19 +178,19 @@ describe("aggregateEfficiency", () => {
     it("computes verification pass rate from hasCommit && hasLogEntry", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: true },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: false },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, hasLogEntry: true },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, hasLogEntry: false },
         }),
       ];
@@ -189,19 +203,19 @@ describe("aggregateEfficiency", () => {
     it("computes log entry rate from hasLogEntry", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: true },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: false },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, hasLogEntry: true },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, hasLogEntry: false },
         }),
       ];
@@ -214,15 +228,15 @@ describe("aggregateEfficiency", () => {
     it("computes avg commits per session", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, agentCommitCount: 2 },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, agentCommitCount: 1 },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, agentCommitCount: 0 },
         }),
       ];
@@ -235,7 +249,7 @@ describe("aggregateEfficiency", () => {
     it("computes knowledge production rate for fleet", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 1,
             newDecisionRecords: 0,
@@ -255,7 +269,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 0,
             newDecisionRecords: 0,
@@ -275,7 +289,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 0,
             newDecisionRecords: 1,
@@ -295,7 +309,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           knowledge: {
             newExperimentFindings: 1,
             newDecisionRecords: 0,
@@ -324,15 +338,15 @@ describe("aggregateEfficiency", () => {
     it("computes avg files changed per session", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, filesChanged: 3 },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, filesChanged: 5 },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: false, filesChanged: 0 },
         }),
       ];
@@ -345,8 +359,24 @@ describe("aggregateEfficiency", () => {
     it("returns null fleet metrics when no fleet sessions", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "claude",
-          knowledge: { newFiles: 1, newDecisions: 0, newExperimentFindings: 0, newLiteratureNotes: 0 },
+          runtime: "codex_cli",
+          knowledge: {
+            newExperimentFindings: 0,
+            newDecisionRecords: 0,
+            newLiteratureNotes: 0,
+            openQuestionsResolved: 0,
+            openQuestionsDiscovered: 0,
+            experimentsCompleted: 0,
+            crossReferences: 0,
+            newAnalysisFiles: 0,
+            logEntryFindings: 0,
+            infraCodeChanges: 0,
+            bugfixVerifications: 0,
+            compoundActions: 0,
+            structuralChanges: 0,
+            feedbackProcessed: 0,
+            diagnosesCompleted: 0,
+          },
         }),
       ];
 
@@ -358,10 +388,10 @@ describe("aggregateEfficiency", () => {
     it("handles fleet sessions without verification or knowledge", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           verification: { hasCommit: true, hasLogEntry: true },
         }),
       ];
@@ -374,11 +404,11 @@ describe("aggregateEfficiency", () => {
     });
   });
 
-  describe("mixed backend scenarios", () => {
-    it("correctly separates claude and fleet metrics", () => {
+  describe("mixed runtime scenarios", () => {
+    it("correctly separates deep-work and fleet metrics", () => {
       const sessions: SessionMetrics[] = [
         makeSession({
-          backend: "claude",
+          runtime: "codex_cli",
           costUsd: 1.0,
           knowledge: {
             newExperimentFindings: 1,
@@ -399,7 +429,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           costUsd: 0,
           verification: { hasCommit: true, hasLogEntry: true },
           knowledge: {
@@ -421,7 +451,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "claude",
+          runtime: "codex_cli",
           costUsd: 2.0,
           knowledge: {
             newExperimentFindings: 0,
@@ -442,7 +472,7 @@ describe("aggregateEfficiency", () => {
           },
         }),
         makeSession({
-          backend: "opencode",
+          runtime: "opencode_local",
           costUsd: 0,
           verification: { hasCommit: false, hasLogEntry: false },
           knowledge: {

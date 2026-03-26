@@ -13,7 +13,7 @@ function session(overrides: Partial<SessionMetrics> = {}): SessionMetrics {
     timestamp: "2026-02-20T00:00:00Z",
     jobName: "test-job",
     runId: "test-1",
-    backend: "claude",
+    runtime: "codex_cli",
     durationMs: 300_000,
     costUsd: 2.0,
     numTurns: 40,
@@ -512,7 +512,7 @@ describe("fleetResultToMetrics", () => {
       costUsd: 0,
       numTurns: 8,
       timedOut: false,
-      backend: "opencode",
+      runtime: "opencode_local",
       toolCounts: { Read: 3, Bash: 2 },
     };
 
@@ -521,7 +521,7 @@ describe("fleetResultToMetrics", () => {
     expect(metrics.jobName).toBe("fleet-worker:my-project");
     expect(metrics.runId).toBe("fleet-sess-001");
     expect(metrics.triggerSource).toBe("fleet");
-    expect(metrics.backend).toBe("opencode");
+    expect(metrics.runtime).toBe("opencode_local");
     expect(metrics.durationMs).toBe(120000);
     expect(metrics.costUsd).toBe(0);
     expect(metrics.numTurns).toBe(8);
@@ -551,7 +551,7 @@ describe("fleetResultToMetrics", () => {
       costUsd: 0,
       numTurns: 3,
       timedOut: false,
-      backend: "opencode",
+      runtime: "opencode_local",
       toolCounts: {},
       skillType: "execute",
       workerRole: "implementation",
@@ -612,7 +612,7 @@ describe("fleetResultToMetrics", () => {
       sessionId: "fleet-verified",
       ok: true,
       durationMs: 60000,
-      backend: "opencode",
+      runtime: "opencode_local",
       verification: mockVerification,
       knowledge: mockKnowledge,
       crossProject: mockCrossProject,
@@ -637,7 +637,7 @@ describe("fleetResultToMetrics", () => {
       ok: false,
       durationMs: 5000,
       error: "Agent crashed",
-      backend: "opencode",
+      runtime: "opencode_local",
     };
 
     const metrics = fleetResultToMetrics(fr);
@@ -651,7 +651,7 @@ describe("fleetResultToMetrics", () => {
     expect(metrics.orientTurns).toBeNull();
   });
 
-  it("defaults backend to opencode when not specified", () => {
+  it("defaults runtime to opencode_local when not specified", () => {
     const fr: FleetWorkerResult = {
       taskId: "task-def",
       project: "proj",
@@ -661,7 +661,7 @@ describe("fleetResultToMetrics", () => {
     };
 
     const metrics = fleetResultToMetrics(fr);
-    expect(metrics.backend).toBe("opencode");
+    expect(metrics.runtime).toBe("opencode_local");
   });
 
   it("propagates modelUsage when present", () => {

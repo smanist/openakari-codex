@@ -176,7 +176,7 @@ describe("buildSessionBlocks", () => {
     id: "test-job",
     name: "test-session",
     schedule: { kind: "cron", expr: "0 * * * *" },
-    payload: { message: "Run /orient", model: "opus", backend: "cursor" },
+    payload: { message: "Run /orient", model: "opus" },
     enabled: true,
     createdAtMs: Date.now(),
     state: { nextRunAtMs: null, lastRunAtMs: null, lastStatus: null, lastError: null, lastDurationMs: null, runCount: 0 },
@@ -188,26 +188,26 @@ describe("buildSessionBlocks", () => {
     durationMs: 120_000,
     exitCode: 0,
     stdout: "Done.",
-    backend: "cursor",
+    runtime: "opencode_local",
     ...overrides,
   });
 
-  it("includes backend in session completion fields", () => {
-    const blocks = buildSessionBlocks(makeJob(), makeResult({ backend: "cursor" }), []);
+  it("includes runtime in session completion fields", () => {
+    const blocks = buildSessionBlocks(makeJob(), makeResult({ runtime: "opencode_local" }), []);
     const json = JSON.stringify(blocks);
-    expect(json).toContain("cursor");
+    expect(json).toContain("opencode_local");
   });
 
-  it("includes claude backend", () => {
-    const blocks = buildSessionBlocks(makeJob(), makeResult({ backend: "claude" }), []);
+  it("includes openai_fallback runtime", () => {
+    const blocks = buildSessionBlocks(makeJob(), makeResult({ runtime: "openai_fallback" }), []);
     const json = JSON.stringify(blocks);
-    expect(json).toContain("claude");
+    expect(json).toContain("openai_fallback");
   });
 
-  it("shows default when backend is undefined", () => {
-    const blocks = buildSessionBlocks(makeJob(), makeResult({ backend: undefined }), []);
+  it("shows default when runtime is undefined", () => {
+    const blocks = buildSessionBlocks(makeJob(), makeResult({ runtime: undefined }), []);
     const json = JSON.stringify(blocks);
-    expect(json).toContain("Backend");
+    expect(json).toContain("Runtime");
   });
 });
 

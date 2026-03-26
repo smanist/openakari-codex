@@ -39,7 +39,7 @@ cd ../..
   --cron "0 * * * *" \
   --tz "UTC" \
   --message-default \
-  --model opus
+  --model gpt-5.2
 
 # List jobs
 ./akari list
@@ -232,6 +232,25 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-03-25 — Model-only interface, runtime-route observability, skill tier migration
+
+Removed Claude/Cursor naming from the scheduler's live surfaces and made `model` the only user-facing execution selector. Internally, observability now records `runtime` routes (`codex_cli`, `openai_fallback`, `opencode_local`) instead of `backend`. Skill metadata tiers were migrated to forward-compatible `complexity` and `model-minimum` levels.
+
+Changes:
+- Skill metadata: `complexity` → `low|medium|high|very_high`; `model-minimum` → `fast|standard|strong|frontier` with tolerant frontmatter parsing.
+- Session metrics: `backend` → `runtime` (route-level); readers accept legacy `backend` and normalize on load.
+- Notifications/compliance: Slack blocks show `Runtime`; compliance checks require model provenance only (no `backend` provenance field).
+- Health/anomaly/report logic: segmented by `runtime` and excludes `opencode_local` from deep-work waste heuristics.
+
+Verification: `cd infra/scheduler && npm test`
+Output:
+- `Test Files  65 passed (65)`
+- `Tests  1663 passed (1663)`
+
+Verification: `cd infra/scheduler && npm run build`
+Output:
+- `> npx tsc`
 
 ### 2026-03-25 — Add root CLI alias and default `add` cwd
 

@@ -39,6 +39,15 @@ Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
 
+### 2026-03-25 (Scheduler: runtime-route observability + skill tier metadata)
+
+Updated the scheduler's live observability and conventions to remove `backend` wording in favor of internal `runtime` routes (`codex_cli`, `openai_fallback`, `opencode_local`), while keeping `model` as the only user-facing execution selector. Also migrated skill metadata tiers to forward-compatible `complexity` and `model-minimum` levels.
+
+Verification:
+- `cd infra/scheduler && npm test`
+  - `Test Files  65 passed (65)`
+  - `Tests  1663 passed (1663)`
+
 ### 2026-03-25 (Remove Claude/Cursor surfaces; expose model-only scheduler interface)
 
 Completed the scheduler/runtime cleanup that removes Claude- and Cursor-specific live surfaces and keeps only model selection as the public execution interface.

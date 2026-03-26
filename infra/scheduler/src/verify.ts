@@ -265,7 +265,6 @@ export interface VerificationResult {
  */
 const L2_VIOLATION_PATTERNS = [
   /Model provenance missing:/,
-  /Backend provenance missing:/,
   /Model line missing in body:/,
   /Partial completion ban violation:/,
   /Potential false task completion \(D1\):/,
@@ -775,22 +774,17 @@ export async function verifySession(
         }
       }
 
-      // 8e. Model/backend provenance — check changed EXPERIMENT.md files (ADR 0043)
+      // 8e. Model provenance — check changed EXPERIMENT.md files (ADR 0043)
       for (const file of changedFilesList) {
         if (EXPERIMENT_MD_RE.test(file.trim())) {
-          l2ChecksPerformed++; // L2 check: model/backend provenance
+          l2ChecksPerformed++; // L2 check: model provenance
           try {
             const content = await readFile(join(cwd, file.trim()), "utf-8");
-            const result = checkModelBackendProvenance(content);
+            const result = checkModelProvenance(content);
             if (result) {
               if (result.missingModel) {
                 warnings.push(
                   `Model provenance missing: ${file.trim()} is completed with consumes_resources: true but has no 'model' field in frontmatter. Per ADR 0043, document which model produced the outputs.`,
-                );
-              }
-              if (result.missingBackend) {
-                warnings.push(
-                  `Backend provenance missing: ${file.trim()} is completed with consumes_resources: true but has no 'backend' field in frontmatter. Per ADR 0043, document which backend was used.`,
                 );
               }
               if (result.missingModelLine) {
@@ -1121,7 +1115,7 @@ export function parseKnowledgeFromDiff(
   }
 
   // 10. Compound actions (changes to governance/system files)
-  const compoundRe = /^(CLAUDE\.md|\.claude\/skills\/|decisions\/|docs\/sops\/)|\/patterns\//;
+  const compoundRe = /^(AGENTS\.md|\.agents\/skills\/|decisions\/|docs\/sops\/)|\/patterns\//;
   for (const file of changedFiles) {
     if (compoundRe.test(file)) {
       result.compoundActions++;
@@ -2832,15 +2826,15 @@ async function checkExampleWebappSubmoduleViolation(
 }
 
 /**
- * Check that a completed, resource-consuming EXPERIMENT.md has model and backend
- * in frontmatter. Pure function — no I/O. (ADR 0043)
+ * Check that a completed, resource-consuming EXPERIMENT.md has model provenance
+ * in frontmatter/body. Pure function — no I/O. (ADR 0043)
  *
  * @param experimentContent - Content of EXPERIMENT.md
  * @returns object with missing fields, or null if no check needed
  */
-export function checkModelBackendProvenance(
+export function checkModelProvenance(
   experimentContent: string,
-): { missingModel: boolean; missingBackend: boolean; missingModelLine: boolean } | null {
+): { missingModel: boolean; missingModelLine: boolean } | null {
   const frontmatter = parseExperimentFrontmatter(experimentContent);
   if (!frontmatter) return null;
 
@@ -2851,12 +2845,11 @@ export function checkModelBackendProvenance(
   if (status !== "completed" || consumes !== "true") return null;
 
   const missingModel = !frontmatter.get("model");
-  const missingBackend = !frontmatter.get("backend");
 
   // Check for Model: line in Config or Method section body
   const bodyMatch = experimentContent.match(/^---\n[\s\S]*?\n?---\n?([\s\S]*)$/);
   const body = bodyMatch ? bodyMatch[1] : experimentContent;
   const missingModelLine = !/^Model:/m.test(body);
 
-  return { missingModel, missingBackend, missingModelLine };
+  return { missingModel, missingModelLine };
 }

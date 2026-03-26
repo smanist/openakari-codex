@@ -311,7 +311,7 @@ describe("formatAsTask", () => {
     const rec: Recommendation = {
       sourceId: "test-exp",
       sectionHeader: "Recommendations",
-      text: "Update CLAUDE.md provenance section with the new verification procedure.",
+      text: "Update AGENTS.md provenance section with the new verification procedure.",
     };
     const task = formatAsTask(rec);
     expect(task).not.toBeNull();
@@ -322,7 +322,7 @@ describe("formatAsTask", () => {
     const rec: Recommendation = {
       sourceId: "diagnosis-low-synthesis-rate-2026-02-22",
       sectionHeader: "Recommendations",
-      text: "Add synthesis mention to CLAUDE.md for persistent awareness across sessions.",
+      text: "Add synthesis mention to AGENTS.md for persistent awareness across sessions.",
     };
     const task = formatAsTask(rec);
     expect(task).not.toBeNull();
@@ -470,8 +470,8 @@ The priming block is ambient, not structural.
 ### R1: Add synthesis as a substep in the compound phase
 Add a dedicated substep to the compound step.
 
-### R2: Add a synthesis mention to CLAUDE.md
-Add a brief section in CLAUDE.md.
+### R2: Add a synthesis mention to AGENTS.md
+Add a brief section in AGENTS.md.
 
 ## CI Layer Attribution
 

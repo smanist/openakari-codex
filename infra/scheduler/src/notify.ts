@@ -290,7 +290,7 @@ export function buildSessionBlocks(
         { type: "mrkdwn", text: `*Job:*\n${job.name}` },
         { type: "mrkdwn", text: `*Duration:*\n${duration}s` },
         { type: "mrkdwn", text: `*Model:*\n${job.payload.model ?? "default"}` },
-        { type: "mrkdwn", text: `*Backend:*\n${result.backend ?? "unknown"}` },
+        { type: "mrkdwn", text: `*Runtime:*\n${result.runtime ?? "unknown"}` },
         { type: "mrkdwn", text: `*Run #:*\n${job.state.runCount + 1}` },
       ],
     },

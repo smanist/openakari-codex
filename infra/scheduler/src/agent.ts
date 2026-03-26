@@ -1,6 +1,7 @@
 /** Unified agent spawning — single entry point for all agent sessions (work, chat, autofix). */
 
 import { resolveBackend, type BackendQueryOpts, type SessionHandle, type BackendName, type BackendCapability } from "./backend.js";
+import { runtimeRouteForBackend } from "./runtime.js";
 import type { QueryOpts, SDKMessage } from "./sdk.js";
 import {
   registerSession,
@@ -170,7 +171,7 @@ export function spawnAgent(opts: SpawnAgentOpts): {
     routeHint: opts.routeHint,
   });
 
-  console.log(`[agent] Spawning [${sessionId}]: backend=${backend.name}, model=${opts.profile.model}, maxTurns=${opts.profile.maxTurns ?? "unlimited"}, prompt="${opts.prompt.slice(0, 80)}..."`);
+  console.log(`[agent] Spawning [${sessionId}]: runtime=${runtimeRouteForBackend(backend.name)}, model=${opts.profile.model}, maxTurns=${opts.profile.maxTurns ?? "unlimited"}, prompt="${opts.prompt.slice(0, 80)}..."`);
 
   const queryOpts: BackendQueryOpts = {
     prompt: opts.prompt,

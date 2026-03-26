@@ -14,7 +14,7 @@ import {
 
 // Load environment variables from two layers:
 //   1. infra/.env        — common vars shared across all akari infra (Databricks, AWS, etc.)
-//   2. infra/scheduler/.env — scheduler-specific vars (Slack tokens, agent backend, etc.)
+//   2. infra/scheduler/.env — scheduler-specific vars (Slack tokens, etc.)
 // Scheduler-specific vars override common vars; neither overrides real system env vars.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const systemEnvKeys = new Set(Object.keys(process.env));
@@ -214,7 +214,7 @@ async function recordRunMetrics(opts: {
     jobName: job.name,
     runId: generateRunId(job.id),
     triggerSource: result.triggerSource,
-    backend: (result.backend ?? "codex") as "codex" | "openai" | "opencode",
+    runtime: result.runtime ?? "codex_cli",
     durationMs: result.durationMs,
     costUsd: result.costUsd ?? null,
     numTurns: result.numTurns ?? null,

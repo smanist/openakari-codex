@@ -34,10 +34,10 @@ function isZeroKnowledge(k: KnowledgeMetrics): boolean {
 
 /**
  * Check if a session is genuine waste: zero knowledge, no orphan management,
- * low file changes, and claude backend. See zero-knowledge-session-analysis.md.
+ * low file changes, and deep-work runtime (non-fleet). See zero-knowledge-session-analysis.md.
  */
 function isGenuineWaste(s: SessionMetrics): boolean {
-  if (s.backend !== "claude") return false;
+  if (s.runtime === "opencode_local") return false;
   if (!s.knowledge) return false;
   if (!isZeroKnowledge(s.knowledge)) return false;
   if (s.verification) {
@@ -56,7 +56,7 @@ function hasAnyKnowledge(k: KnowledgeMetrics): boolean {
 
 /** Aggregate fleet-specific efficiency metrics. */
 function aggregateFleetEfficiency(sessions: SessionMetrics[]): FleetEfficiencySummary | null {
-  const fleetSessions = sessions.filter((s) => s.backend === "opencode");
+  const fleetSessions = sessions.filter((s) => s.runtime === "opencode_local");
   if (fleetSessions.length === 0) return null;
 
   const total = fleetSessions.length;
@@ -146,11 +146,13 @@ export function aggregateEfficiency(sessions: SessionMetrics[]): EfficiencySumma
     }
   }
 
-  // Zero-knowledge rate: exclude fleet workers (backend !== "claude")
-  // Fleet workers have costUsd=0 and different knowledge production patterns.
-  const claudeSessionsWithKnowledge = withKnowledge.filter((s) => s.backend === "claude");
-  const zeroKCount = claudeSessionsWithKnowledge.filter((s) => isZeroKnowledge(s.knowledge!)).length;
-  const zeroKnowledgeRate = claudeSessionsWithKnowledge.length > 0 ? zeroKCount / claudeSessionsWithKnowledge.length : 0;
+  // Zero-knowledge rate: exclude fleet workers (runtime === opencode_local)
+  // Fleet sessions have different goals/cost structure and should not influence deep-work rates.
+  const deepWorkSessionsWithKnowledge = withKnowledge.filter((s) => s.runtime !== "opencode_local");
+  const zeroKCount = deepWorkSessionsWithKnowledge.filter((s) => isZeroKnowledge(s.knowledge!)).length;
+  const zeroKnowledgeRate = deepWorkSessionsWithKnowledge.length > 0
+    ? zeroKCount / deepWorkSessionsWithKnowledge.length
+    : 0;
 
   // Genuine waste rate
   const genuineWasteCount = sessions.filter(isGenuineWaste).length;

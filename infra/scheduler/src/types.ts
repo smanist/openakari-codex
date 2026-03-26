@@ -1,6 +1,7 @@
 /** Type definitions for the akari scheduler. Minimal extraction from OpenClaw cron types. */
 
 import type { BackendCapability } from "./backend.js";
+import type { RuntimeRoute } from "./runtime.js";
 
 export interface CronSchedule {
   kind: "cron";
@@ -142,8 +143,8 @@ export interface FleetWorkerResult {
   numTurns?: number;
   /** Whether the session timed out. */
   timedOut?: boolean;
-  /** Internal runtime used (always "opencode" for fleet workers currently). */
-  backend?: "codex" | "openai" | "opencode";
+  /** Internal runtime route used (always opencode_local for fleet workers currently). */
+  runtime?: RuntimeRoute;
   /** Per-model token usage and cost breakdown. */
   modelUsage?: Record<string, { inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number; costUSD: number; contextWindow?: number; maxOutputTokens?: number }>;
   /** Per-tool invocation counts. */

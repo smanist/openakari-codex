@@ -65,7 +65,7 @@ function session(overrides: Partial<SessionMetrics> = {}): SessionMetrics {
     timestamp: "2026-02-21T00:00:00.000Z",
     jobName: "akari-work-cycle",
     runId: "test-1",
-    backend: "claude",
+    runtime: "codex_cli",
     durationMs: 300_000,
     costUsd: 3.5,
     numTurns: 60,
@@ -226,7 +226,7 @@ describe("analyzeHealth", () => {
 
     it("handles sessions with null costUsd", () => {
       const sessions = Array.from({ length: 10 }, (_, i) =>
-        session({ costUsd: null, runId: `s-${i}`, backend: "cursor" }),
+        session({ costUsd: null, runId: `s-${i}`, runtime: "opencode_local" }),
       );
       const checks = analyzeHealth(sessions);
       expect(checks.find((c) => c.id === "cost_spike")).toBeUndefined();
@@ -344,13 +344,13 @@ describe("analyzeHealth", () => {
       expect(checks.find((c) => c.id === "high_zero_knowledge_rate")).toBeUndefined();
     });
 
-    it("uses genuine waste filter: excludes cursor sessions", () => {
+    it("uses genuine waste filter: excludes fleet (opencode_local) sessions", () => {
       const sessions = [
         ...Array.from({ length: 5 }, (_, i) =>
           session({
             runId: `cursor-${i}`,
             knowledge: defaultKnowledge(),
-            backend: "cursor",
+            runtime: "opencode_local",
           }),
         ),
         ...Array.from({ length: 5 }, (_, i) =>
@@ -458,13 +458,13 @@ describe("analyzeHealth", () => {
       expect(checks.find((c) => c.id === "task_starvation")).toBeUndefined();
     });
 
-    it("does not classify cursor sessions as task starvation", () => {
+    it("does not classify fleet (opencode_local) sessions as task starvation", () => {
       const sessions = [
         ...Array.from({ length: 3 }, (_, i) =>
           session({
             runId: `cursor-ts-${i}`,
             knowledge: defaultKnowledge(),
-            backend: "cursor",
+            runtime: "opencode_local",
             verification: { ...defaultVerification(), hasCommit: false, filesChanged: 0 },
             crossProject: null,
           }),
@@ -928,11 +928,11 @@ describe("computeReadinessScore", () => {
     expect(fpdSignal!.status).toBe("critical");
   });
 
-  it("marks f/$ unavailable for cursor-only sessions", () => {
+  it("marks f/$ unavailable for opencode_local-only sessions", () => {
     const sessions = Array.from({ length: 10 }, (_, i) =>
       session({
         runId: `s-${i}`,
-        backend: "cursor",
+        runtime: "opencode_local",
         costUsd: 0,
         knowledge: { ...defaultKnowledge(), newExperimentFindings: 3 },
       }),
@@ -979,11 +979,11 @@ describe("computeReadinessScore", () => {
 
   it("sets insufficientData when <50% signal weight available", () => {
     // Only budget_drift available (weight 0.10 < 0.50)
-    // All other signals unavailable: no cost (cursor), no orientTurns, no crossProject, no qualityAudit
+    // All other signals unavailable: no cost (opencode_local), no orientTurns, no crossProject, no qualityAudit
     const sessions = Array.from({ length: 10 }, (_, i) =>
       session({
         runId: `s-${i}`,
-        backend: "cursor",
+        runtime: "opencode_local",
         costUsd: null,
         orientTurns: null,
         numTurns: 20,

@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Job } from "./types.js";
 import { resolveBackend } from "./backend.js";
+import { runtimeRouteForBackend, type RuntimeRoute } from "./runtime.js";
 import { spawnAgent, AGENT_PROFILES, generateSessionId, resolveProfileForBackend } from "./agent.js";
 import type { SDKMessage } from "./sdk.js";
 import { notifySessionStarted, notifySessionComplete } from "./slack.js";
@@ -53,7 +54,7 @@ export interface ExecutionResult {
   logFile?: string;
   costUsd?: number;
   numTurns?: number;
-  backend?: "codex" | "openai" | "opencode";
+  runtime?: RuntimeRoute;
   timedOut?: boolean;
   sessionId?: string;
   triggerSource?: "scheduler" | "slack" | "manual" | "fleet";
@@ -80,10 +81,11 @@ export async function executeJob(
     model: job.payload.model,
     requiredCapabilities: job.payload.requiredCapabilities,
   });
+  const runtime = runtimeRouteForBackend(backend.name);
 
   let threadInfo: { channel: string; threadTs: string } | null = null;
 
-  console.log(`[executor] Running job ${job.name} with ${backend.name} runtime`);
+  console.log(`[executor] Running job ${job.name} with ${runtime} runtime`);
 
   // Pre-session: auto-commit orphaned artifacts so the agent starts with a clean working tree.
   // Best-effort — errors are logged but do not block the session.
@@ -175,7 +177,7 @@ export async function executeJob(
       await mkdir(LOGS_DIR, { recursive: true });
       await writeFile(
         logFile,
-        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${backend.name}\n# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}\n\n## output\n${agentResult.text}\n`,
+        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${runtime}\n# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}\n\n## output\n${agentResult.text}\n`,
       );
     } catch { /* best-effort logging */ }
 
@@ -215,7 +217,7 @@ export async function executeJob(
       logFile,
       costUsd: agentResult.costUsd,
       numTurns: agentResult.numTurns,
-      backend: backend.name,
+      runtime,
       timedOut: agentResult.timedOut,
       sessionId,
       modelUsage: agentResult.modelUsage,
@@ -247,7 +249,7 @@ export async function executeJob(
       await mkdir(LOGS_DIR, { recursive: true });
       await writeFile(
         logFile,
-        `# ${job.name} — ${new Date().toISOString()}\n# Backend: ${backend.name}\n# Duration: ${Math.round(durationMs / 1000)}s, ERROR\n\n## error\n${errMsg}\n`,
+        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${runtime}\n# Duration: ${Math.round(durationMs / 1000)}s, ERROR\n\n## error\n${errMsg}\n`,
       );
     } catch { /* best-effort logging */ }
 
@@ -258,7 +260,7 @@ export async function executeJob(
       stdout: "",
       error: errMsg,
       logFile,
-      backend: backend.name,
+      runtime,
       headAfterAutoCommit,
       triggerSource: triggerSource ?? "scheduler",
     };

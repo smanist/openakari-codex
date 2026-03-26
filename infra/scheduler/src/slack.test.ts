@@ -40,7 +40,7 @@ function makeResult(): ExecutionResult {
     durationMs: 1000,
     exitCode: 0,
     stdout: "ok",
-    backend: "codex",
+    runtime: "codex_cli",
     sessionId: "session-1",
   };
 }
