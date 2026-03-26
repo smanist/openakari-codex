@@ -14,6 +14,47 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-26 (Orient akari + strategic alignment snapshot)
+
+Ran `/orient akari` (full scoped orient). Repo state was clean; `projects/akari/TASKS.md` had no open tasks, so mission-gap tasks were generated before selection.
+
+Orient findings:
+- `docs/roadmap.md` is missing in this checkout (`sed: docs/roadmap.md: No such file or directory`), which leaves no canonical global strategic-question source for orient.
+- Last-10 session window (`.scheduler/metrics/sessions.jsonl`) had `6` total findings (`newExperimentFindings + logEntryFindings`) across `2/10` sessions; `findings/$` is currently `n/a` because `costUsd` is `0` across that window.
+- No pending approval items and no stale external blockers were found.
+
+Task selection and claim:
+- Selected task: `Create akari strategic alignment snapshot from current artifacts`.
+- Claim API: `curl -s -X POST http://localhost:8420/api/tasks/claim ...` returned `{\"ok\":true,\"claim\":{\"claimId\":\"e1bd007b97637cab\",...}}`.
+
+Scope classification:
+- `ROUTINE` (`consumes_resources: false`) — analysis/documentation-only updates with no LLM/API/GPU/long-running execution.
+
+Completed work:
+- Added `projects/akari/analysis/strategic-alignment-snapshot-2026-03-26.md` with 5 prioritized self-improvement questions and evidence/task links.
+- Updated `projects/akari/README.md` `## Open questions` to reflect current strategic priorities from the snapshot.
+- Added mission-gap tasks in `projects/akari/TASKS.md`, completed the selected snapshot task with evidence, and added one compound follow-up task for zero-cost KPI definition.
+
+Verification:
+- `python - <<'PY' ... PY`
+  - `analysis_questions 5`
+  - `readme_open_questions 6`
+  - `has_findings_rate_task True`
+  - `has_zero_cost_kpi_task True`
+
+Compound (fast): 1 action — added task `Define a primary efficiency KPI for zero-cost sessions` based on uncovered task gaps in the new snapshot.
+
+Session-type: autonomous
+Duration: 21
+Task-selected: Create akari strategic alignment snapshot from current artifacts
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-25 (Codex-only module-oriented repo policy)
 
 Implemented the repo split that keeps `projects/` as the durable memory layer and moves project-owned code plus heavy runtime artifacts to `modules/`. Added `modules/registry.yaml` as the project-to-module registry, updated experiment schema/conventions to require `module` and `artifacts_dir` for executable work records, and refactored the experiment runner so `progress.json` stays next to `EXPERIMENT.md` while runtime logs, lock files, watched CSVs, and heavy outputs live under `modules/<package>/artifacts/<experiment-id>/`.
@@ -424,8 +465,9 @@ Created the public meta-project scaffold for openakari. Added a project README, 
 
 ## Open questions
 
-- Can local Codex be invoked with stable session interruption and message-injection semantics, or do deep-work/chat flows need an explicit OpenAI API fallback path?
-- Should `auto` remain backward-compatible (`claude -> cursor -> opencode`) while Codex is added as an explicit backend, or should Codex become the new default ordering once parity is proven?
-- Which self-improvement metrics are robust enough to compare across different forks or deployments of openakari?
-- What is the smallest useful amount of operational logging needed to support real self-study without overwhelming orient cost?
-- Which kinds of capability improvements transfer across projects, and which depend on the specific repo's history and conventions?
+- How should strategic alignment be sourced while `docs/roadmap.md` is absent in this checkout?
+- Which intervention can raise the non-zero-findings session rate above 20% (currently 2/10 in the latest window) without increasing failure rates?
+- Should `findings/$` remain a primary KPI for Codex-local sessions where `costUsd` is frequently 0?
+- Which knowledge fields should be treated as research progress versus operational maintenance in efficiency reporting?
+- What minimum cadence of explicit self-observation analysis keeps task selection aligned with the mission instead of drifting to maintenance-only work?
+- Which kinds of capability improvements transfer across projects, and which depend on repository-specific history and conventions?

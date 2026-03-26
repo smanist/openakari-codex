@@ -89,3 +89,21 @@
   Done when: A short note in `projects/akari/README.md` records the output of health + warning escalation over the most recent ≥20 sessions, with no `task_starvation` due to `triggerSource:\"manual\"` and no `ledger_inconsistent` recurrence when `costUsd: 0`.
   Priority: medium
   Evidence: `projects/akari/README.md` (2026-03-25 log entry “Self-improvement loop example + re-run health watchdog”)
+
+## Mission gap tasks
+
+- [x] Create akari strategic alignment snapshot from current artifacts [fleet-eligible] [skill: analyze] [zero-resource]
+  Why: Mission gap — `Done when` requires measurable self-directed improvement over time, but `docs/roadmap.md` is missing so orient has no canonical strategic-question source.
+  Done when: A dated analysis in `projects/akari/analysis/` enumerates 3-5 active self-improvement questions, links each to evidence/tasks, and updates `projects/akari/README.md` open questions.
+  Priority: high
+  Evidence: `projects/akari/analysis/strategic-alignment-snapshot-2026-03-26.md`
+
+- [ ] Design an intervention to increase non-zero-findings session rate [requires-opus] [skill: design] [zero-resource]
+  Why: Mission gap — the latest 10 session metrics show only 2/10 sessions with non-zero findings (`newExperimentFindings + logEntryFindings`), and there is no open task directly targeting this KPI.
+  Done when: A plan in `projects/akari/plans/` defines one measurable intervention, a before/after window, and a concrete success threshold.
+  Priority: high
+
+- [ ] Define a primary efficiency KPI for zero-cost sessions [requires-opus] [skill: analyze] [zero-resource]
+  Why: Compound follow-up from `projects/akari/analysis/strategic-alignment-snapshot-2026-03-26.md` — `findings/$` is undefined when `costUsd` is zero across the evaluation window.
+  Done when: A short analysis defines the primary KPI and fallback KPI for zero-cost sessions, with exact formulas and a recommendation for orient reporting.
+  Priority: high
