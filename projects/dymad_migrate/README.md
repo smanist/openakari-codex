@@ -19,6 +19,26 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Re-scoped the next migration program to data/transform modules first
+
+Recorded a scope shift away from immediate full vertical-slice work and toward module-first migration of:
+
+- data semantics and batching
+- trajectory preprocessing
+- data transforms
+- graph data handling
+- NDR transforms
+
+Key conclusions:
+- this is feasible now without first redesigning the full model/training stack
+- regular and graph data can move to typed Torch-first objects with downstream modules treated as adapter consumers
+- common transforms can become native Torch modules now
+- NDR should use explicit wrapped Torch/autodiff adapters as an intermediate step instead of blocking on fully native implementations
+
+Added the module-first plan at `projects/dymad_migrate/plans/2026-03-30-data-transform-module-first-migration.md`.
+
+Added the new task queue in `projects/dymad_migrate/TASKS.md` under `## Data/transform module-first migration tasks`.
+
 ### 2026-03-30 — Verified the regular working slice
 
 Completed the dedicated regular-slice milestone queue.

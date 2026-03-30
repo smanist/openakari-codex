@@ -172,6 +172,58 @@
   Evidence: Updated `projects/dymad_migrate/architecture/migration-scoreboard.md` so the regular `data` and `transform` seams are now marked `verified`, with the regular-slice parity note as the verification artifact.
   Verification: `rg -n \"\\| `data` |.*`verified`|\\| `transform` |.*`verified`\" projects/dymad_migrate/architecture/migration-scoreboard.md`
 
+## Data/transform module-first migration tasks
+
+- [ ] Freeze the new data/transform scope and drop backward-compatibility as a primary constraint [requires-frontier] [skill: orient] [zero-resource]
+  Why: The migration strategy has changed from compatibility-heavy vertical slicing to module-first replacement for data and transforms; that change needs to be explicit so future sessions do not drift back into shims-first work.
+  Done when: a short analysis note records the scope decision, states that old public API compatibility is no longer a primary requirement for data/transform modules, and lists the downstream modules that should be treated as adapter consumers for now.
+  Priority: high
+
+- [ ] Define the final typed data contract for regular and graph series [requires-frontier] [skill: execute]
+  Why: `RegularSeries` exists, but the full data migration needs the complete semantic contract before loaders and transforms can be rewritten decisively.
+  Done when: `modules/dymad_migrate/src/dymad/core/` includes the agreed regular/graph series and batch/layout types needed for current data workflows, with explicit semantics for time layout, raggedness, device/dtype moves, slicing, batching, and graph edge variation.
+  Priority: high
+
+- [ ] Replace `DynData` as the design center of trajectory preprocessing [requires-frontier] [skill: execute]
+  Why: The migration does not really start until `TrajectoryManager` and related preprocessing code build typed series objects directly instead of treating them as a side seam next to `DynData`.
+  Done when: regular and graph preprocessing paths in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` construct typed data objects first and adapt to legacy runtime objects only at explicitly marked downstream boundaries.
+  Priority: high
+
+- [ ] Introduce a Torch-first transform module protocol and pipeline as the only new transform contract [requires-frontier] [skill: execute]
+  Why: The legacy list-of-NumPy-array transform API will keep leaking across modules unless the new protocol becomes the sole target for new work.
+  Done when: `modules/dymad_migrate/src/dymad/core/` exposes the canonical Torch-first transform base and pipeline interfaces, and new transform work is routed through that interface rather than `dymad.transform.base.Transform`.
+  Priority: high
+
+- [ ] Port stateless and fitted core transforms to native Torch implementations [requires-frontier] [skill: execute]
+  Why: The core data migration cannot rely on autodiff-enabled transforms until the common transform families are native Torch modules.
+  Done when: identity, scaler, delay embedding, lift/add-one, compose, and any other regular-workflow-critical non-NDR transforms used by current blocker workflows have Torch-native implementations plus focused equivalence tests against the legacy behavior where still useful.
+  Priority: high
+
+- [ ] Add graph-series data specialization on the new typed contract [requires-frontier] [skill: execute]
+  Why: The target data layer explicitly includes graph data; postponing graph entirely would leave `DynData` alive as the only serious graph abstraction.
+  Done when: fixed-graph and variable-edge graph series/batch types exist on the new core data contract, and the graph trajectory-preparation path can emit them before any downstream legacy adaptation.
+  Priority: high
+
+- [ ] Migrate graph-compatible transform application onto the new pipeline [requires-frontier] [skill: execute]
+  Why: Data migration is incomplete if graph preprocessing still depends on the old transform stack and shape conventions.
+  Done when: the graph preprocessing path applies state/control/edge transforms through the new transform pipeline with typed graph-series objects, covering at least the currently exercised graph transform families outside NDR.
+  Priority: high
+
+- [ ] Wrap NDR transforms behind explicit Torch/autodiff adapters [requires-frontier] [skill: execute]
+  Why: NDR is part of the data-transform surface area, but exact pure-Torch replacements are not required to move the architecture forward; explicit wrapped adapters are the practical intermediate target.
+  Done when: `DiffMap`, `DiffMapVB`, `Isomap` (and any other live NDR transforms) are exposed through the new transform protocol with explicit gradient-support metadata and documented CPU/wrapper behavior, even if their internals still call external numerics.
+  Priority: high
+
+- [ ] Remove hidden legacy transform construction from loaders/checkpoint paths [requires-frontier] [skill: execute]
+  Why: Even with new data types and new transforms, the migration will drift if checkpoint/load/model paths keep reconstructing the old transform stack directly.
+  Done when: loader/checkpoint/preprocessing entrypoints build transforms through the new transform protocol and only use legacy transform objects behind narrow, temporary adapters if still needed.
+  Priority: high
+
+- [ ] Record data/transform migration verification gates and update the scoreboard [requires-frontier] [skill: analyze] [zero-resource]
+  Why: The module-first migration needs its own sign-off criteria separate from the prior compatibility-heavy slice.
+  Done when: a dated analysis note records the exact regular/graph/transform/NDR verification commands for the new module-first data/transform migration, and `projects/dymad_migrate/architecture/migration-scoreboard.md` is updated to reflect the new data/transform module status.
+  Priority: high
+
 - [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
   Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.
