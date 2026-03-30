@@ -300,15 +300,19 @@
 
 ## Model runtime / prediction migration tasks
 
-- [ ] Design the typed model-runtime boundary after data/transform [requires-frontier] [skill: multi] [zero-resource]
+- [x] Design the typed model-runtime boundary after data/transform [requires-frontier] [skill: multi] [zero-resource]
   Why: The next highest-leverage module after data/transform is the model runtime / prediction layer, because it is the narrowest remaining boundary that still depends directly on `DynData`.
   Done when: `projects/dymad_migrate/architecture/model-runtime-boundary-design.md` defines the typed model input/context objects for regular and graph prediction, lists the exact legacy entrypoints to migrate first, and states which compatibility adapters remain temporary.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/architecture/model-runtime-boundary-design.md` to define the typed `RegularModelContext` / `GraphModelContext` boundary, the exact `checkpoint.py` prediction paths to migrate first, and the temporary `typed context -> DynData` compatibility rule.
+  Verification: `rg -n "^# DyMAD Model Runtime Boundary Design|^## Legacy bottlenecks|^## First exact migration targets|^## Verification gates" projects/dymad_migrate/architecture/model-runtime-boundary-design.md`
 
-- [ ] Introduce a typed model context adapter for regular and graph series [requires-frontier] [skill: execute]
+- [x] Introduce a typed model context adapter for regular and graph series [requires-frontier] [skill: execute]
   Why: Prediction and model helpers need one stable typed input object before `DynData` can be removed from model-facing signatures.
   Done when: `modules/dymad_migrate/` contains typed model-context adapters built from `RegularSeries` / `GraphSeries`, and focused tests prove they preserve the current information needed by legacy model helpers.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/model_context.py`, exported it from `modules/dymad_migrate/src/dymad/core/__init__.py`, added helper-preservation coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py`, and tightened `modules/dymad_migrate/src/dymad/io/series_adapter.py` so fixed-topology graph edge payloads round-trip cleanly through the temporary legacy adapter.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py -q`
 
 - [ ] Route one regular prediction path through the typed model context [requires-frontier] [skill: execute]
   Why: The next module migration should establish one real regular execution path that consumes typed model context instead of depending on raw `DynData` assembly.

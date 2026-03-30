@@ -19,6 +19,39 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Designed the typed model-runtime boundary and landed the first model-context adapter
+
+Completed the first two tasks in the post-data/transform module queue.
+
+Artifacts added:
+- `projects/dymad_migrate/architecture/model-runtime-boundary-design.md`
+- `modules/dymad_migrate/src/dymad/core/model_context.py`
+- `modules/dymad_migrate/tests/test_model_context_adapter.py`
+
+Code updates:
+- exported the new runtime-context surface from `modules/dymad_migrate/src/dymad/core/__init__.py`
+- tightened `modules/dymad_migrate/src/dymad/io/series_adapter.py` so fixed-topology graph edge payloads round-trip through the temporary legacy adapter without shape loss
+
+Findings:
+- the right next runtime seam is `typed series batch -> typed model context -> temporary DynData adapter -> legacy model internals`
+- graph runtime needs two distinct views at once:
+  - a batch-major flattened initial-state view for public prediction entrypoints
+  - an aggregated single-graph legacy view for existing graph helper internals
+- the graph adapter verification exposed a real fixed-edge payload round-trip bug, and the narrow compatibility adapter is the correct place to absorb it for now
+
+Task status:
+- completed `Design the typed model-runtime boundary after data/transform`
+- completed `Introduce a typed model context adapter for regular and graph series`
+
+Verification:
+- `python -m compileall modules/dymad_migrate/src/dymad/io/series_adapter.py modules/dymad_migrate/src/dymad/core/model_context.py modules/dymad_migrate/tests/test_model_context_adapter.py`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py -q`
+  - `2 passed, 2 warnings in 0.66s`
+
+Immediate next tasks:
+- route one regular prediction path through the typed model context
+- then route one graph prediction path through the typed model context
+
 ### 2026-03-30 — Selected model runtime / prediction as the next module after data/transform
 
 Recorded the next module boundary after the completed Phase 1 data/transform migration.
