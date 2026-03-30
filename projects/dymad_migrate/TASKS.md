@@ -188,10 +188,12 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/core/graph_series.py`, exported the graph series types from `modules/dymad_migrate/src/dymad/core/__init__.py`, and added focused coverage in `modules/dymad_migrate/tests/test_graph_series_core.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_core.py -q`
 
-- [ ] Replace `DynData` as the design center of trajectory preprocessing [requires-frontier] [skill: execute]
+- [x] Replace `DynData` as the design center of trajectory preprocessing [requires-frontier] [skill: execute]
   Why: The migration does not really start until `TrajectoryManager` and related preprocessing code build typed series objects directly instead of treating them as a side seam next to `DynData`.
   Done when: regular and graph preprocessing paths in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` construct typed data objects first and adapt to legacy runtime objects only at explicitly marked downstream boundaries.
   Priority: high
+  Evidence: Extended `modules/dymad_migrate/src/dymad/io/series_adapter.py` with graph adapters, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `TrajectoryManagerGraph._transform_by_index(...)` now routes through `_transform_graph_series_by_index(...)`, and added `modules/dymad_migrate/tests/test_graph_series_adapter.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py -q`
 
 - [x] Introduce a Torch-first transform module protocol and pipeline as the only new transform contract [requires-frontier] [skill: execute]
   Why: The legacy list-of-NumPy-array transform API will keep leaking across modules unless the new protocol becomes the sole target for new work.
@@ -205,10 +207,12 @@
   Done when: identity, scaler, delay embedding, lift/add-one, compose, and any other regular-workflow-critical non-NDR transforms used by current blocker workflows have Torch-native implementations plus focused equivalence tests against the legacy behavior where still useful.
   Priority: high
 
-- [ ] Add graph-series data specialization on the new typed contract [requires-frontier] [skill: execute]
+- [x] Add graph-series data specialization on the new typed contract [requires-frontier] [skill: execute]
   Why: The target data layer explicitly includes graph data; postponing graph entirely would leave `DynData` alive as the only serious graph abstraction.
   Done when: fixed-graph and variable-edge graph series/batch types exist on the new core data contract, and the graph trajectory-preparation path can emit them before any downstream legacy adaptation.
   Priority: high
+  Evidence: Added the graph core types in `modules/dymad_migrate/src/dymad/core/graph_series.py`, added graph round-trip adapters in `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and exposed `TrajectoryManagerGraph.create_graph_series_dataset(...)` plus `_transform_graph_series_by_index(...)` in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_adapter.py tests/test_graph_series_core.py -q`
 
 - [ ] Migrate graph-compatible transform application onto the new pipeline [requires-frontier] [skill: execute]
   Why: Data migration is incomplete if graph preprocessing still depends on the old transform stack and shape conventions.

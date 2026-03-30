@@ -19,6 +19,33 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Made trajectory preprocessing typed-first for both regular and graph paths
+
+Completed the next Phase 1 step: `TrajectoryManager` preprocessing now treats typed
+series objects as the design center for both regular and graph data.
+
+Code changes:
+- expanded `modules/dymad_migrate/src/dymad/io/series_adapter.py` so graph series can round-trip to and from `DynData`
+- updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `TrajectoryManagerGraph._transform_by_index(...)` now builds typed graph series first and only then adapts back to `DynData`
+- added `TrajectoryManagerGraph.create_graph_series_dataset(...)` as the public typed graph seam
+- added focused graph adapter coverage in `modules/dymad_migrate/tests/test_graph_series_adapter.py`
+
+Task status:
+- completed `Replace DynData as the design center of trajectory preprocessing`
+- completed `Add graph-series data specialization on the new typed contract`
+- left `Migrate graph-compatible transform application onto the new pipeline` open because graph preprocessing still uses the legacy transform stack internally
+
+Verification:
+- `git -C /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate diff --check` ->
+  - no output
+- `python -m compileall /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/src/dymad/io /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/tests/test_graph_series_adapter.py` ->
+  - completed without error
+- `cd /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q` ->
+  - `9 passed, 2 warnings in 0.59s`
+
+Added verification note:
+- `projects/dymad_migrate/analysis/2026-03-30-typed-first-trajectory-manager-verification.md`
+
 ### 2026-03-30 — Landed the first Phase 1 data/transform foundations
 
 Completed the first concrete foundation step of the module-first data/transform migration.
