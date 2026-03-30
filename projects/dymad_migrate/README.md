@@ -19,6 +19,50 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and completed first data-layer design task
+
+Ran `/orient dymad_migrate`, selected the highest-priority unblocked architecture task, and completed the first data-layer design artifact.
+
+Orient and selection highlights:
+- Repository was clean at session start (`git status` -> `nothing to commit, working tree clean`).
+- Task claim API was unavailable:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...`
+  - `curl: (7) Failed to connect to localhost port 8420 after 0 ms: Couldn't connect to server`
+- Selected task: `Design the first core data abstractions replacing DynData`.
+- Scope classification: `ROUTINE` (`consumes_resources: false`) - documentation/design only (no LLM API calls, external APIs, GPU compute, or long-running jobs).
+
+Changes:
+- Added `projects/dymad_migrate/architecture/data-layer-design.md` with:
+  - initial semantic series types (`RegularSeries`, `GraphSeries`, `LatentSeries`, `DerivedSeries`)
+  - first storage/layout specializations (`UniformStepRegularSeries`, `VariableStepRegularSeries`, `FixedGraphSeries`, `VariableEdgeGraphSeries`)
+  - exact phased migration call sites in legacy code (`trajectory_manager.py`, `training/driver.py`, `io/checkpoint.py`, `models/model_base.py`)
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Design the first core data abstractions replacing DynData` complete with evidence and verification command.
+- Updated `projects/dymad_migrate/README.md` open questions with unresolved graph-control/params typing and variable-edge storage strategy decisions.
+
+Verification:
+- `rg -n "^## Initial semantic series types|^## First storage/layout specializations|^## Exact legacy call sites to migrate first|trajectory_manager.py:469|training/driver.py:262|checkpoint.py:135" projects/dymad_migrate/architecture/data-layer-design.md` ->
+  - `28:## Initial semantic series types`
+  - `88:## First storage/layout specializations`
+  - `174:## Exact legacy call sites to migrate first`
+  - `180:1. modules/dymad_ref/src/dymad/io/trajectory_manager.py:469`
+  - `194:5. modules/dymad_ref/src/dymad/training/driver.py:262`
+  - `202:6. modules/dymad_ref/src/dymad/io/checkpoint.py:135`
+- `git diff --check -- projects/dymad_migrate` -> no output
+
+Compound (fast): no actions. (Fleet spot-check: no recent `"triggerSource":"fleet"` entries in `.scheduler/metrics/sessions.jsonl`.)
+
+Session-type: autonomous
+Duration: 28
+Task-selected: Design the first `core` data abstractions replacing `DynData`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-29 — Legacy discovery, parity classification, and initial ADRs
 
 Completed the first real migration-discovery pass against `modules/dymad_ref/` and persisted the results into project memory instead of leaving them as session-only reasoning.
@@ -84,3 +128,5 @@ Sources:
 - Which legacy workflows are strict parity requirements for the first migration milestone, and which can be deferred behind compatibility shims?
 - Which existing tests in `modules/dymad_ref/tests/` should be treated as migration blockers versus informative regression coverage?
 - What is the first vertical slice that yields both architectural validation and practical user value: data abstractions, transforms, typed model specs, or training orchestration?
+- For graph series, should `control`/`params` be node-wise only, global only, or union-typed with explicit validation rules?
+- For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?

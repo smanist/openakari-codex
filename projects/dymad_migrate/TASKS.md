@@ -28,10 +28,12 @@
   Evidence: Recorded the policy in `projects/dymad_migrate/README.md`, `projects/dymad_migrate/plans/2026-03-29-initial-migration-plan.md`, and `projects/dymad_migrate/decisions/0001-module-roles-and-write-scope.md`.
   Verification: `sed -n '1,120p' projects/dymad_migrate/README.md` and `sed -n '1,120p' projects/dymad_migrate/plans/2026-03-29-initial-migration-plan.md`
 
-- [ ] Design the first `core` data abstractions replacing `DynData` [requires-frontier] [skill: multi]
+- [x] Design the first `core` data abstractions replacing `DynData` [requires-frontier] [skill: multi]
   Why: The current catch-all data object is a central architectural bottleneck, and the migration contract explicitly calls for a smaller typed family with selective fast paths.
   Done when: `projects/dymad_migrate/architecture/data-layer-design.md` specifies the initial semantic series types, the first storage/layout specializations to implement, and the exact legacy call sites that will migrate first.
   Priority: high
+  Evidence: `projects/dymad_migrate/architecture/data-layer-design.md` defines `RegularSeries`/`GraphSeries`/`LatentSeries`/`DerivedSeries`, the first four layout specializations, and a phased migration order with concrete legacy file:line call sites.
+  Verification: `rg -n \"^## Initial semantic series types|^## First storage/layout specializations|^## Exact legacy call sites to migrate first|trajectory_manager.py:469|training/driver.py:262|checkpoint.py:135\" projects/dymad_migrate/architecture/data-layer-design.md`
 
 - [ ] Identify the first vertical migration slice [requires-frontier] [skill: orient]
   Why: The project should validate the new architecture on one end-to-end slice before broad refactors create cross-cutting churn.
