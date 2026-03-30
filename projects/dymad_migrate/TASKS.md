@@ -93,6 +93,11 @@
 
 ## Mission gap tasks
 
+- [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
+  Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.
+  Priority: medium
+
 - [x] Adjudicate parity-critical gate status using the flake-aware NDR policy [requires-frontier] [skill: analyze] [zero-resource]
   Why: Mission gap - README Done-when requires preserving selected parity-critical workflows, but the latest aggregate gate note (`2026-03-30-parity-critical-gate-outcomes.md`) predates policy-based adjudication and still records parity as unstable.
   Done when: A dated analysis note in `projects/dymad_migrate/analysis/` recomputes blocker/milestone gate status using the policy from `knowledge/parity-critical-workflows.md` section `3a`, includes explicit arithmetic/provenance from existing logs, and records whether the parity-preservation Done-when condition is currently satisfied or still blocked.

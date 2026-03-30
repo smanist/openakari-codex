@@ -19,6 +19,61 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and adjudicated policy-adjusted parity status
+
+Ran `/orient dymad_migrate`, found no open tasks in `projects/dymad_migrate/TASKS.md`, generated a mission-gap task for parity adjudication, and completed it.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short` -> no output).
+- Scoped orient context reviewed project README/TASKS, project knowledge, project decisions, `APPROVAL_QUEUE.md`, active-project budget/ledger files, scheduler metrics, and blocked-external tags.
+- No pending approval-queue entries; one external blocker tag exists in `projects/akari/TASKS.md` dated `2026-03-26` (4 days old, not stale).
+- Mission gap analysis generated one new task because parity-preservation Done-when had no open adjudication task after policy formalization.
+- Efficiency summary from the last 10 sessions (`.scheduler/metrics/sessions.jsonl`):
+  - findings/$: `n/a` (`0/0`, zero-cost sessions)
+  - genuine waste: `2/10` (`20%`, flagged)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"ac3821c245f5c802","taskId":"026088fe8e52","taskText":"Adjudicate parity-critical gate status using the flake-aware NDR policy","project":"dymad_migrate","agentId":"work-session-mnd998f3",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM/API calls, external APIs, GPU compute, or long-running detached jobs).
+
+Changes:
+- Added `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` to recompute parity status under the recorded flake-aware NDR policy with explicit arithmetic provenance.
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - added and completed `Adjudicate parity-critical gate status using the flake-aware NDR policy`
+  - added follow-up task from compound-fast discovery: `Design a deterministic replacement for the flake-managed test_ndr[0] parity exception`
+- Updated `## Open questions`:
+  - removed three stale resolved questions (parity-workflow scope, blocker-test identification, first vertical-slice selection)
+  - added unresolved deterministic NDR-gate question.
+
+Verification:
+- `rg -n "FAILED tests/test_assert_trans_ndr.py::test_ndr\\[0\\]|1 failed, 105 passed" projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-pytest.log` ->
+  - confirms the aggregate gate's single failing case and summary.
+- `python - <<'PY' ...` against `projects/dymad_migrate/analysis/2026-03-30-ndr-test-idx0-reruns0-repeat.log` ->
+  - `{'runs': 30, 'fails': 3, 'recon': 2, 'reload': 1}`
+- `rg -n "^## Findings|^## Decision|3/30|10/10|currently satisfied" projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` ->
+  - confirms policy-adjusted arithmetic and decision text.
+
+Compound (fast): 1 action.
+- Task discovery: created one follow-up task for deterministic parity-gate replacement from residual-risk findings.
+- Fleet spot-check: no recent `triggerSource:\"fleet\"` sessions in `.scheduler/metrics/sessions.jsonl`.
+
+Session-type: autonomous
+Duration: 30
+Task-selected: Adjudicate parity-critical gate status using the flake-aware NDR policy
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and designed spectral-analysis adapter boundary
 
 Ran `/orient dymad_migrate`, selected `Design the spectral-analysis adapter boundary`, and completed the remaining open architecture-design task in `TASKS.md`.
