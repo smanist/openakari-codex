@@ -19,6 +19,54 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and verified parity-critical load-model workflows
+
+Ran `/orient dymad_migrate`, selected `Verify parity-critical load_model workflows after boundary adapter landing`, and completed the parity verification note with exact command output and residual-gap assessment.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status` -> `nothing to commit, working tree clean`).
+- Scoped orient context reviewed `projects/dymad_migrate/README.md`, `TASKS.md`, project decisions, and parity knowledge, plus active-project budget/ledger files.
+- Efficiency summary from the last 10 sessions:
+  - findings/$: `n/a` (`cost_sum=0`)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler `work-cycle` non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"6102a113896c1b88","taskId":"58d94ffe16bd","taskText":"Verify parity-critical load_model workflows after boundary adapter landing","project":"dymad_migrate","agentId":"work-session-mncpyljg",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM API calls, external API calls, GPU compute, or long-running detached jobs).
+
+Changes:
+- Added `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-verification.md` documenting pass/fail outcomes for the required workflow files, exact command, and residual parity gaps.
+- Added `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-pytest.log` containing exact pytest output for the parity command.
+- Updated `projects/dymad_migrate/TASKS.md` to mark `Verify parity-critical load_model workflows after boundary adapter landing` complete with evidence and verification command.
+- Added one open question in this README for SA warning/rerun behavior classification (`test_workflow_sa_lti.py::test_sa[4]`).
+
+Verification:
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_ker_auto.py tests/test_workflow_ker_ctrl.py tests/test_workflow_sa_lti.py -q` ->
+  - `============== 74 passed, 7 warnings, 1 rerun in 66.03s (0:01:06) ==============`
+  - `tests/test_workflow_sa_lti.py::test_sa[4] RERUN`
+  - `tests/test_workflow_sa_lti.py::test_sa[4] PASSED`
+
+Compound (fast): 1 action.
+- Added follow-up task `Diagnose test_workflow_sa_lti.py::test_sa[4] rerun and runtime warnings` to `projects/dymad_migrate/TASKS.md`.
+- Fleet spot-check result: no recent `triggerSource:"fleet"` sessions in `.scheduler/metrics/sessions.jsonl`.
+
+Session-type: autonomous
+Duration: 47
+Task-selected: Verify parity-critical `load_model` workflows after boundary adapter landing
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and implemented checkpoint compatibility boundary adapter
 
 Ran `/orient dymad_migrate`, selected `Implement checkpoint compatibility through facade/store/exec boundary`, and landed the first compatibility adapter that materializes through `exec` after facade/store registration.
