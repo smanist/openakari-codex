@@ -1,0 +1,69 @@
+# DyMAD Migration — Tasks
+
+- [x] Inventory the legacy package structure and subsystem boundaries [requires-frontier] [skill: diagnose]
+  Why: Codex cannot migrate subsystem-by-subsystem until the current package is mapped into stable conceptual units with clear ownership and coupling hotspots.
+  Done when: `projects/dymad_migrate/architecture/current-state.md` lists the major legacy subsystems, their responsibilities, key dependencies, and the files/modules that implement them in `modules/dymad_ref/`.
+  Priority: high
+  Evidence: Added `projects/dymad_migrate/architecture/current-state.md` with subsystem definitions, hotspot files, and migration-order recommendations derived from `modules/dymad_ref/src/dymad/`.
+  Verification: `find modules/dymad_ref/src/dymad -maxdepth 2 -type d | sort` and `wc -l modules/dymad_ref/src/dymad/**/*.py 2>/dev/null | sort -nr | sed -n '1,10p'`
+
+- [x] Define the parity-critical workflows and regression gates [requires-frontier] [skill: analyze]
+  Why: The migration needs an explicit answer to "what must not break" before structural work begins, otherwise architectural cleanup will drift away from real user-facing behavior.
+  Done when: `projects/dymad_migrate/knowledge/parity-critical-workflows.md` identifies the initial must-preserve workflows, the corresponding tests/examples/scripts in `modules/dymad_ref/` and `modules/dymad_migrate/`, and the verification command(s) for each.
+  Priority: high
+  Evidence: Added `projects/dymad_migrate/knowledge/parity-critical-workflows.md` classifying regular-series, graph-series, transform, training, spectral-analysis, and sampling workflows as blocker/milestone/informative.
+  Verification: `sed -n '1,220p' modules/dymad_ref/tests/README.md` and targeted reads of `modules/dymad_ref/tests/test_workflow_*.py`
+
+- [x] Create the legacy-to-target migration matrix [requires-frontier] [skill: orient]
+  Why: The architecture contract is clear about the target shape, but the mapping from current modules to future `core` / `facade` / `store` / `exec` ownership still needs to be made explicit.
+  Done when: `projects/dymad_migrate/architecture/migration-matrix.md` maps each major legacy subsystem to its intended target layer, notes whether it migrates as-is, splits, or becomes a compatibility adapter, and identifies unresolved ownership conflicts.
+  Priority: high
+  Evidence: Added `projects/dymad_migrate/architecture/migration-matrix.md` with layer mapping for `io`, `transform`, `models`, `training`, `sako`, and utility subsystems plus unresolved conflicts.
+  Verification: `sed -n '1,240p' modules/dymad_migrate/tasks/refactor_target_architecture.md`
+
+- [x] Persist module-role and write-scope policy for autonomous sessions [fleet-eligible] [skill: govern]
+  Why: Future Akari/Codex sessions need an unambiguous, repo-local statement that `dymad_ref` and `mcp_test` are read-only while `dymad_migrate` is the only writable code target.
+  Done when: The project README and initial plan both explicitly state the read-only/writeable module policy and no open task in this project instructs Codex to modify `modules/dymad_ref/` or `modules/mcp_test/`.
+  Priority: high
+  Evidence: Recorded the policy in `projects/dymad_migrate/README.md`, `projects/dymad_migrate/plans/2026-03-29-initial-migration-plan.md`, and `projects/dymad_migrate/decisions/0001-module-roles-and-write-scope.md`.
+  Verification: `sed -n '1,120p' projects/dymad_migrate/README.md` and `sed -n '1,120p' projects/dymad_migrate/plans/2026-03-29-initial-migration-plan.md`
+
+- [ ] Design the first `core` data abstractions replacing `DynData` [requires-frontier] [skill: multi]
+  Why: The current catch-all data object is a central architectural bottleneck, and the migration contract explicitly calls for a smaller typed family with selective fast paths.
+  Done when: `projects/dymad_migrate/architecture/data-layer-design.md` specifies the initial semantic series types, the first storage/layout specializations to implement, and the exact legacy call sites that will migrate first.
+  Priority: high
+
+- [ ] Identify the first vertical migration slice [requires-frontier] [skill: orient]
+  Why: The project should validate the new architecture on one end-to-end slice before broad refactors create cross-cutting churn.
+  Done when: `projects/dymad_migrate/plans/` contains a follow-up slice plan naming the first end-to-end slice, the legacy entrypoints it replaces or wraps, the tests/examples used for parity, and the implementation sequence.
+  Priority: high
+
+- [ ] Design the transform migration contract for PyTorch-first fitted modules [requires-frontier] [skill: multi]
+  Why: The target architecture depends on transforms becoming composable fitted `nn.Module` objects, but the compatibility path from current SciPy/NumPy-heavy code needs to be explicit before implementation.
+  Done when: `projects/dymad_migrate/architecture/transform-layer-design.md` defines the base transform protocol, wrapper strategy for external numerical routines, and the first transform families to port.
+  Priority: medium
+
+- [ ] Design the typed model-spec compatibility layer [requires-frontier] [skill: multi]
+  Why: The target contract replaces string maps with typed model specs, but migration needs a clear adapter path for current predefined names such as `LDM`, `KBF`, and related variants.
+  Done when: `projects/dymad_migrate/architecture/model-spec-design.md` defines the proposed spec objects, compatibility adapters, and the minimal predefined-model factory surface required for the first milestone.
+  Priority: medium
+
+- [ ] Design the training split from orchestration to phase primitives [requires-frontier] [skill: multi]
+  Why: Training orchestration currently mixes too many concerns; the migration contract expects a cleaner split between data preparation, phase execution, state tracking, and execution control.
+  Done when: `projects/dymad_migrate/architecture/training-layer-design.md` documents the target training components, their responsibilities, and the first legacy entrypoints to extract.
+  Priority: medium
+
+- [ ] Prototype the facade/store/exec skeleton without moving core math yet [requires-frontier] [skill: execute]
+  Why: The MCP-facing architecture should be validated early at the boundary level, but without polluting the core numerical work before the data/model seams are understood.
+  Done when: `modules/dymad_migrate/` contains a minimal non-invasive skeleton for `facade`, `store`, and `exec`, plus at least one typed handle flow documented against the project plan without changing the numerical behavior of existing core modules.
+  Priority: medium
+
+- [ ] Design checkpoint/load-model compatibility as the first facade boundary [requires-frontier] [skill: multi]
+  Why: Workflow tests repeatedly depend on `load_model(...)` plus prediction, so checkpoint/model loading is the most practical compatibility surface to preserve while introducing typed facade concepts.
+  Done when: `projects/dymad_migrate/architecture/checkpoint-facade-design.md` describes how current checkpoint loading maps to typed facade/store responsibilities, including which legacy API shapes must remain available through shims.
+  Priority: medium
+
+- [ ] Design the spectral-analysis adapter boundary [requires-frontier] [skill: multi]
+  Why: `sako` is a distinctive DyMAD capability but currently couples model loading, numerics, and plotting; migration needs an explicit adapter design rather than preserving that entanglement accidentally.
+  Done when: `projects/dymad_migrate/architecture/spectral-analysis-design.md` specifies which pieces of `sako` remain pure core analysis, which pieces become adapters, and how parity is checked against `test_workflow_sa_lti.py`.
+  Priority: medium
