@@ -117,10 +117,12 @@
   Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-ndr-idx0-parity-diagnosis.md` with repeated-run failure arithmetic (`3/30`), normalized-error ranges, and flake-managed gate classification, plus exact logs at `projects/dymad_migrate/analysis/2026-03-30-ndr-test-idx0-reruns0-repeat.log` and `projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.log`.
   Verification: `cd modules/dymad_ref && PYTHONPATH=src bash -lc 'for i in {1..30}; do echo \"===== RUN $i =====\"; pytest \"tests/test_assert_trans_ndr.py::test_ndr[0]\" --reruns=0 -q; ec=$?; echo \"EXIT_CODE=$ec\"; done'` and `cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.py`
 
-- [ ] Define flake-aware parity policy for `test_assert_trans_ndr.py::test_ndr[0]` [requires-frontier] [skill: analyze]
+- [x] Define flake-aware parity policy for `test_assert_trans_ndr.py::test_ndr[0]` [requires-frontier] [skill: analyze]
   Why: The completed diagnosis classified `test_ndr[0]` as flake-managed (`3/30` isolated-run failures, unseeded fixture), so the parity gate needs an explicit policy instead of single-run hard-block semantics.
   Done when: A short policy note updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` (or a linked analysis note) with the exact gating rule for this case (for example repeated-run threshold or deterministic fixture requirement), and `projects/dymad_migrate/TASKS.md` references the chosen rule as the parity-check standard.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md` with explicit adjudication thresholds (`<=4/30` flake-managed, `>=5/30` blocker) and failure-type constraints, and updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md` section `3a` to make this the recorded parity standard.
+  Verification: `rg -n 'Special gate policy for .*test_assert_trans_ndr.py::test_ndr\\[0\\]|<= 4/30|>= 5/30|2026-03-30-ndr-flake-policy.md' projects/dymad_migrate/knowledge/parity-critical-workflows.md projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md projects/dymad_migrate/TASKS.md`
 
 - [x] Quantify parity-critical workflow gate outcomes for the current migration baseline [requires-frontier] [skill: analyze]
   Why: Mission gap - no open task currently verifies the README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" after recent boundary-adapter changes (per ADR 0049).

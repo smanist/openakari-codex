@@ -1,8 +1,8 @@
 # DyMAD Parity-Critical Workflows
 
-Date: 2026-03-29
+Date: 2026-03-29 (updated 2026-03-30)
 Source package: `modules/dymad_ref/`
-Status: initial classification
+Status: initial classification + NDR flake-policy update
 
 ## Purpose
 
@@ -79,6 +79,23 @@ Verification command:
 ```bash
 cd modules/dymad_ref && pytest tests/test_assert_transform.py tests/test_assert_trans_mode.py tests/test_assert_trans_lift.py tests/test_assert_trans_ndr.py -q
 ```
+
+#### 3a. Special gate policy for `tests/test_assert_trans_ndr.py::test_ndr[0]`
+
+`test_ndr[0]` currently uses an unseeded random fixture and has a documented intermittent near-threshold failure mode.
+
+Policy (2026-03-30):
+- keep it visible in parity checks
+- do not hard-block from a single failure
+- if this case fails, adjudicate with 30 isolated reruns (`--reruns=0`)
+- classify as flake-managed pass if failures are `<= 4/30` and failures are only:
+  - `AssertionError: Isomap recon. error`
+  - `AssertionError: Isomap reload, transform`
+- classify as hard blocker if failures are `>= 5/30` or any other failure type appears
+
+Policy source:
+- `projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md`
+- `projects/dymad_migrate/analysis/2026-03-30-ndr-idx0-parity-diagnosis.md`
 
 ### 4. Regular dynamics training and prediction with control/autonomous variants
 
