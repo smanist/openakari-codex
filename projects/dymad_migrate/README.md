@@ -332,3 +332,4 @@ Sources:
 - For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
 - Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?
+- Should the SA workflow warning/rerun behavior in `test_workflow_sa_lti.py::test_sa[4]` be treated as acceptable baseline noise or as a migration stability bug to isolate?

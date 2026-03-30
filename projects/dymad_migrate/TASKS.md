@@ -91,10 +91,12 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/io/load_model_compat.py`, extended `modules/dymad_migrate/src/dymad/exec/workflow.py` with `materialize_checkpoint_prediction(...)`, and added `modules/dymad_migrate/tests/test_load_model_compat.py` to verify the adapter plans via `facade/store` and materializes via `exec`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py -q`
 
-- [ ] Verify parity-critical `load_model` workflows after boundary adapter landing [requires-frontier] [skill: analyze]
+- [x] Verify parity-critical `load_model` workflows after boundary adapter landing [requires-frontier] [skill: analyze]
   Why: Mission gap - no explicit verification task yet for README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" (per ADR 0049).
   Done when: A migration analysis note records pass/fail outcomes for `test_workflow_lti.py`, `test_workflow_kp.py`, `test_workflow_ltg.py`, `test_workflow_ltga.py`, `test_workflow_ker_auto.py`, `test_workflow_ker_ctrl.py`, and `test_workflow_sa_lti.py`, with exact command output and any residual parity gaps.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-verification.md` with file-level pass/fail outcomes and residual parity-gap notes, and persisted exact pytest output at `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-pytest.log`.
+  Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_ker_auto.py tests/test_workflow_ker_ctrl.py tests/test_workflow_sa_lti.py -q`
 
 - [ ] Expose one verified end-to-end checkpoint path matching MCP layering [requires-frontier] [skill: execute]
   Why: Mission gap - no open task yet for README Done-when condition "exposes at least one verified end-to-end path that matches the MCP layering pattern" (per ADR 0049).
