@@ -93,6 +93,16 @@
 
 ## Mission gap tasks
 
+- [ ] Resolve the drift between the recorded first vertical slice and the implemented checkpoint-first skeleton [requires-frontier] [skill: orient] [zero-resource]
+  Why: `projects/dymad_migrate/analysis/2026-03-30-status-review.md` found that the recorded first slice is still the data-boundary migration, while implementation has advanced on a checkpoint-first boundary shim instead.
+  Done when: A dated plan/decision note either (a) re-baselines the first vertical slice to checkpoint-first with rationale, or (b) preserves the current data-boundary-first plan and decomposes the next implementation tasks needed to actually start that slice.
+  Priority: high
+
+- [ ] Route the public `load_model(...)` workflow through the compatibility boundary [requires-frontier] [skill: execute]
+  Why: The status review found that `load_model_compat(...)` is real and tested, but real workflow callers still use the legacy `dymad.io.checkpoint.load_model(...)` path, so the new boundary is not yet the default surface exercised by workflow parity tests.
+  Done when: `modules/dymad_migrate/src/dymad/io/load_model(...)` or an equivalent public shim routes through `facade/store/exec`, and at least one existing workflow test proves the boundary path is actually exercised.
+  Priority: high
+
 - [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
   Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.

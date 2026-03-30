@@ -19,6 +19,29 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Reviewed post-Akari migration status and recorded direction gaps
+
+Reviewed whether the current `dymad_migrate` implementation is matching the recorded migration plan after the recent Akari-driven project setup and boundary tasks.
+
+Added:
+- `projects/dymad_migrate/analysis/2026-03-30-status-review.md`
+
+Main findings:
+- the project is directionally aligned with the intended layered architecture
+- the implemented code path is checkpoint-first, while the recorded first vertical slice is still data-boundary-first
+- the new `facade/store/exec` boundary is real and tested, but workflow callers still default to legacy `load_model(...)`
+- the migration package itself currently passes the selected workflow files, so the boundary proof-of-concept has not regressed the active parity surface
+
+Follow-up tasks added to `projects/dymad_migrate/TASKS.md`:
+- resolve first-slice drift (re-baseline vs. implement the actual data-boundary slice next)
+- route the public `load_model(...)` path through the compatibility boundary
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py tests/test_checkpoint_e2e_layering.py -q` ->
+  - `4 passed, 2 warnings in 0.80s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_ker_auto.py tests/test_workflow_ker_ctrl.py tests/test_workflow_sa_lti.py -q` ->
+  - `74 passed, 7 warnings in 77.91s`
+
 ### 2026-03-30 — Oriented project and adjudicated policy-adjusted parity status
 
 Ran `/orient dymad_migrate`, found no open tasks in `projects/dymad_migrate/TASKS.md`, generated a mission-gap task for parity adjudication, and completed it.
@@ -743,6 +766,7 @@ Sources:
 
 ## Open questions
 
+- Should the project re-baseline the first vertical slice to checkpoint-first, or keep the current data-boundary-first slice and implement that seam next?
 - For graph series, should `control`/`params` be node-wise only, global only, or union-typed with explicit validation rules?
 - For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
