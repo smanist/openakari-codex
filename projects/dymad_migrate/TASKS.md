@@ -110,6 +110,11 @@
   Done when: `modules/dymad_migrate` includes one runnable path from facade handle registration through exec planning/materialization for checkpoint prediction, validated by an automated test and documented against `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
   Priority: medium
 
+- [ ] Diagnose `test_assert_trans_ndr.py::test_ndr[0]` parity-gate failure mode [requires-frontier] [skill: diagnose]
+  Why: `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` recorded a blocker-class failure (`Isomap recon. error`) while milestone workflows still passed; migration needs to classify whether this is deterministic baseline drift or run-to-run numerical instability before parity sign-off.
+  Done when: A diagnosis note in `projects/dymad_migrate/analysis/` reproduces `test_assert_trans_ndr.py::test_ndr[0]` across repeated runs with exact outputs, reports failure frequency and normalized-error range, and states whether parity gating should treat this as a hard blocker or a flake-managed condition.
+  Priority: medium
+
 - [x] Quantify parity-critical workflow gate outcomes for the current migration baseline [requires-frontier] [skill: analyze]
   Why: Mission gap - no open task currently verifies the README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" after recent boundary-adapter changes (per ADR 0049).
   Done when: `projects/dymad_migrate/analysis/` contains a dated note with blocker/milestone parity-gate pass/fail counts from `projects/dymad_migrate/knowledge/parity-critical-workflows.md`, exact verification command(s), and a concise decision on whether parity is currently stable.

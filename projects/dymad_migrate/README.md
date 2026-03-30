@@ -19,6 +19,56 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and quantified parity-critical gate outcomes
+
+Ran `/orient dymad_migrate`, generated a mission-gap findings task for parity verification, selected it, and completed a quantified blocker/milestone gate run against `modules/dymad_ref/`.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short --branch` -> `## main...origin/main`).
+- Scoped orient context reviewed project README/TASKS/knowledge/decisions and active-project budget/ledger state (`dymad_migrate` has no `budget.yaml` or `ledger.yaml`; `pca_vs_ttd` has a budget file and empty ledger).
+- Mission gap check added one task: `Quantify parity-critical workflow gate outcomes for the current migration baseline`.
+- Efficiency summary from the last 10 sessions (`.scheduler/metrics/sessions.jsonl`):
+  - findings/$: `n/a` (`cost_sum=0`)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10` and non-null `orientTurns`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler `work-cycle` non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{\"ok\":true,\"claim\":{\"claimId\":\"4bc91afa3935b48b\",\"taskId\":\"088fea451712\",\"taskText\":\"Quantify parity-critical workflow gate outcomes for the current migration baseline\",\"project\":\"dymad_migrate\",\"agentId\":\"work-session-mncu8xf1\",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM API calls, external API calls, GPU compute, or long-running detached jobs).
+
+Changes:
+- Added `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` with blocker/milestone pass/fail counts, failure arithmetic provenance, and parity-stability decision.
+- Added `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-pytest.log` containing exact pytest output.
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Quantify parity-critical workflow gate outcomes for the current migration baseline` complete with evidence/verification
+  - added follow-up task `Diagnose test_assert_trans_ndr.py::test_ndr[0] parity-gate failure mode` from compound-fast task discovery
+- Updated this README `## Open questions` with the unresolved NDR parity-failure classification question.
+
+Verification:
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_dm.py tests/test_assert_trajmgr_graph.py tests/test_assert_graph.py tests/test_assert_transform.py tests/test_assert_trans_mode.py tests/test_assert_trans_lift.py tests/test_assert_trans_ndr.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_sa_lti.py tests/test_assert_resolvent.py tests/test_assert_spectrum.py tests/test_workflow_sample.py -q` ->
+  - `FAILED tests/test_assert_trans_ndr.py::test_ndr[0] - AssertionError: Isomap recon. error`
+  - `1 failed, 105 passed, 1269 warnings, 2 rerun in 61.90s`
+
+Compound (fast): 1 action.
+- Added task `Diagnose test_assert_trans_ndr.py::test_ndr[0] parity-gate failure mode` to `projects/dymad_migrate/TASKS.md` from the failed blocker finding in `2026-03-30-parity-critical-gate-outcomes.md`.
+- Fleet spot-check result: no recent `triggerSource:\"fleet\"` sessions in `.scheduler/metrics/sessions.jsonl`.
+
+Session-type: autonomous
+Duration: 43
+Task-selected: Quantify parity-critical workflow gate outcomes for the current migration baseline
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and diagnosed SA rerun/warning behavior
 
 Ran `/orient dymad_migrate`, selected `Diagnose test_workflow_sa_lti.py::test_sa[4] rerun and runtime warnings`, and completed a provenance-backed diagnosis note with exact command outputs.
