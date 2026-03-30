@@ -19,6 +19,65 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and diagnosed NDR parity-gate flake mode
+
+Ran `/orient dymad_migrate`, selected `Diagnose test_assert_trans_ndr.py::test_ndr[0] parity-gate failure mode`, and completed a reproducibility diagnosis with explicit gate classification.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short --branch` -> `## main...origin/main`).
+- Scoped orient context reviewed project README/TASKS, knowledge, decisions, approvals, active-project budget/ledger files, and scheduler metrics.
+- Mission gap check for `dymad_migrate` found no new gaps (each README Done-when condition already had an open or completed task path).
+- Efficiency summary from the last 10 sessions (`.scheduler/metrics/sessions.jsonl`):
+  - findings/$: `n/a` (`cost_sum=0`)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler `work-cycle` non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"7cb4fcb392505437","taskId":"af9cc77512bc","taskText":"Diagnose test_assert_trans_ndr.py::test_ndr[0] parity-gate failure mode","project":"dymad_migrate","agentId":"work-session-mncwe3bi",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM API calls, external API calls, GPU compute, or long-running detached jobs).
+
+Changes:
+- Added `projects/dymad_migrate/analysis/2026-03-30-ndr-idx0-parity-diagnosis.md` with root-cause findings and gate decision.
+- Added exact command logs:
+  - `projects/dymad_migrate/analysis/2026-03-30-ndr-test-idx0-reruns0-repeat.log`
+  - `projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.log`
+- Added reproducibility script:
+  - `projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.py`
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Diagnose test_assert_trans_ndr.py::test_ndr[0] parity-gate failure mode` complete with evidence/verification
+  - added follow-up task `Define flake-aware parity policy for test_assert_trans_ndr.py::test_ndr[0]`
+- Updated `## Open questions` to replace the resolved deterministic-vs-flaky question with the remaining policy question.
+
+Verification:
+- `cd modules/dymad_ref && PYTHONPATH=src bash -lc 'for i in {1..30}; do echo \"===== RUN $i =====\"; pytest \"tests/test_assert_trans_ndr.py::test_ndr[0]\" --reruns=0 -q; ec=$?; echo \"EXIT_CODE=$ec\"; done'` ->
+  - `27` passed, `3` failed (`3/30 = 10.0%`)
+  - failure mode counts: `2` recon-threshold failures, `1` reload-transform threshold failure
+- `cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.py` ->
+  - recon range: `[1.634900138167055e-05, 2.95024235412379e-05]`, failures `0/30`
+  - reload-transform range: `[2.778685203437485e-14, 1.097809665838523e-13]`, failures `3/30`
+  - reload-inverse range: `[9.725003936830169e-16, 2.6112987052518792e-15]`, failures `0/30`
+- Classification result in diagnosis: treat this case as **flake-managed** for parity gating until explicit policy is formalized.
+
+Compound (fast): 1 action.
+- Added follow-up task `Define flake-aware parity policy for test_assert_trans_ndr.py::test_ndr[0]` from diagnosis findings.
+- Fleet spot-check result: no recent `triggerSource:"fleet"` sessions in the last 5 metrics entries.
+
+Session-type: autonomous
+Duration: 52
+Task-selected: Diagnose `test_assert_trans_ndr.py::test_ndr[0]` parity-gate failure mode
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and quantified parity-critical gate outcomes
 
 Ran `/orient dymad_migrate`, generated a mission-gap findings task for parity verification, selected it, and completed a quantified blocker/milestone gate run against `modules/dymad_ref/`.
@@ -477,4 +536,4 @@ Sources:
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
 - Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?
 - Should SA parity gating disable reruns (or adjust fixture/data lifecycle) for single-case diagnostics to avoid rerun-induced `FileNotFoundError` noise from the legacy test harness?
-- Is `tests/test_assert_trans_ndr.py::test_ndr[0]` currently flaky/numerically unstable in the reference baseline, or does the observed Isomap reconstruction-threshold failure indicate a deterministic parity blocker that must be mitigated before migration sign-off?
+- What exact flake-aware policy should parity gating use for `tests/test_assert_trans_ndr.py::test_ndr[0]` (for example repeated-run threshold, deterministic fixture seeding, or temporary non-blocking classification)?

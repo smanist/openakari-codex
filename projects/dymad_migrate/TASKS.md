@@ -110,9 +110,16 @@
   Done when: `modules/dymad_migrate` includes one runnable path from facade handle registration through exec planning/materialization for checkpoint prediction, validated by an automated test and documented against `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
   Priority: medium
 
-- [ ] Diagnose `test_assert_trans_ndr.py::test_ndr[0]` parity-gate failure mode [requires-frontier] [skill: diagnose]
+- [x] Diagnose `test_assert_trans_ndr.py::test_ndr[0]` parity-gate failure mode [requires-frontier] [skill: diagnose]
   Why: `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` recorded a blocker-class failure (`Isomap recon. error`) while milestone workflows still passed; migration needs to classify whether this is deterministic baseline drift or run-to-run numerical instability before parity sign-off.
   Done when: A diagnosis note in `projects/dymad_migrate/analysis/` reproduces `test_assert_trans_ndr.py::test_ndr[0]` across repeated runs with exact outputs, reports failure frequency and normalized-error range, and states whether parity gating should treat this as a hard blocker or a flake-managed condition.
+  Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-ndr-idx0-parity-diagnosis.md` with repeated-run failure arithmetic (`3/30`), normalized-error ranges, and flake-managed gate classification, plus exact logs at `projects/dymad_migrate/analysis/2026-03-30-ndr-test-idx0-reruns0-repeat.log` and `projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.log`.
+  Verification: `cd modules/dymad_ref && PYTHONPATH=src bash -lc 'for i in {1..30}; do echo \"===== RUN $i =====\"; pytest \"tests/test_assert_trans_ndr.py::test_ndr[0]\" --reruns=0 -q; ec=$?; echo \"EXIT_CODE=$ec\"; done'` and `cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.py`
+
+- [ ] Define flake-aware parity policy for `test_assert_trans_ndr.py::test_ndr[0]` [requires-frontier] [skill: analyze]
+  Why: The completed diagnosis classified `test_ndr[0]` as flake-managed (`3/30` isolated-run failures, unseeded fixture), so the parity gate needs an explicit policy instead of single-run hard-block semantics.
+  Done when: A short policy note updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` (or a linked analysis note) with the exact gating rule for this case (for example repeated-run threshold or deterministic fixture requirement), and `projects/dymad_migrate/TASKS.md` references the chosen rule as the parity-check standard.
   Priority: medium
 
 - [x] Quantify parity-critical workflow gate outcomes for the current migration baseline [requires-frontier] [skill: analyze]
