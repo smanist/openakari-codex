@@ -19,6 +19,62 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project, completed checkpoint facade design, and generated mission-gap tasks
+
+Ran `/orient dymad_migrate`, selected `Design checkpoint/load-model compatibility as the first facade boundary`, completed the design artifact, and expanded task supply with mission-gap tasks tied to README Done-when criteria.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short` produced no output).
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"67f42b133eb4afd1","taskId":"12b64fe5b302","taskText":"Design checkpoint/load-model compatibility as the first facade boundary","project":"dymad_migrate","agentId":"work-session-mnclo9p4",...}}`
+- Efficiency summary from last 10 sessions:
+  - findings/$: `n/a` (`cost_sum=0`)
+  - genuine waste: `0/10`
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler `work-cycle` non-zero findings rate: `0/10` (findings-first gate enabled)
+- Mission gap analysis for project Done-when conditions identified missing explicit tasks for implementation/parity/e2e proof; added three `## Mission gap tasks` entries in `TASKS.md`.
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (documentation/design only; no LLM API calls, external APIs, GPU jobs, or long-running compute).
+
+Changes:
+- Added `projects/dymad_migrate/architecture/checkpoint-facade-design.md` defining:
+  - legacy `load_model` parity-critical API shapes and call-site findings
+  - `core` / `facade` / `store` / `exec` ownership split for checkpoint compatibility
+  - staged shim migration sequence and parity verification gates
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Design checkpoint/load-model compatibility as the first facade boundary` complete with evidence and verification command
+  - added three mission-gap tasks for boundary implementation, parity verification, and one verified e2e MCP-aligned path
+
+Verification:
+- `rg -n "^## Legacy findings to preserve|^## Compatibility surface to keep|^## Boundary ownership|^## First shim design|^## Migration sequence|test_workflow_lti.py:167|test_workflow_sa_lti.py:106|core -> facade -> store -> exec|src/dymad/exec/workflow.py:17-40" projects/dymad_migrate/architecture/checkpoint-facade-design.md` ->
+  - `16:\`core -> facade -> store -> exec\` layers.`
+  - `23:## Legacy findings to preserve`
+  - `44:   - \`tests/test_workflow_lti.py:167\``
+  - `50:   - \`tests/test_workflow_sa_lti.py:106\``
+  - `52:## Compatibility surface to keep`
+  - `93:## Boundary ownership`
+  - `122:## First shim design`
+  - `158:(\`src/dymad/exec/workflow.py:17-40\`).`
+  - `163:## Migration sequence`
+- `git diff --check -- projects/dymad_migrate` -> no output
+
+Compound (fast): no actions. (Fleet spot-check: no recent `"triggerSource":"fleet"` entries in `.scheduler/metrics/sessions.jsonl`.)
+
+Session-type: autonomous
+Duration: 36
+Task-selected: Design checkpoint/load-model compatibility as the first facade boundary
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and prototyped facade/store/exec skeleton
 
 Ran `/orient dymad_migrate`, selected `Prototype the facade/store/exec skeleton without moving core math yet`, and completed the first non-invasive boundary prototype in the migration target module.
@@ -225,3 +281,5 @@ Sources:
 - What is the first vertical slice that yields both architectural validation and practical user value: data abstractions, transforms, typed model specs, or training orchestration?
 - For graph series, should `control`/`params` be node-wise only, global only, or union-typed with explicit validation rules?
 - For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?
+- Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
+- Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?

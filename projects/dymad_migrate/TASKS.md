@@ -70,12 +70,31 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/facade/`, `modules/dymad_migrate/src/dymad/store/`, and `modules/dymad_migrate/src/dymad/exec/` with a typed-handle checkpoint-to-prediction request flow, plus plan documentation at `projects/dymad_migrate/plans/2026-03-30-facade-store-exec-skeleton.md`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py -q`
 
-- [ ] Design checkpoint/load-model compatibility as the first facade boundary [requires-frontier] [skill: multi]
+- [x] Design checkpoint/load-model compatibility as the first facade boundary [requires-frontier] [skill: multi]
   Why: Workflow tests repeatedly depend on `load_model(...)` plus prediction, so checkpoint/model loading is the most practical compatibility surface to preserve while introducing typed facade concepts.
   Done when: `projects/dymad_migrate/architecture/checkpoint-facade-design.md` describes how current checkpoint loading maps to typed facade/store responsibilities, including which legacy API shapes must remain available through shims.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/architecture/checkpoint-facade-design.md` with legacy `load_model` call-shape findings, compatibility API-shape requirements, ownership split across `core/facade/store/exec`, and staged shim migration gates tied to workflow tests.
+  Verification: `rg -n "^## Legacy findings to preserve|^## Compatibility surface to keep|^## Boundary ownership|^## First shim design|^## Migration sequence|test_workflow_lti.py:167|test_workflow_sa_lti.py:106|core -> facade -> store -> exec|src/dymad/exec/workflow.py:17-40" projects/dymad_migrate/architecture/checkpoint-facade-design.md`
 
 - [ ] Design the spectral-analysis adapter boundary [requires-frontier] [skill: multi]
   Why: `sako` is a distinctive DyMAD capability but currently couples model loading, numerics, and plotting; migration needs an explicit adapter design rather than preserving that entanglement accidentally.
   Done when: `projects/dymad_migrate/architecture/spectral-analysis-design.md` specifies which pieces of `sako` remain pure core analysis, which pieces become adapters, and how parity is checked against `test_workflow_sa_lti.py`.
+  Priority: medium
+
+## Mission gap tasks
+
+- [ ] Implement checkpoint compatibility through facade/store/exec boundary [requires-frontier] [skill: execute]
+  Why: Mission gap - no implementation task yet for README Done-when condition "`modules/dymad_migrate/` documents and implements the agreed `core` / `facade` / `store` / `exec` boundaries" (per ADR 0049).
+  Done when: `modules/dymad_migrate/src/dymad/io/load_model_compat.py` (or equivalent boundary adapter location) routes checkpoint registration through `facade`/`store`, materialization through `exec`, and `modules/dymad_migrate/tests/test_boundary_skeleton.py` plus a new compatibility-focused test both pass.
+  Priority: medium
+
+- [ ] Verify parity-critical `load_model` workflows after boundary adapter landing [requires-frontier] [skill: analyze]
+  Why: Mission gap - no explicit verification task yet for README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" (per ADR 0049).
+  Done when: A migration analysis note records pass/fail outcomes for `test_workflow_lti.py`, `test_workflow_kp.py`, `test_workflow_ltg.py`, `test_workflow_ltga.py`, `test_workflow_ker_auto.py`, `test_workflow_ker_ctrl.py`, and `test_workflow_sa_lti.py`, with exact command output and any residual parity gaps.
+  Priority: medium
+
+- [ ] Expose one verified end-to-end checkpoint path matching MCP layering [requires-frontier] [skill: execute]
+  Why: Mission gap - no open task yet for README Done-when condition "exposes at least one verified end-to-end path that matches the MCP layering pattern" (per ADR 0049).
+  Done when: `modules/dymad_migrate` includes one runnable path from facade handle registration through exec planning/materialization for checkpoint prediction, validated by an automated test and documented against `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
   Priority: medium
