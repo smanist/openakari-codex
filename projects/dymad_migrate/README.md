@@ -19,6 +19,67 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Selected model runtime / prediction as the next module after data/transform
+
+Recorded the next module boundary after the completed Phase 1 data/transform migration.
+
+Decision:
+- the next active module migration is `model runtime / prediction`
+- `DynData` retirement remains a separate planning queue, not the active execution queue
+
+Why:
+- prediction is the narrowest remaining layer that still depends directly on `DynData`
+- it sits between the completed typed data/transform work and the later training redesign
+- it establishes one typed execution path before broader trainer changes
+
+Artifacts added:
+- `projects/dymad_migrate/plans/2026-03-30-model-runtime-next-module-and-dyndata-retirement.md`
+- new task sections in `projects/dymad_migrate/TASKS.md` for:
+  - model runtime / prediction migration
+  - `DynData` retirement planning
+
+Immediate next tasks:
+- design the typed model-runtime boundary
+- introduce typed model-context adapters for regular and graph series
+- route one regular and one graph prediction path through the typed model context
+
+### 2026-03-30 — Finished the explicit NDR adapter boundary and removed hidden checkpoint/load transform construction
+
+Completed the remaining Phase 1 data/transform boundary work for:
+
+- explicit NDR adapters under the Torch-first transform contract
+- central transform construction for typed and checkpoint/load paths
+- narrow graph edge-field compatibility wrappers where the legacy per-step edge contract still matters
+
+Code changes:
+- added `modules/dymad_migrate/src/dymad/core/transform_builder.py` as the single transform-construction/export boundary
+- added `NDRTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py`
+- updated `modules/dymad_migrate/src/dymad/core/torch_transforms.py` so `ComposeTransform` aggregates invertibility and gradient metadata from child stages
+- updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` to build typed transform modules through the new boundary instead of direct hidden legacy reconstruction
+- updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so graph/regular typed pipelines use builder-constructed modules and graph edge fields use explicit legacy adapters only at the typed compatibility boundary
+- added `modules/dymad_migrate/tests/test_transform_builder.py` for NDR wrapper parity and metadata assertions
+
+Task status:
+- completed `Wrap NDR transforms behind explicit Torch/autodiff adapters`
+- completed `Remove hidden legacy transform construction from loaders/checkpoint paths`
+- completed `Record data/transform migration verification gates and update the scoreboard`
+
+Findings:
+- the right boundary for NDR in Phase 1 is not a native Torch rewrite; it is a typed adapter with explicit `supports_gradients="false"` and `invertibility="approximate"`
+- graph `edge_weight` cannot share the same native tensor-field contract as `state` or `control`; it must preserve the legacy per-step `[E, 1]` transform contract behind a narrow adapter to avoid changing scaling semantics
+- checkpoint/load paths now have one central transform-construction boundary instead of scattered `make_transform(...)` calls
+
+Verification:
+- `git diff --check -- projects/dymad_migrate modules/dymad_migrate` ->
+  - no output
+- `python -m compileall /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/src/dymad/core /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/src/dymad/io/checkpoint.py /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/src/dymad/io/trajectory_manager.py /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/tests/test_transform_builder.py /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/tests/test_regular_slice_integration.py` ->
+  - completed without error
+- `cd /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate && PYTHONPATH=src pytest tests/test_transform_builder.py tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q` ->
+  - `19 passed, 1268 warnings in 1.23s`
+
+Added verification note:
+- `projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md`
+
 ### 2026-03-30 — Verified graph transform routing on the typed pipeline and finished the built-in native transform family
 
 Completed the remaining Phase 1 work for graph-compatible transform routing and the

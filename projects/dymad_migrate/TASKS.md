@@ -223,20 +223,26 @@
   Evidence: Updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so graph preprocessing now routes through `_build_graph_transform_pipeline()`, added `LegacyTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py`, and verified parity against the exercised graph workflow tests in `modules/dymad_migrate/tests/test_assert_trajmgr_graph.py` and `modules/dymad_migrate/tests/test_graph_series_adapter.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q`
 
-- [ ] Wrap NDR transforms behind explicit Torch/autodiff adapters [requires-frontier] [skill: execute]
+- [x] Wrap NDR transforms behind explicit Torch/autodiff adapters [requires-frontier] [skill: execute]
   Why: NDR is part of the data-transform surface area, but exact pure-Torch replacements are not required to move the architecture forward; explicit wrapped adapters are the practical intermediate target.
   Done when: `DiffMap`, `DiffMapVB`, `Isomap` (and any other live NDR transforms) are exposed through the new transform protocol with explicit gradient-support metadata and documented CPU/wrapper behavior, even if their internals still call external numerics.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_builder.py` plus `NDRTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py`, exported the new boundary from `modules/dymad_migrate/src/dymad/core/__init__.py`, and added explicit NDR wrapper coverage in `modules/dymad_migrate/tests/test_transform_builder.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_transform_builder.py -q`
 
-- [ ] Remove hidden legacy transform construction from loaders/checkpoint paths [requires-frontier] [skill: execute]
+- [x] Remove hidden legacy transform construction from loaders/checkpoint paths [requires-frontier] [skill: execute]
   Why: Even with new data types and new transforms, the migration will drift if checkpoint/load/model paths keep reconstructing the old transform stack directly.
   Done when: loader/checkpoint/preprocessing entrypoints build transforms through the new transform protocol and only use legacy transform objects behind narrow, temporary adapters if still needed.
   Priority: high
+  Evidence: Added the explicit transform-builder boundary in `modules/dymad_migrate/src/dymad/core/transform_builder.py`, routed checkpoint loading through it in `modules/dymad_migrate/src/dymad/io/checkpoint.py`, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so typed regular/graph preprocessing uses builder-constructed modules, and kept graph edge-field legacy handling behind narrow typed adapters only.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q`
 
-- [ ] Record data/transform migration verification gates and update the scoreboard [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Record data/transform migration verification gates and update the scoreboard [requires-frontier] [skill: analyze] [zero-resource]
   Why: The module-first migration needs its own sign-off criteria separate from the prior compatibility-heavy slice.
   Done when: a dated analysis note records the exact regular/graph/transform/NDR verification commands for the new module-first data/transform migration, and `projects/dymad_migrate/architecture/migration-scoreboard.md` is updated to reflect the new data/transform module status.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md` and updated `projects/dymad_migrate/architecture/migration-scoreboard.md` to reflect the centralized transform-builder boundary plus explicit NDR and graph-edge adapter status.
+  Verification: `rg -n \"^# Data/Transform Boundary Verification|^## Findings|19 passed, 1268 warnings\" projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md` and `rg -n \"transform_builder.py|NDR stages are explicit non-differentiable adapters|checkpoint hydration now constructs transforms through the central typed builder\" projects/dymad_migrate/architecture/migration-scoreboard.md`
 
 - [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
@@ -291,3 +297,57 @@
   Priority: medium
   Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` and persisted exact test output at `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-pytest.log`.
   Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_dm.py tests/test_assert_trajmgr_graph.py tests/test_assert_graph.py tests/test_assert_transform.py tests/test_assert_trans_mode.py tests/test_assert_trans_lift.py tests/test_assert_trans_ndr.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_sa_lti.py tests/test_assert_resolvent.py tests/test_assert_spectrum.py tests/test_workflow_sample.py -q`
+
+## Model runtime / prediction migration tasks
+
+- [ ] Design the typed model-runtime boundary after data/transform [requires-frontier] [skill: multi] [zero-resource]
+  Why: The next highest-leverage module after data/transform is the model runtime / prediction layer, because it is the narrowest remaining boundary that still depends directly on `DynData`.
+  Done when: `projects/dymad_migrate/architecture/model-runtime-boundary-design.md` defines the typed model input/context objects for regular and graph prediction, lists the exact legacy entrypoints to migrate first, and states which compatibility adapters remain temporary.
+  Priority: high
+
+- [ ] Introduce a typed model context adapter for regular and graph series [requires-frontier] [skill: execute]
+  Why: Prediction and model helpers need one stable typed input object before `DynData` can be removed from model-facing signatures.
+  Done when: `modules/dymad_migrate/` contains typed model-context adapters built from `RegularSeries` / `GraphSeries`, and focused tests prove they preserve the current information needed by legacy model helpers.
+  Priority: high
+
+- [ ] Route one regular prediction path through the typed model context [requires-frontier] [skill: execute]
+  Why: The next module migration should establish one real regular execution path that consumes typed model context instead of depending on raw `DynData` assembly.
+  Done when: one public regular prediction path in `modules/dymad_migrate/src/dymad/models/` or checkpoint-backed prediction consumes typed model context before any legacy adapter boundary, with regression coverage against the current workflow gate.
+  Priority: high
+
+- [ ] Route one graph prediction path through the typed model context [requires-frontier] [skill: execute]
+  Why: Graph prediction is one of the main reasons `DynData` survives; the next module migration should prove the typed context also works for graph execution.
+  Done when: one public graph prediction path in `modules/dymad_migrate/src/dymad/models/` or checkpoint-backed prediction consumes typed graph model context before any legacy adapter boundary, with regression coverage against the current graph workflow gate.
+  Priority: high
+
+- [ ] Split model helper/components away from direct `DynData` field access [requires-frontier] [skill: execute]
+  Why: Helper-level field accessors in `models/components.py` are a major source of `DynData` coupling and need to be moved behind typed context readers before broader model/runtime cleanup.
+  Done when: the first targeted helper/component family reads from typed model context or a narrow compatibility adapter rather than directly indexing `DynData` fields, and the affected prediction tests still pass.
+  Priority: high
+
+- [ ] Record regular and graph prediction parity gates for the typed model-runtime boundary [requires-frontier] [skill: analyze] [zero-resource]
+  Why: The next module migration should be signed off with explicit regular and graph prediction evidence before training migration starts.
+  Done when: a dated analysis note records the exact regular and graph prediction verification commands for the typed model-runtime boundary and compares the selected gates against `dymad_ref` where relevant.
+  Priority: high
+
+## DynData retirement planning tasks
+
+- [ ] Inventory the remaining `DynData` dependency surface after Phase 1 [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: `DynData` retirement should be managed as a separate queue, and the first requirement is a precise inventory of which files and call paths still depend on it.
+  Done when: `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md` lists the remaining dependencies across model runtime, training, checkpoint, dataloader, and analysis paths with file references and dependency categories.
+  Priority: high
+
+- [ ] Define the phased `DynData` retirement plan and cutoff rules [requires-frontier] [skill: multi] [zero-resource]
+  Why: Retirement spans multiple modules; the project needs an explicit phase order and deletion criteria so sessions do not remove adapters too early or leave dead compatibility seams indefinitely.
+  Done when: `projects/dymad_migrate/plans/` contains a dated `DynData` retirement plan with phases, no-new-dependency rule, adapter deletion criteria, and the verification gates required before each phase.
+  Priority: high
+
+- [ ] Add a no-new-`DynData` dependency policy to the project record [fleet-eligible] [skill: govern] [zero-resource]
+  Why: Retirement will drift if new code keeps reintroducing fresh `DynData` dependencies while the old ones are being reduced.
+  Done when: the project README and/or a decision note explicitly states that new code must target typed series/model-context objects and may only touch `DynData` at shrinking compatibility boundaries.
+  Priority: medium
+
+- [ ] Define the first dataloader/batch replacement targets for post-runtime retirement [requires-frontier] [skill: multi] [zero-resource]
+  Why: Even after model runtime migration, `DynData` will remain alive until batch collation and trainer inputs stop depending on it.
+  Done when: a short design note identifies the first `RegularSeriesBatch` / `GraphSeriesBatch` replacements for dataloader and trainer consumption, with concrete legacy call sites named.
+  Priority: medium
