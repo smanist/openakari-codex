@@ -77,10 +77,12 @@
   Evidence: Added `projects/dymad_migrate/architecture/checkpoint-facade-design.md` with legacy `load_model` call-shape findings, compatibility API-shape requirements, ownership split across `core/facade/store/exec`, and staged shim migration gates tied to workflow tests.
   Verification: `rg -n "^## Legacy findings to preserve|^## Compatibility surface to keep|^## Boundary ownership|^## First shim design|^## Migration sequence|test_workflow_lti.py:167|test_workflow_sa_lti.py:106|core -> facade -> store -> exec|src/dymad/exec/workflow.py:17-40" projects/dymad_migrate/architecture/checkpoint-facade-design.md`
 
-- [ ] Design the spectral-analysis adapter boundary [requires-frontier] [skill: multi]
+- [x] Design the spectral-analysis adapter boundary [requires-frontier] [skill: multi]
   Why: `sako` is a distinctive DyMAD capability but currently couples model loading, numerics, and plotting; migration needs an explicit adapter design rather than preserving that entanglement accidentally.
   Done when: `projects/dymad_migrate/architecture/spectral-analysis-design.md` specifies which pieces of `sako` remain pure core analysis, which pieces become adapters, and how parity is checked against `test_workflow_sa_lti.py`.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/architecture/spectral-analysis-design.md` defining legacy SA workflow coupling, explicit `core` vs adapter ownership, typed `SpectralSnapshot`/adapter contracts, and a parity gate strategy anchored to `tests/test_workflow_sa_lti.py`.
+  Verification: `rg -n '^## Purpose|^## Boundary ownership|^## Parity strategy for .*test_workflow_sa_lti.py|^### Core ownership|^### Adapter ownership|tests/test_workflow_sa_lti.py|SAKO|RALowRank' projects/dymad_migrate/architecture/spectral-analysis-design.md`
 
 - [x] Diagnose `test_workflow_sa_lti.py::test_sa[4]` rerun and runtime warnings [requires-frontier] [skill: diagnose]
   Why: 2026-03-30 parity verification passed all required workflow files but `test_sa[4]` reran once and emitted `RuntimeWarning` values in `src/dymad/sako/sako.py:151`; migration should classify whether this is acceptable baseline noise or a stability bug before deeper spectral-boundary work.

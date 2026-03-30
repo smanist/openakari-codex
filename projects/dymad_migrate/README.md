@@ -19,6 +19,41 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and designed spectral-analysis adapter boundary
+
+Ran `/orient dymad_migrate`, selected `Design the spectral-analysis adapter boundary`, and completed the remaining open architecture-design task in `TASKS.md`.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short --branch` -> `## main...origin/main`).
+- Scoped orient context reviewed project README/TASKS, project knowledge, project decisions, `APPROVAL_QUEUE.md`, active-project budget/ledger files, and scheduler session metrics.
+- No pending approval-queue entries and no stale external blockers (`projects/akari/TASKS.md` had one external blocker dated `2026-03-26`, 4 days old).
+- Mission gap check for this project's README Done-when conditions found no additional missing-task gaps.
+- Efficiency summary from the last 10 sessions (`.scheduler/metrics/sessions.jsonl`):
+  - findings/$: `n/a` (`0/0`, zero-cost sessions)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"76bff49ecf711091","taskId":"9d5e0bfd4968","taskText":"Design the spectral-analysis adapter boundary","project":"dymad_migrate","agentId":"work-session-mnd2tl3z",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM/API calls, external APIs, GPU compute, or long-running detached jobs).
+
+Changes:
+- Added `projects/dymad_migrate/architecture/spectral-analysis-design.md` defining:
+  - which `sako` components remain pure core analysis (`SAKO`, `RALowRank`, eig/residual kernels)
+  - which parts move to adapter layers (snapshot/model-context adaptation and compatibility surface)
+  - how SA parity is checked against `tests/test_workflow_sa_lti.py` using a `--reruns=0` gate tied to the prior rerun diagnosis.
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Design the spectral-analysis adapter boundary` complete with evidence and verification command.
+
+Verification:
+- `rg -n '^## Purpose|^## Boundary ownership|^## Parity strategy for .*test_workflow_sa_lti.py|^### Core ownership|^### Adapter ownership|tests/test_workflow_sa_lti.py|SAKO|RALowRank' projects/dymad_migrate/architecture/spectral-analysis-design.md` ->
+  - required sections and parity/test references present.
+
 ### 2026-03-30 — Oriented project and verified MCP-layered checkpoint end-to-end path
 
 Ran `/orient dymad_migrate`, selected `Expose one verified end-to-end checkpoint path matching MCP layering`, and completed the remaining mission-gap implementation/verification artifact for the checkpoint boundary flow.
@@ -645,3 +680,5 @@ Sources:
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
 - Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?
 - Should SA parity gating disable reruns (or adjust fixture/data lifecycle) for single-case diagnostics to avoid rerun-induced `FileNotFoundError` noise from the legacy test harness?
+- Should SA snapshots persist `P0/P1` explicitly in store for reproducibility, or derive them lazily from checkpoint/data handles at execution time?
+- Should the long-term SA public surface remain class-style (`SpectralAnalysis(...)`) or shift to explicit facade operations that return typed result handles?
