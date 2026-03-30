@@ -84,10 +84,12 @@
 
 ## Mission gap tasks
 
-- [ ] Implement checkpoint compatibility through facade/store/exec boundary [requires-frontier] [skill: execute]
+- [x] Implement checkpoint compatibility through facade/store/exec boundary [requires-frontier] [skill: execute]
   Why: Mission gap - no implementation task yet for README Done-when condition "`modules/dymad_migrate/` documents and implements the agreed `core` / `facade` / `store` / `exec` boundaries" (per ADR 0049).
   Done when: `modules/dymad_migrate/src/dymad/io/load_model_compat.py` (or equivalent boundary adapter location) routes checkpoint registration through `facade`/`store`, materialization through `exec`, and `modules/dymad_migrate/tests/test_boundary_skeleton.py` plus a new compatibility-focused test both pass.
   Priority: medium
+  Evidence: Added `modules/dymad_migrate/src/dymad/io/load_model_compat.py`, extended `modules/dymad_migrate/src/dymad/exec/workflow.py` with `materialize_checkpoint_prediction(...)`, and added `modules/dymad_migrate/tests/test_load_model_compat.py` to verify the adapter plans via `facade/store` and materializes via `exec`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py -q`
 
 - [ ] Verify parity-critical `load_model` workflows after boundary adapter landing [requires-frontier] [skill: analyze]
   Why: Mission gap - no explicit verification task yet for README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" (per ADR 0049).
