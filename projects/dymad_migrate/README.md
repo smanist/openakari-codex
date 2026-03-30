@@ -19,6 +19,54 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and verified MCP-layered checkpoint end-to-end path
+
+Ran `/orient dymad_migrate`, selected `Expose one verified end-to-end checkpoint path matching MCP layering`, and completed the remaining mission-gap implementation/verification artifact for the checkpoint boundary flow.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short --branch` -> `## main...origin/main`).
+- Scoped orient context reviewed project README/TASKS, project knowledge, project decisions, `APPROVAL_QUEUE.md`, active-project budget/ledger files, and scheduler session metrics.
+- No pending approval-queue entries and no stale external blockers.
+- Mission gap check for this project's README Done-when conditions found no additional missing-task gaps.
+- Efficiency summary from the last 10 sessions (`.scheduler/metrics/sessions.jsonl`):
+  - findings/$: `n/a` (`0/0`, zero-cost sessions)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"1e07b224fa7765eb","taskId":"12e4a3d4f5f8","taskText":"Expose one verified end-to-end checkpoint path matching MCP layering","project":"dymad_migrate","agentId":"work-session-mnd0of81",...}}`
+
+Scope classification:
+- `STRUCTURAL (verifiable)` with `consumes_resources: false` (no LLM/external API calls, GPU compute, or long-running detached compute).
+
+Changes:
+- Added `modules/dymad_migrate/tests/test_checkpoint_e2e_layering.py` to validate one complete checkpoint path from `exec` planning through facade/store handle resolution to compatibility materialization.
+- Added `modules/dymad_migrate/docs/checkpoint-e2e-layering.md` mapping the DyMAD checkpoint path to the reference MCP layering contract in `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Expose one verified end-to-end checkpoint path matching MCP layering` complete with evidence and verification command.
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_boundary_skeleton.py tests/test_load_model_compat.py -q` ->
+  - `tests/test_checkpoint_e2e_layering.py::test_checkpoint_e2e_path_routes_facade_store_exec PASSED`
+  - `tests/test_boundary_skeleton.py::test_checkpoint_prediction_handle_flow PASSED`
+  - `tests/test_boundary_skeleton.py::test_handles_reject_invalid_shapes PASSED`
+  - `tests/test_load_model_compat.py::test_load_model_compat_routes_via_boundary PASSED`
+  - `4 passed, 2 warnings in 0.64s`
+
+Session-type: autonomous
+Duration: 29
+Task-selected: Expose one verified end-to-end checkpoint path matching MCP layering
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and formalized flake-aware NDR parity policy
 
 Ran `/orient dymad_migrate`, selected `Define flake-aware parity policy for test_assert_trans_ndr.py::test_ndr[0]`, and converted the prior diagnosis into an explicit parity-gate rule.

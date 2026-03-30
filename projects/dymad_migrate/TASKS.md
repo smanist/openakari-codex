@@ -105,10 +105,12 @@
   Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-verification.md` with file-level pass/fail outcomes and residual parity-gap notes, and persisted exact pytest output at `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-pytest.log`.
   Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_ker_auto.py tests/test_workflow_ker_ctrl.py tests/test_workflow_sa_lti.py -q`
 
-- [ ] Expose one verified end-to-end checkpoint path matching MCP layering [requires-frontier] [skill: execute]
+- [x] Expose one verified end-to-end checkpoint path matching MCP layering [requires-frontier] [skill: execute]
   Why: Mission gap - no open task yet for README Done-when condition "exposes at least one verified end-to-end path that matches the MCP layering pattern" (per ADR 0049).
   Done when: `modules/dymad_migrate` includes one runnable path from facade handle registration through exec planning/materialization for checkpoint prediction, validated by an automated test and documented against `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
   Priority: medium
+  Evidence: Added `modules/dymad_migrate/tests/test_checkpoint_e2e_layering.py` to verify the end-to-end compatibility flow order (`exec -> facade -> store -> materialize`) and added `modules/dymad_migrate/docs/checkpoint-e2e-layering.md` mapping the DyMAD path to the reference layering in `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_boundary_skeleton.py tests/test_load_model_compat.py -q`
 
 - [x] Diagnose `test_assert_trans_ndr.py::test_ndr[0]` parity-gate failure mode [requires-frontier] [skill: diagnose]
   Why: `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` recorded a blocker-class failure (`Isomap recon. error`) while milestone workflows still passed; migration needs to classify whether this is deterministic baseline drift or run-to-run numerical instability before parity sign-off.
