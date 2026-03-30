@@ -688,13 +688,11 @@ Sources:
 
 ## Open questions
 
-- Which legacy workflows are strict parity requirements for the first migration milestone, and which can be deferred behind compatibility shims?
-- Which existing tests in `modules/dymad_ref/tests/` should be treated as migration blockers versus informative regression coverage?
-- What is the first vertical slice that yields both architectural validation and practical user value: data abstractions, transforms, typed model specs, or training orchestration?
 - For graph series, should `control`/`params` be node-wise only, global only, or union-typed with explicit validation rules?
 - For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
 - Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?
+- Should `tests/test_assert_trans_ndr.py::test_ndr[0]` be made deterministic (seeded fixture or threshold redesign) so parity gating no longer needs a flake-policy exception?
 - Should SA parity gating disable reruns (or adjust fixture/data lifecycle) for single-case diagnostics to avoid rerun-induced `FileNotFoundError` noise from the legacy test harness?
 - Should SA snapshots persist `P0/P1` explicitly in store for reproducibility, or derive them lazily from checkpoint/data handles at execution time?
 - Should the long-term SA public surface remain class-style (`SpectralAnalysis(...)`) or shift to explicit facade operations that return typed result handles?

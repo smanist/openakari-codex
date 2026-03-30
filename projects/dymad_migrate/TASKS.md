@@ -93,6 +93,13 @@
 
 ## Mission gap tasks
 
+- [x] Adjudicate parity-critical gate status using the flake-aware NDR policy [requires-frontier] [skill: analyze] [zero-resource]
+  Why: Mission gap - README Done-when requires preserving selected parity-critical workflows, but the latest aggregate gate note (`2026-03-30-parity-critical-gate-outcomes.md`) predates policy-based adjudication and still records parity as unstable.
+  Done when: A dated analysis note in `projects/dymad_migrate/analysis/` recomputes blocker/milestone gate status using the policy from `knowledge/parity-critical-workflows.md` section `3a`, includes explicit arithmetic/provenance from existing logs, and records whether the parity-preservation Done-when condition is currently satisfied or still blocked.
+  Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` with policy-adjusted blocker arithmetic (`3/30` flake adjudication against `<=4/30`) and an explicit parity Done-when status decision.
+  Verification: `rg -n \"^# Parity Gate Adjudication Under the Flake-Aware NDR Policy|^## Findings|^## Decision|3/30|10/10|currently satisfied\" projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md`
+
 - [x] Implement checkpoint compatibility through facade/store/exec boundary [requires-frontier] [skill: execute]
   Why: Mission gap - no implementation task yet for README Done-when condition "`modules/dymad_migrate/` documents and implements the agreed `core` / `facade` / `store` / `exec` boundaries" (per ADR 0049).
   Done when: `modules/dymad_migrate/src/dymad/io/load_model_compat.py` (or equivalent boundary adapter location) routes checkpoint registration through `facade`/`store`, materialization through `exec`, and `modules/dymad_migrate/tests/test_boundary_skeleton.py` plus a new compatibility-focused test both pass.
