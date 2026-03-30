@@ -109,3 +109,10 @@
   Why: Mission gap - no open task yet for README Done-when condition "exposes at least one verified end-to-end path that matches the MCP layering pattern" (per ADR 0049).
   Done when: `modules/dymad_migrate` includes one runnable path from facade handle registration through exec planning/materialization for checkpoint prediction, validated by an automated test and documented against `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
   Priority: medium
+
+- [x] Quantify parity-critical workflow gate outcomes for the current migration baseline [requires-frontier] [skill: analyze]
+  Why: Mission gap - no open task currently verifies the README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" after recent boundary-adapter changes (per ADR 0049).
+  Done when: `projects/dymad_migrate/analysis/` contains a dated note with blocker/milestone parity-gate pass/fail counts from `projects/dymad_migrate/knowledge/parity-critical-workflows.md`, exact verification command(s), and a concise decision on whether parity is currently stable.
+  Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` and persisted exact test output at `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-pytest.log`.
+  Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_dm.py tests/test_assert_trajmgr_graph.py tests/test_assert_graph.py tests/test_assert_transform.py tests/test_assert_trans_mode.py tests/test_assert_trans_lift.py tests/test_assert_trans_ndr.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_sa_lti.py tests/test_assert_resolvent.py tests/test_assert_spectrum.py tests/test_workflow_sample.py -q`

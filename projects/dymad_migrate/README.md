@@ -427,3 +427,4 @@ Sources:
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
 - Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?
 - Should SA parity gating disable reruns (or adjust fixture/data lifecycle) for single-case diagnostics to avoid rerun-induced `FileNotFoundError` noise from the legacy test harness?
+- Is `tests/test_assert_trans_ndr.py::test_ndr[0]` currently flaky/numerically unstable in the reference baseline, or does the observed Isomap reconstruction-threshold failure indicate a deterministic parity blocker that must be mitigated before migration sign-off?
