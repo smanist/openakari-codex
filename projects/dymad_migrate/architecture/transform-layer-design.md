@@ -1,7 +1,7 @@
 # DyMAD Transform Layer Design
 
 Date: 2026-03-30
-Status: proposed
+Status: revised for module-first migration
 Depends on:
 - `projects/dymad_migrate/architecture/data-layer-design.md`
 - `projects/dymad_migrate/knowledge/parity-critical-workflows.md`
@@ -19,6 +19,16 @@ This document answers three questions:
 1. what is the base transform contract?
 2. how do legacy config aliases and transform state survive migration?
 3. which transform families port first?
+
+## Module-first scope update
+
+This design is now the target contract for replacing the transform subsystem first, before broad model/training rewrites.
+
+Updated scope rule:
+
+- new transform work should target the Torch-first module contract only
+- the legacy NumPy-list transform API should be treated as a compatibility surface
+- NDR transforms may remain wrapped external implementations temporarily, but only behind the new contract
 
 ## Design constraints
 
@@ -113,7 +123,7 @@ Introduce a typed config representation:
 
 ### Legacy compatibility
 
-Keep config dictionaries and string aliases as adapter input only.
+Keep config dictionaries and string aliases as adapter input only, not as the new internal contract.
 
 Compatibility path:
 

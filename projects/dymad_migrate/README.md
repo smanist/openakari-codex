@@ -19,6 +19,36 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Landed the first Phase 1 data/transform foundations
+
+Completed the first concrete foundation step of the module-first data/transform migration.
+
+Code changes:
+- added typed graph data primitives in `modules/dymad_migrate/src/dymad/core/graph_series.py`
+- exported the expanded core contract from `modules/dymad_migrate/src/dymad/core/__init__.py`
+- added the canonical Torch-first transform contract in `modules/dymad_migrate/src/dymad/core/transform_module.py`
+- added initial Torch-native non-NDR transforms in `modules/dymad_migrate/src/dymad/core/torch_transforms.py`
+- added focused verification coverage in:
+  - `modules/dymad_migrate/tests/test_graph_series_core.py`
+  - `modules/dymad_migrate/tests/test_torch_transform_modules.py`
+
+Task status:
+- completed the scope-freeze task
+- completed the typed regular/graph data-contract task
+- completed the Torch-first transform protocol/pipeline task
+- left the broader native-transform port task open because `lift` and graph preprocessing adoption are not migrated yet
+
+Verification:
+- `git -C /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate diff --check` ->
+  - no output
+- `python -m compileall /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/src/dymad/core /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/tests/test_graph_series_core.py /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/tests/test_torch_transform_modules.py` ->
+  - completed without error
+- `cd /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q` ->
+  - `5 passed, 2 warnings in 0.75s`
+
+Added verification note:
+- `projects/dymad_migrate/analysis/2026-03-30-phase1-foundations-verification.md`
+
 ### 2026-03-30 — Re-scoped the next migration program to data/transform modules first
 
 Recorded a scope shift away from immediate full vertical-slice work and toward module-first migration of:

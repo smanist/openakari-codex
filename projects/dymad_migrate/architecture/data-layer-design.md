@@ -1,7 +1,7 @@
 # DyMAD Data Layer Design
 
 Date: 2026-03-30
-Status: proposed
+Status: revised for module-first migration
 Depends on:
 - `projects/dymad_migrate/knowledge/parity-critical-workflows.md`
 - `projects/dymad_migrate/architecture/current-state.md`
@@ -17,13 +17,23 @@ This document answers three concrete questions:
 2. Which storage/layout specializations should be implemented first?
 3. Which exact legacy call sites migrate first?
 
+## Module-first scope update
+
+This design is now the target contract for module-first replacement of data handling.
+
+Updated scope rule:
+
+- backward compatibility with legacy data APIs is no longer a primary requirement
+- downstream modules may consume the new data contract through temporary adapters
+- `DynData` should be treated as a compatibility object, not the design center
+
 ## Design constraints
 
 1. Preserve parity-critical behavior for regular-series, graph-series, and transform/training workflows.
 2. Avoid a new single catch-all type with mixed concerns.
 3. Avoid full combinatorial type explosion in the first milestone.
 4. Keep `core` types free of facade/store/MCP concerns.
-5. Keep a temporary compatibility adapter path back to legacy `DynData` while call sites migrate.
+5. Keep downstream adapters narrow and temporary while call sites migrate.
 
 ## Initial semantic series types
 
@@ -159,9 +169,9 @@ These wrappers replace the legacy dual meaning of `DynData.batch_size` and remov
 | `ea` | `GraphSeries.edge_attr` |
 | `meta` | `meta` |
 
-## Compatibility adapters (first milestone)
+## Compatibility adapters (temporary downstream boundary)
 
-Introduce explicit adapters while call sites migrate:
+Introduce explicit adapters only where downstream modules still require them:
 
 - `DynDataAdapter.from_series(series_or_batch) -> DynData`
 - `SeriesAdapter.from_dyndata(dyn_data) -> RegularSeries|GraphSeries`

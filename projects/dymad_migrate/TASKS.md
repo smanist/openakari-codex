@@ -174,25 +174,31 @@
 
 ## Data/transform module-first migration tasks
 
-- [ ] Freeze the new data/transform scope and drop backward-compatibility as a primary constraint [requires-frontier] [skill: orient] [zero-resource]
+- [x] Freeze the new data/transform scope and drop backward-compatibility as a primary constraint [requires-frontier] [skill: orient] [zero-resource]
   Why: The migration strategy has changed from compatibility-heavy vertical slicing to module-first replacement for data and transforms; that change needs to be explicit so future sessions do not drift back into shims-first work.
   Done when: a short analysis note records the scope decision, states that old public API compatibility is no longer a primary requirement for data/transform modules, and lists the downstream modules that should be treated as adapter consumers for now.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-data-transform-scope-freeze.md` and the module-first program plan at `projects/dymad_migrate/plans/2026-03-30-data-transform-module-first-migration.md`.
+  Verification: `rg -n "^# Data/Transform Scope Freeze|backward compatibility is not a primary requirement|adapter consumers for now" projects/dymad_migrate/analysis/2026-03-30-data-transform-scope-freeze.md`
 
-- [ ] Define the final typed data contract for regular and graph series [requires-frontier] [skill: execute]
+- [x] Define the final typed data contract for regular and graph series [requires-frontier] [skill: execute]
   Why: `RegularSeries` exists, but the full data migration needs the complete semantic contract before loaders and transforms can be rewritten decisively.
   Done when: `modules/dymad_migrate/src/dymad/core/` includes the agreed regular/graph series and batch/layout types needed for current data workflows, with explicit semantics for time layout, raggedness, device/dtype moves, slicing, batching, and graph edge variation.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/graph_series.py`, exported the graph series types from `modules/dymad_migrate/src/dymad/core/__init__.py`, and added focused coverage in `modules/dymad_migrate/tests/test_graph_series_core.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_core.py -q`
 
 - [ ] Replace `DynData` as the design center of trajectory preprocessing [requires-frontier] [skill: execute]
   Why: The migration does not really start until `TrajectoryManager` and related preprocessing code build typed series objects directly instead of treating them as a side seam next to `DynData`.
   Done when: regular and graph preprocessing paths in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` construct typed data objects first and adapt to legacy runtime objects only at explicitly marked downstream boundaries.
   Priority: high
 
-- [ ] Introduce a Torch-first transform module protocol and pipeline as the only new transform contract [requires-frontier] [skill: execute]
+- [x] Introduce a Torch-first transform module protocol and pipeline as the only new transform contract [requires-frontier] [skill: execute]
   Why: The legacy list-of-NumPy-array transform API will keep leaking across modules unless the new protocol becomes the sole target for new work.
   Done when: `modules/dymad_migrate/src/dymad/core/` exposes the canonical Torch-first transform base and pipeline interfaces, and new transform work is routed through that interface rather than `dymad.transform.base.Transform`.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_module.py` and `modules/dymad_migrate/src/dymad/core/torch_transforms.py`, exported the new interfaces via `modules/dymad_migrate/src/dymad/core/__init__.py`, and verified them in `modules/dymad_migrate/tests/test_torch_transform_modules.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_torch_transform_modules.py -q`
 
 - [ ] Port stateless and fitted core transforms to native Torch implementations [requires-frontier] [skill: execute]
   Why: The core data migration cannot rely on autodiff-enabled transforms until the common transform families are native Torch modules.
