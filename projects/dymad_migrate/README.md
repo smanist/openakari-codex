@@ -19,6 +19,50 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Verified the regular working slice
+
+Completed the dedicated regular-slice milestone queue.
+
+Code changes:
+- added `modules/dymad_migrate/src/dymad/core/transform_pipeline.py`
+- routed the regular preprocessing path through the typed transform pipeline in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`
+- routed the non-graph checkpoint prediction path through the same typed seam in `modules/dymad_migrate/src/dymad/io/checkpoint.py`
+- preserved metadata when adapting `DynData` back to typed regular series in `modules/dymad_migrate/src/dymad/io/series_adapter.py`
+
+New verification artifacts:
+- `modules/dymad_migrate/tests/test_regular_slice_integration.py`
+- `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-gate.md`
+- `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_migrate-pytest.log`
+- `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_ref-pytest.log`
+
+Findings:
+- the regular transform seam is now active on the default regular preprocessing path
+- the regular checkpoint prediction seam now builds a typed regular batch before constructing the legacy runtime payload
+- the regular-only parity gate passed in both packages:
+  - `modules/dymad_migrate`: `25 passed, 2 warnings in 14.30s`
+  - `modules/dymad_ref`: `25 passed, 2 warnings in 13.05s`
+- the focused migrated-slice seam suite passed: `7 passed, 2 warnings in 0.67s`
+
+Exact commands run:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_regular_slice_integration.py tests/test_public_load_model_boundary.py tests/test_load_model_compat.py tests/test_checkpoint_e2e_layering.py -q`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py tests/test_workflow_lti.py -q | tee /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_migrate-pytest.log`
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py tests/test_workflow_lti.py -q | tee /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_ref-pytest.log`
+
+### 2026-03-30 — Added a dedicated regular-slice milestone queue
+
+Added a short dedicated queue for the next intermediate milestone: a regular working slice.
+
+The new queue narrows the next work to:
+- typed regular-series transforms
+- regular checkpoint prediction through the typed seam
+- one end-to-end regular-slice integration test
+- a clean regular-only parity gate in both packages
+- milestone promotion (or explicit blocker recording) in the scoreboard
+
+Rationale:
+- the current anti-drift work made the boundary and the first data seam real
+- the next risk is diffusing effort into graph/model-spec/training work before the regular slice is actually complete
+
 ### 2026-03-30 — Completed anti-drift tasks and landed first real migration seams
 
 Completed the anti-drift task set added after the status review.

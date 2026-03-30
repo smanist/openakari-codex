@@ -135,6 +135,43 @@
   Evidence: Added `modules/dymad_migrate/tests/test_public_load_model_boundary.py`, which calls the default public `dymad.io.load_model(...)` path and asserts the boundary traversal; `modules/dymad_migrate/tests/test_workflow_lti.py` also passes through the same default public entrypoint after the reroute.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
 
+## Regular working slice tasks
+
+- [x] Implement the minimal regular-series transform pipeline [requires-frontier] [skill: execute]
+  Why: The regular data seam now exists, but the working slice is not real until transform application moves onto typed regular-series objects instead of stopping at legacy NumPy-list transforms.
+  Done when: `modules/dymad_migrate/` includes a minimal regular-series transform pipeline covering the current regular `transform_x` / `transform_u` path, and a focused equivalence test compares its output to the current legacy regular transform path for at least one representative case.
+  Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_pipeline.py` and routed regular preprocessing through it in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`; added parity-focused equivalence coverage in `modules/dymad_migrate/tests/test_regular_series_adapter.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py -q`
+
+- [x] Route regular checkpoint prediction through typed regular-series payloads [requires-frontier] [skill: execute]
+  Why: A regular working slice is not complete until checkpoint-time prediction uses the typed regular-series seam rather than reconstructing only legacy `DynData` objects in the regular branch.
+  Done when: the non-graph `predict_fn(...)` path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` builds or consumes `RegularSeries` via the adapter layer before legacy model prediction, and focused tests preserve current caller-visible behavior.
+  Priority: high
+  Evidence: Updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so the non-graph compatibility path builds a typed regular batch and applies `RegularSeriesTransformPipeline` before constructing the legacy runtime payload.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py::test_regular_checkpoint_prediction_uses_typed_series -q`
+
+- [x] Add one end-to-end regular-slice integration test [requires-frontier] [skill: execute]
+  Why: The current focused tests verify the boundary and the data seam separately; the slice milestone needs one test that proves they work together on a real regular workflow path.
+  Done when: a new automated test exercises regular trajectory preprocessing plus public checkpoint loading/prediction and asserts the typed regular-series seam is touched inside the flow.
+  Priority: high
+  Evidence: Added `modules/dymad_migrate/tests/test_regular_slice_integration.py`, which verifies both regular preprocessing and public checkpoint prediction touch the typed transform seam in one flow.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py::test_regular_slice_integration_touches_typed_transform_seam -q`
+
+- [x] Record the clean regular-slice parity gate in both packages [requires-frontier] [skill: analyze] [zero-resource]
+  Why: The slice should be signed off against a clean regular-only gate before graph and spectral noise re-enter the picture.
+  Done when: a dated analysis note records clean serial outcomes for `tests/test_assert_trajmgr.py`, `tests/test_assert_transform.py`, and `tests/test_workflow_lti.py` in both `modules/dymad_ref` and `modules/dymad_migrate`, with exact command provenance and any residual gap notes.
+  Priority: high
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-gate.md` and persisted exact pytest output at `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_migrate-pytest.log` and `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_ref-pytest.log`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py tests/test_workflow_lti.py -q` and `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py tests/test_workflow_lti.py -q`
+
+- [x] Promote the regular slice from prototype to milestone status (or record the blocker) [requires-frontier] [skill: govern] [zero-resource]
+  Why: The scoreboard currently marks `data` as `prototype`; the project needs an explicit closure step that either upgrades the regular slice status or records exactly why it cannot yet be upgraded.
+  Done when: `projects/dymad_migrate/architecture/migration-scoreboard.md` and `projects/dymad_migrate/README.md` are updated to mark the regular slice as `adopted`/`verified` or to record the remaining blocker with concrete evidence.
+  Priority: high
+  Evidence: Updated `projects/dymad_migrate/architecture/migration-scoreboard.md` so the regular `data` and `transform` seams are now marked `verified`, with the regular-slice parity note as the verification artifact.
+  Verification: `rg -n \"\\| `data` |.*`verified`|\\| `transform` |.*`verified`\" projects/dymad_migrate/architecture/migration-scoreboard.md`
+
 - [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
   Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.
