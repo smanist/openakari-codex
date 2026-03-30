@@ -19,6 +19,67 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and formalized flake-aware NDR parity policy
+
+Ran `/orient dymad_migrate`, selected `Define flake-aware parity policy for test_assert_trans_ndr.py::test_ndr[0]`, and converted the prior diagnosis into an explicit parity-gate rule.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short --branch` -> `## main...origin/main`).
+- Scoped orient context reviewed `README.md`, `TASKS.md`, project `knowledge/`, project `decisions/`, `APPROVAL_QUEUE.md`, and active-project budget/ledger files.
+- No pending approval-queue items; no stale external blockers (`[blocked-by: external: ...]` found once in `projects/akari/TASKS.md` dated `2026-03-26`, 4 days old).
+- Mission gap check for README Done-when criteria found no new gap tasks.
+- Efficiency summary from the last 10 sessions (`.scheduler/metrics/sessions.jsonl`):
+  - findings/$: `n/a` (`0/0`, zero-cost sessions)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler non-zero findings rate: `0/7` scheduler sessions (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"3f473601ba288f25","taskId":"905a34480aab","taskText":"Define flake-aware parity policy for test_assert_trans_ndr.py::test_ndr[0]","project":"dymad_migrate","agentId":"work-session-mncyj99x",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM/API calls, GPU compute, or long-running detached jobs).
+
+Decision:
+- Adopt a flake-adjudication exception only for `tests/test_assert_trans_ndr.py::test_ndr[0]`:
+  - flake-managed pass if failures are `<=4/30` and only known near-threshold assertion types appear
+  - hard blocker if failures are `>=5/30` or any other failure type appears
+
+Changes:
+- Added `projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md` with policy context, thresholds, commands, and consequences.
+- Updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md`:
+  - status/date metadata
+  - section `3a` documenting the exact flake-aware gate policy and policy source links.
+- Updated `projects/dymad_migrate/TASKS.md`:
+  - marked `Define flake-aware parity policy for test_assert_trans_ndr.py::test_ndr[0]` complete
+  - added evidence and corrected runnable verification command.
+- Updated this README `## Open questions`:
+  - removed the resolved NDR flake-policy question.
+
+Verification:
+- `rg -n 'Special gate policy for .*test_assert_trans_ndr.py::test_ndr\\[0\\]|<= 4/30|>= 5/30|2026-03-30-ndr-flake-policy.md' projects/dymad_migrate/knowledge/parity-critical-workflows.md projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md projects/dymad_migrate/TASKS.md` ->
+  - policy thresholds and links present in `knowledge` and `analysis` files
+  - task evidence/verification entry present in `TASKS.md`
+- `git diff --check -- projects/dymad_migrate` -> no output
+
+Compound (fast): no actions.
+- Session-learning check: no convention/skill update needed beyond project-local policy codification.
+- Task discovery check: no additional implied task beyond the now-completed policy task.
+- Fleet spot-check: no recent `triggerSource:"fleet"` sessions.
+
+Session-type: autonomous
+Duration: 42
+Task-selected: Define flake-aware parity policy for `test_assert_trans_ndr.py::test_ndr[0]`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and diagnosed NDR parity-gate flake mode
 
 Ran `/orient dymad_migrate`, selected `Diagnose test_assert_trans_ndr.py::test_ndr[0] parity-gate failure mode`, and completed a reproducibility diagnosis with explicit gate classification.
