@@ -117,6 +117,11 @@ Verification command:
 cd modules/dymad_ref && pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q
 ```
 
+Split-verification convention:
+
+- when the migration package changes the default checkpoint/prediction path, record at least one clean workflow gate separately for `modules/dymad_ref` and `modules/dymad_migrate`
+- the current split baseline is `projects/dymad_migrate/analysis/2026-03-30-lti-split-parity-verification.md`
+
 ### 5. Graph dynamics training and prediction workflows
 
 Classification: **Milestone**

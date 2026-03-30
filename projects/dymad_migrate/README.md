@@ -19,6 +19,42 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Completed anti-drift tasks and landed first real migration seams
+
+Completed the anti-drift task set added after the status review.
+
+Added project artifacts:
+- `projects/dymad_migrate/architecture/migration-scoreboard.md`
+- `projects/dymad_migrate/plans/2026-03-30-first-slice-reconciliation.md`
+- `projects/dymad_migrate/analysis/2026-03-30-lti-split-parity-verification.md`
+
+Added/updated migration code:
+- `modules/dymad_migrate/src/dymad/core/series.py`
+- `modules/dymad_migrate/src/dymad/io/series_adapter.py`
+- `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`
+- `modules/dymad_migrate/src/dymad/io/checkpoint.py`
+- `modules/dymad_migrate/src/dymad/exec/workflow.py`
+- `modules/dymad_migrate/tests/test_public_load_model_boundary.py`
+- `modules/dymad_migrate/tests/test_regular_series_adapter.py`
+- `modules/dymad_migrate/docs/checkpoint-e2e-layering.md`
+
+Main outcomes:
+- kept the first real vertical slice as data-boundary-first rather than re-baselining the project to checkpoint-first
+- made the public `dymad.io.checkpoint.load_model(...)` path route through `facade/store/exec`
+- landed the first typed regular-series seam and used it in the regular trajectory preprocessing path before adapting back to legacy `DynData`
+- split one clean parity-critical workflow gate (`test_workflow_lti.py`) between `dymad_ref` and `dymad_migrate`
+
+Important note:
+- a broad 7-file workflow rerun in `dymad_migrate` during this session is not authoritative parity evidence because overlapping long-running runs touched the same fixed test output directories; the clean split-parity baseline for this session is the `lti` gate recorded in `2026-03-30-lti-split-parity-verification.md`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_checkpoint_e2e_layering.py tests/test_regular_series_adapter.py -q` ->
+  - `6 passed, 2 warnings in 0.47s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q` ->
+  - `15 passed, 2 warnings in 14.12s`
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py -q` ->
+  - `15 passed, 2 warnings in 14.33s`
+
 ### 2026-03-30 — Added anti-drift follow-up tasks
 
 Extended the DyMAD migration queue with explicit anti-drift tasks after the status review.
@@ -780,7 +816,6 @@ Sources:
 
 ## Open questions
 
-- Should the project re-baseline the first vertical slice to checkpoint-first, or keep the current data-boundary-first slice and implement that seam next?
 - For graph series, should `control`/`params` be node-wise only, global only, or union-typed with explicit validation rules?
 - For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?

@@ -93,35 +93,47 @@
 
 ## Mission gap tasks
 
-- [ ] Resolve the drift between the recorded first vertical slice and the implemented checkpoint-first skeleton [requires-frontier] [skill: orient] [zero-resource]
+- [x] Resolve the drift between the recorded first vertical slice and the implemented checkpoint-first skeleton [requires-frontier] [skill: orient] [zero-resource]
   Why: `projects/dymad_migrate/analysis/2026-03-30-status-review.md` found that the recorded first slice is still the data-boundary migration, while implementation has advanced on a checkpoint-first boundary shim instead.
   Done when: A dated plan/decision note either (a) re-baselines the first vertical slice to checkpoint-first with rationale, or (b) preserves the current data-boundary-first plan and decomposes the next implementation tasks needed to actually start that slice.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/plans/2026-03-30-first-slice-reconciliation.md`, which keeps the data-boundary slice as the first real vertical slice and treats the checkpoint-first work as enabling boundary infrastructure.
+  Verification: `rg -n "^## Decision|^## Reconciled interpretation|^## Immediate implementation order|Keep the recorded first vertical slice as the data-boundary slice" projects/dymad_migrate/plans/2026-03-30-first-slice-reconciliation.md`
 
-- [ ] Route the public `load_model(...)` workflow through the compatibility boundary [requires-frontier] [skill: execute]
+- [x] Route the public `load_model(...)` workflow through the compatibility boundary [requires-frontier] [skill: execute]
   Why: The status review found that `load_model_compat(...)` is real and tested, but real workflow callers still use the legacy `dymad.io.checkpoint.load_model(...)` path, so the new boundary is not yet the default surface exercised by workflow parity tests.
   Done when: `modules/dymad_migrate/src/dymad/io/load_model(...)` or an equivalent public shim routes through `facade/store/exec`, and at least one existing workflow test proves the boundary path is actually exercised.
   Priority: high
+  Evidence: Public `load_model(...)` in `modules/dymad_migrate/src/dymad/io/checkpoint.py` now delegates to `load_model_compat(...)`, while execution materialization uses `_load_model_legacy(...)`; `tests/test_public_load_model_boundary.py` proves the public path traverses the boundary and `tests/test_workflow_lti.py` passes through the default public entrypoint.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_checkpoint_e2e_layering.py tests/test_regular_series_adapter.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
 
-- [ ] Create a plan-to-code migration scoreboard for anti-drift checks [fleet-eligible] [skill: persist] [zero-resource]
+- [x] Create a plan-to-code migration scoreboard for anti-drift checks [fleet-eligible] [skill: persist] [zero-resource]
   Why: The status review found that design artifacts are advancing faster than implementation, so future sessions need one file that states which planned seams are still design-only versus implemented and verified.
   Done when: `projects/dymad_migrate/architecture/migration-scoreboard.md` maps each major planned seam (`data`, `transform`, `model-spec`, `training`, `checkpoint-facade`, `spectral-analysis`) to (a) design artifact, (b) code artifact if any, (c) verification artifact if any, and (d) status (`design-only`, `prototype`, `adopted`, or `verified`).
   Priority: high
+  Evidence: Added `projects/dymad_migrate/architecture/migration-scoreboard.md` with explicit seam-by-seam mappings, code artifacts, verification artifacts, and status values.
+  Verification: `rg -n "^## Scoreboard|^\\| `data` |^\\| `checkpoint-facade` |^\\| `spectral-analysis` |design-only|prototype|verified" projects/dymad_migrate/architecture/migration-scoreboard.md`
 
-- [ ] Implement the first real data-boundary seam for regular trajectories [requires-frontier] [skill: execute]
+- [x] Implement the first real data-boundary seam for regular trajectories [requires-frontier] [skill: execute]
   Why: The recorded first vertical slice is still data-boundary-first, but no typed data seam has landed in code yet; this is the clearest next step to prevent the migration from remaining checkpoint-only.
   Done when: `modules/dymad_migrate/` contains an initial regular-series abstraction plus one adapter path for regular trajectory preprocessing, and a focused test proves one legacy `TrajectoryManager`-style path can emit/use that seam without changing downstream numerical behavior.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/series.py` plus `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and `TrajectoryManager._transform_by_index(...)` now emits typed regular series internally before adapting back to `DynData`; `tests/test_regular_series_adapter.py` verifies a regular preprocessing path round-trips through the seam.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py -q`
 
-- [ ] Split parity reporting into reference-oracle status and migration-package status [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Split parity reporting into reference-oracle status and migration-package status [requires-frontier] [skill: analyze] [zero-resource]
   Why: Current parity notes mix evidence from `modules/dymad_ref/` and `modules/dymad_migrate/`, which makes it harder to tell whether a claim is about the oracle baseline or the migrated implementation.
   Done when: A dated analysis note records the same selected workflow gate for both packages separately, with explicit command provenance and a short comparison section, and `projects/dymad_migrate/knowledge/parity-critical-workflows.md` points to this split verification convention.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-lti-split-parity-verification.md` and two separate logs for `tests/test_workflow_lti.py` in `dymad_ref` and `dymad_migrate`, and updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with the split-verification convention.
+  Verification: `rg -n "^## Selected gate|dymad_ref: PASS|dymad_migrate: PASS|invalid broad-run evidence" projects/dymad_migrate/analysis/2026-03-30-lti-split-parity-verification.md` and `rg -n "15 passed, 2 warnings" projects/dymad_migrate/analysis/2026-03-30-lti-parity-dymad_ref-pytest.log projects/dymad_migrate/analysis/2026-03-30-lti-parity-dymad_migrate-pytest.log`
 
-- [ ] Prove one public workflow now traverses the default migrated boundary path [requires-frontier] [skill: execute]
+- [x] Prove one public workflow now traverses the default migrated boundary path [requires-frontier] [skill: execute]
   Why: After rerouting `load_model(...)`, the project should have one regression test that verifies a real public workflow reaches `facade/store/exec` without relying on the explicit `load_model_compat(...)` test-only path.
   Done when: At least one existing workflow test or a new focused integration test asserts that the default public entrypoint traverses the boundary path, and the test passes in `modules/dymad_migrate`.
   Priority: medium
+  Evidence: Added `modules/dymad_migrate/tests/test_public_load_model_boundary.py`, which calls the default public `dymad.io.load_model(...)` path and asserts the boundary traversal; `modules/dymad_migrate/tests/test_workflow_lti.py` also passes through the same default public entrypoint after the reroute.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
 
 - [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
