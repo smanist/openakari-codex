@@ -19,6 +19,52 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and diagnosed SA rerun/warning behavior
+
+Ran `/orient dymad_migrate`, selected `Diagnose test_workflow_sa_lti.py::test_sa[4] rerun and runtime warnings`, and completed a provenance-backed diagnosis note with exact command outputs.
+
+Orient and selection highlights:
+- Repository state was clean at session start (`git status --short` produced no output).
+- Scoped orient context reviewed project README/TASKS, decisions, and parity knowledge; `projects/dymad_migrate/` has no `budget.yaml` or `ledger.yaml`.
+- Efficiency summary from the last 10 sessions:
+  - findings/$: `n/a` (`cost_sum=0`)
+  - genuine waste: `0/10` (`0%`)
+  - orient overhead: `n/a` (no sessions with `numTurns > 10`)
+  - avg cost/session: `0.0`
+  - avg turns/session: `1.0`
+  - rolling scheduler `work-cycle` non-zero findings rate: `0/10` (`0%`) -> findings-first gate enabled
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"8b852aa2291b502e","taskId":"a5e1ae7ed181","taskText":"Diagnose test_workflow_sa_lti.py::test_sa[4] rerun and runtime warnings","project":"dymad_migrate","agentId":"work-session-mncs3rge",...}}`
+
+Scope classification:
+- `ROUTINE` with `consumes_resources: false` (no LLM API calls, external API calls, GPU compute, or long-running detached jobs).
+
+Changes:
+- Added `projects/dymad_migrate/analysis/2026-03-30-sa-lti-rerun-warning-diagnosis.md` with cause classification and parity-stability decision.
+- Added exact command logs:
+  - `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns-default.log`
+  - `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns0.log`
+  - `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns0-repeat.log`
+- Updated `projects/dymad_migrate/TASKS.md` to mark the SA rerun/warning diagnosis task complete with evidence/verification.
+
+Verification:
+- `cd modules/dymad_ref && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[4]' -vv` ->
+  - observed `RERUN` entries and final `FAILED ... FileNotFoundError` in single-case rerun mode, plus `RuntimeWarning` at `src/dymad/sako/sako.py:151`.
+- `cd modules/dymad_ref && for i in {1..20}; do PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[4]' --reruns=0 -q; echo \"EXIT_CODE=$?\"; done` ->
+  - `20/20` successful exits, with `RuntimeWarning` entries in `12/20` runs (`60%`) recorded in the persisted repeat log.
+
+Session-type: autonomous
+Duration: 55
+Task-selected: Diagnose `test_workflow_sa_lti.py::test_sa[4]` rerun and runtime warnings
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Oriented project and verified parity-critical load-model workflows
 
 Ran `/orient dymad_migrate`, selected `Verify parity-critical load_model workflows after boundary adapter landing`, and completed the parity verification note with exact command output and residual-gap assessment.
@@ -380,4 +426,4 @@ Sources:
 - For variable-edge graph series, should the first implementation keep nested/jagged backing for parity or normalize immediately to packed edge tables?
 - Should checkpoint fallback path behavior (`name.pt -> name/name.pt`) remain part of the stable compatibility API, or become compatibility-mode only?
 - Should `predict_fn(..., ret_dat=True)` remain public and stable, or move behind an explicit facade debug/inspection API?
-- Should the SA workflow warning/rerun behavior in `test_workflow_sa_lti.py::test_sa[4]` be treated as acceptable baseline noise or as a migration stability bug to isolate?
+- Should SA parity gating disable reruns (or adjust fixture/data lifecycle) for single-case diagnostics to avoid rerun-induced `FileNotFoundError` noise from the legacy test harness?

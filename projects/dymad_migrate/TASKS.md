@@ -82,10 +82,12 @@
   Done when: `projects/dymad_migrate/architecture/spectral-analysis-design.md` specifies which pieces of `sako` remain pure core analysis, which pieces become adapters, and how parity is checked against `test_workflow_sa_lti.py`.
   Priority: medium
 
-- [ ] Diagnose `test_workflow_sa_lti.py::test_sa[4]` rerun and runtime warnings [requires-frontier] [skill: diagnose]
+- [x] Diagnose `test_workflow_sa_lti.py::test_sa[4]` rerun and runtime warnings [requires-frontier] [skill: diagnose]
   Why: 2026-03-30 parity verification passed all required workflow files but `test_sa[4]` reran once and emitted `RuntimeWarning` values in `src/dymad/sako/sako.py:151`; migration should classify whether this is acceptable baseline noise or a stability bug before deeper spectral-boundary work.
   Done when: `projects/dymad_migrate/analysis/` contains a diagnosis note that (1) reproduces the rerun/warnings with exact command output, (2) identifies likely cause category (numerical instability, test nondeterminism, or expected behavior), and (3) states whether follow-up code changes are required before marking spectral parity stable.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-sa-lti-rerun-warning-diagnosis.md` plus exact command logs at `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns-default.log`, `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns0.log`, and `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns0-repeat.log`.
+  Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[4]' -vv && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[4]' -vv --reruns=0`
 
 ## Mission gap tasks
 
