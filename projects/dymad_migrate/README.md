@@ -19,6 +19,54 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Designed first slice, transform layer, model specs, and training split
+
+Completed the next four pending architecture tasks by turning the current discovery work into concrete migration design artifacts.
+
+Added:
+- `projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md`
+- `projects/dymad_migrate/architecture/transform-layer-design.md`
+- `projects/dymad_migrate/architecture/model-spec-design.md`
+- `projects/dymad_migrate/architecture/training-layer-design.md`
+
+Key decisions captured in these designs:
+- the first vertical slice stays at the data boundary and uses compatibility adapters instead of jumping directly to model or MCP work
+- transforms become field-aware fitted `nn.Module`-style pipeline stages over typed series/batches
+- predefined names like `LDM`, `KBF`, and `DKBF` survive as builders over typed `ModelSpec` objects
+- training is split into `CVDriver -> TrainerRun -> PhasePipeline -> Phase`, with `RunState` decomposed into checkpointable state, phase context, and execution services
+
+Updated `projects/dymad_migrate/TASKS.md` to record these four tasks as complete with evidence and verification commands.
+
+Verification:
+- `rg -n "^## Slice name|^## In scope|trajectory_manager.py:159|checkpoint.py:64|test_assert_trajmgr.py|test_workflow_lti.py" projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md` ->
+  - `7:## Slice name`
+  - `23:## In scope`
+  - `28:- modules/dymad_ref/src/dymad/io/trajectory_manager.py:159`
+  - `32:- modules/dymad_ref/src/dymad/io/checkpoint.py:64`
+  - `66:cd modules/dymad_ref && pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py -q`
+  - `67:cd modules/dymad_ref && pytest tests/test_workflow_lti.py -q`
+- `rg -n "^## Proposed base protocol|^## Transform spec and compatibility model|^## First transform families to port|TrajectoryManager|checkpoint.py:64" projects/dymad_migrate/architecture/transform-layer-design.md` ->
+  - `35:## Proposed base protocol`
+  - `67:## Transform spec and compatibility model`
+  - `104:## First transform families to port`
+  - `28:- transform fitting and transform-state reuse are wired directly into TrajectoryManager`
+  - `31:- modules/dymad_ref/src/dymad/io/checkpoint.py:64`
+- `rg -n "^## Proposed typed spec family|^## Predefined model compatibility|^## Rollout separation|models/collections.py:8|models/helpers.py:155|models/prediction.py:97" projects/dymad_migrate/architecture/model-spec-design.md` ->
+  - `36:## Proposed typed spec family`
+  - `96:## Predefined model compatibility`
+  - `109:## Rollout separation`
+  - `25:- modules/dymad_ref/src/dymad/models/collections.py:8`
+  - `26:- modules/dymad_ref/src/dymad/models/helpers.py:155`
+  - `27:- modules/dymad_ref/src/dymad/models/prediction.py:97`
+- `rg -n "^## Required hierarchy|^## State split|^## Legacy-to-target mapping|training/helper.py:9|training/stacked_opt.py:26|training/opt_base.py:19" projects/dymad_migrate/architecture/training-layer-design.md` ->
+  - `27:## Required hierarchy`
+  - `71:## State split`
+  - `128:## Legacy-to-target mapping`
+  - `24:- modules/dymad_ref/src/dymad/training/helper.py:9`
+  - `27:- modules/dymad_ref/src/dymad/training/stacked_opt.py:26`
+  - `28:- modules/dymad_ref/src/dymad/training/opt_base.py:19`
+- `git diff --check -- projects/dymad_migrate` -> no output
+
 ### 2026-03-30 — Oriented project and completed first data-layer design task
 
 Ran `/orient dymad_migrate`, selected the highest-priority unblocked architecture task, and completed the first data-layer design artifact.

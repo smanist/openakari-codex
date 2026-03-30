@@ -35,25 +35,33 @@
   Evidence: `projects/dymad_migrate/architecture/data-layer-design.md` defines `RegularSeries`/`GraphSeries`/`LatentSeries`/`DerivedSeries`, the first four layout specializations, and a phased migration order with concrete legacy file:line call sites.
   Verification: `rg -n \"^## Initial semantic series types|^## First storage/layout specializations|^## Exact legacy call sites to migrate first|trajectory_manager.py:469|training/driver.py:262|checkpoint.py:135\" projects/dymad_migrate/architecture/data-layer-design.md`
 
-- [ ] Identify the first vertical migration slice [requires-frontier] [skill: orient]
+- [x] Identify the first vertical migration slice [requires-frontier] [skill: orient]
   Why: The project should validate the new architecture on one end-to-end slice before broad refactors create cross-cutting churn.
   Done when: `projects/dymad_migrate/plans/` contains a follow-up slice plan naming the first end-to-end slice, the legacy entrypoints it replaces or wraps, the tests/examples used for parity, and the implementation sequence.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md` selecting the data-boundary slice, naming exact legacy entrypoints, and specifying in-scope parity gates.
+  Verification: `rg -n "^## Slice name|^## In scope|trajectory_manager.py:159|checkpoint.py:64|test_assert_trajmgr.py|test_workflow_lti.py" projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md`
 
-- [ ] Design the transform migration contract for PyTorch-first fitted modules [requires-frontier] [skill: multi]
+- [x] Design the transform migration contract for PyTorch-first fitted modules [requires-frontier] [skill: multi]
   Why: The target architecture depends on transforms becoming composable fitted `nn.Module` objects, but the compatibility path from current SciPy/NumPy-heavy code needs to be explicit before implementation.
   Done when: `projects/dymad_migrate/architecture/transform-layer-design.md` defines the base transform protocol, wrapper strategy for external numerical routines, and the first transform families to port.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/architecture/transform-layer-design.md` defining `TransformModule`, field-aware pipelines, transform specs, compatibility adapters, and the first transform families to port.
+  Verification: `rg -n "^## Proposed base protocol|^## Transform spec and compatibility model|^## First transform families to port|TrajectoryManager|checkpoint.py:64" projects/dymad_migrate/architecture/transform-layer-design.md`
 
-- [ ] Design the typed model-spec compatibility layer [requires-frontier] [skill: multi]
+- [x] Design the typed model-spec compatibility layer [requires-frontier] [skill: multi]
   Why: The target contract replaces string maps with typed model specs, but migration needs a clear adapter path for current predefined names such as `LDM`, `KBF`, and related variants.
   Done when: `projects/dymad_migrate/architecture/model-spec-design.md` defines the proposed spec objects, compatibility adapters, and the minimal predefined-model factory surface required for the first milestone.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/architecture/model-spec-design.md` defining the `ModelSpec` family, rollout separation, predefined-model adapters, and the first migration entrypoints from `models/collections.py`, `helpers.py`, and `prediction.py`.
+  Verification: `rg -n "^## Proposed typed spec family|^## Predefined model compatibility|^## Rollout separation|models/collections.py:8|models/helpers.py:155|models/prediction.py:97" projects/dymad_migrate/architecture/model-spec-design.md`
 
-- [ ] Design the training split from orchestration to phase primitives [requires-frontier] [skill: multi]
+- [x] Design the training split from orchestration to phase primitives [requires-frontier] [skill: multi]
   Why: Training orchestration currently mixes too many concerns; the migration contract expects a cleaner split between data preparation, phase execution, state tracking, and execution control.
   Done when: `projects/dymad_migrate/architecture/training-layer-design.md` documents the target training components, their responsibilities, and the first legacy entrypoints to extract.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/architecture/training-layer-design.md` defining `CVDriver -> TrainerRun -> PhasePipeline -> Phase`, the `TrainerState`/`PhaseContext` split, and first legacy migration targets.
+  Verification: `rg -n "^## Required hierarchy|^## State split|^## Legacy-to-target mapping|training/helper.py:9|training/stacked_opt.py:26|training/opt_base.py:19" projects/dymad_migrate/architecture/training-layer-design.md`
 
 - [ ] Prototype the facade/store/exec skeleton without moving core math yet [requires-frontier] [skill: execute]
   Why: The MCP-facing architecture should be validated early at the boundary level, but without polluting the core numerical work before the data/model seams are understood.
