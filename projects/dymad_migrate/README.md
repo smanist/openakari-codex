@@ -19,6 +19,20 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Added anti-drift follow-up tasks
+
+Extended the DyMAD migration queue with explicit anti-drift tasks after the status review.
+
+Added tasks for:
+- a plan-to-code migration scoreboard so design progress and code progress stay visibly aligned
+- the first actual data-boundary implementation seam for regular trajectories
+- split parity reporting between `dymad_ref` and `dymad_migrate`
+- a workflow-level proof that the default public entrypoint traverses the migrated boundary after `load_model(...)` is rerouted
+
+Rationale:
+- the current project risk is no longer lack of architectural intent
+- it is design/code divergence and ambiguous evidence about what is implemented versus only specified
+
 ### 2026-03-30 — Reviewed post-Akari migration status and recorded direction gaps
 
 Reviewed whether the current `dymad_migrate` implementation is matching the recorded migration plan after the recent Akari-driven project setup and boundary tasks.

@@ -103,6 +103,26 @@
   Done when: `modules/dymad_migrate/src/dymad/io/load_model(...)` or an equivalent public shim routes through `facade/store/exec`, and at least one existing workflow test proves the boundary path is actually exercised.
   Priority: high
 
+- [ ] Create a plan-to-code migration scoreboard for anti-drift checks [fleet-eligible] [skill: persist] [zero-resource]
+  Why: The status review found that design artifacts are advancing faster than implementation, so future sessions need one file that states which planned seams are still design-only versus implemented and verified.
+  Done when: `projects/dymad_migrate/architecture/migration-scoreboard.md` maps each major planned seam (`data`, `transform`, `model-spec`, `training`, `checkpoint-facade`, `spectral-analysis`) to (a) design artifact, (b) code artifact if any, (c) verification artifact if any, and (d) status (`design-only`, `prototype`, `adopted`, or `verified`).
+  Priority: high
+
+- [ ] Implement the first real data-boundary seam for regular trajectories [requires-frontier] [skill: execute]
+  Why: The recorded first vertical slice is still data-boundary-first, but no typed data seam has landed in code yet; this is the clearest next step to prevent the migration from remaining checkpoint-only.
+  Done when: `modules/dymad_migrate/` contains an initial regular-series abstraction plus one adapter path for regular trajectory preprocessing, and a focused test proves one legacy `TrajectoryManager`-style path can emit/use that seam without changing downstream numerical behavior.
+  Priority: high
+
+- [ ] Split parity reporting into reference-oracle status and migration-package status [requires-frontier] [skill: analyze] [zero-resource]
+  Why: Current parity notes mix evidence from `modules/dymad_ref/` and `modules/dymad_migrate/`, which makes it harder to tell whether a claim is about the oracle baseline or the migrated implementation.
+  Done when: A dated analysis note records the same selected workflow gate for both packages separately, with explicit command provenance and a short comparison section, and `projects/dymad_migrate/knowledge/parity-critical-workflows.md` points to this split verification convention.
+  Priority: medium
+
+- [ ] Prove one public workflow now traverses the default migrated boundary path [requires-frontier] [skill: execute]
+  Why: After rerouting `load_model(...)`, the project should have one regression test that verifies a real public workflow reaches `facade/store/exec` without relying on the explicit `load_model_compat(...)` test-only path.
+  Done when: At least one existing workflow test or a new focused integration test asserts that the default public entrypoint traverses the boundary path, and the test passes in `modules/dymad_migrate`.
+  Priority: medium
+
 - [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
   Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.
