@@ -19,6 +19,53 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Oriented project and prototyped facade/store/exec skeleton
+
+Ran `/orient dymad_migrate`, selected `Prototype the facade/store/exec skeleton without moving core math yet`, and completed the first non-invasive boundary prototype in the migration target module.
+
+Orient and selection highlights:
+- Repository state was clean for project files at start; only the `modules/dymad_migrate` submodule working tree changed during this session.
+- Task claim succeeded:
+  - `curl -sS -X POST http://localhost:8420/api/tasks/claim ...` ->
+  - `{"ok":true,"claim":{"claimId":"9809aa47d6471a9e","taskId":"34f07f8dcda3","taskText":"Prototype the facade/store/exec skeleton without moving core math yet","project":"dymad_migrate","agentId":"work-session-mncjj3sj",...}}`
+- Scope classification: `STRUCTURAL (verifiable)` with `consumes_resources: false` (no LLM/external API usage, no GPU jobs, no long-running compute).
+
+Changes:
+- Added new module skeleton packages in `modules/dymad_migrate/src/dymad/`:
+  - `facade/` (typed `chk_*` and `pred_*` handles + boundary operations)
+  - `store/` (in-memory object store for checkpoint/prediction request records)
+  - `exec/` (composition root and compatibility executor planning flow)
+- Added `modules/dymad_migrate/tests/test_boundary_skeleton.py` covering the typed handle flow and handle-shape validation.
+- Added `projects/dymad_migrate/plans/2026-03-30-facade-store-exec-skeleton.md` with current-state discovery and the first documented typed handle flow.
+- Updated `projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md` to clarify that full facade/store/exec integration remains out of scope for the data-boundary slice while the minimal boundary skeleton now exists.
+- Updated `projects/dymad_migrate/TASKS.md` to mark the facade/store/exec skeleton task complete with evidence and verification.
+
+Verification:
+- `find modules/dymad_migrate/src/dymad -maxdepth 2 -type d | rg '/(facade|store|exec)$' | sort` ->
+  - `modules/dymad_migrate/src/dymad/exec`
+  - `modules/dymad_migrate/src/dymad/facade`
+  - `modules/dymad_migrate/src/dymad/store`
+- `rg -n "^## Current-state discovery|^## Typed handle flow|Status: completed|compatibility" projects/dymad_migrate/plans/2026-03-30-facade-store-exec-skeleton.md` ->
+  - `4:Status: completed`
+  - `11:## Current-state discovery (captured this session)`
+  - `26:  - compatibility executor that plans a checkpoint prediction request without running core math`
+  - `33:4. plan output records \`entrypoint=\"dymad.io.checkpoint.load_model\"\` for checkpoint compatibility mapping`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py -q` ->
+  - `tests/test_boundary_skeleton.py::test_checkpoint_prediction_handle_flow PASSED`
+  - `tests/test_boundary_skeleton.py::test_handles_reject_invalid_shapes PASSED`
+  - `2 passed`
+
+Session-type: autonomous
+Duration: 34
+Task-selected: Prototype the `facade`/`store`/`exec` skeleton without moving core math
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 15
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 — Designed first slice, transform layer, model specs, and training split
 
 Completed the next four pending architecture tasks by turning the current discovery work into concrete migration design artifacts.

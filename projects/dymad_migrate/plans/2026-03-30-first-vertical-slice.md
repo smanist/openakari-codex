@@ -61,7 +61,7 @@ The slice is therefore both:
 
 - typed `ModelSpec` implementation
 - `CVDriver -> TrainerRun -> PhasePipeline` implementation
-- facade/store/exec package skeleton
+- full facade/store/exec integration into the data-boundary slice (a minimal boundary skeleton is tracked separately in `projects/dymad_migrate/plans/2026-03-30-facade-store-exec-skeleton.md`)
 - direct MCP publication
 - broad graph-kernel or spectral-analysis refactors
 

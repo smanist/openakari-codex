@@ -63,10 +63,12 @@
   Evidence: Added `projects/dymad_migrate/architecture/training-layer-design.md` defining `CVDriver -> TrainerRun -> PhasePipeline -> Phase`, the `TrainerState`/`PhaseContext` split, and first legacy migration targets.
   Verification: `rg -n "^## Required hierarchy|^## State split|^## Legacy-to-target mapping|training/helper.py:9|training/stacked_opt.py:26|training/opt_base.py:19" projects/dymad_migrate/architecture/training-layer-design.md`
 
-- [ ] Prototype the facade/store/exec skeleton without moving core math yet [requires-frontier] [skill: execute]
+- [x] Prototype the facade/store/exec skeleton without moving core math yet [requires-frontier] [skill: execute]
   Why: The MCP-facing architecture should be validated early at the boundary level, but without polluting the core numerical work before the data/model seams are understood.
   Done when: `modules/dymad_migrate/` contains a minimal non-invasive skeleton for `facade`, `store`, and `exec`, plus at least one typed handle flow documented against the project plan without changing the numerical behavior of existing core modules.
   Priority: medium
+  Evidence: Added `modules/dymad_migrate/src/dymad/facade/`, `modules/dymad_migrate/src/dymad/store/`, and `modules/dymad_migrate/src/dymad/exec/` with a typed-handle checkpoint-to-prediction request flow, plus plan documentation at `projects/dymad_migrate/plans/2026-03-30-facade-store-exec-skeleton.md`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py -q`
 
 - [ ] Design checkpoint/load-model compatibility as the first facade boundary [requires-frontier] [skill: multi]
   Why: Workflow tests repeatedly depend on `load_model(...)` plus prediction, so checkpoint/model loading is the most practical compatibility surface to preserve while introducing typed facade concepts.
