@@ -19,6 +19,42 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Verified graph transform routing on the typed pipeline and finished the built-in native transform family
+
+Completed the remaining Phase 1 work for graph-compatible transform routing and the
+built-in native non-NDR transform family.
+
+Code changes:
+- added `LegacyTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py` so fitted legacy transforms can run behind the new typed pipeline while downstream modules still depend on legacy state dicts
+- added native `LiftTransform` support for built-in `poly` and `mixed` lift families in `modules/dymad_migrate/src/dymad/core/torch_transforms.py`
+- updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so graph preprocessing now routes node/control/parameter/edge transforms through `_build_graph_transform_pipeline()`
+- fixed graph reload handling so optional identity-transform metadata with `None` state does not break `set_transforms(...)`
+- extended `modules/dymad_migrate/tests/test_torch_transform_modules.py` with focused native lift equivalence tests
+
+Task status:
+- completed `Port stateless and fitted core transforms to native Torch implementations`
+- completed `Migrate graph-compatible transform application onto the new pipeline`
+- left `Wrap NDR transforms behind explicit Torch/autodiff adapters` open
+- left `Remove hidden legacy transform construction from loaders/checkpoint paths` open
+
+Findings:
+- the legacy graph transform contract applies node/control transforms as a list of per-node `[T, F]` sequences, not as one `[T, N, F]` tensor; the graph adapter now preserves that contract at the compatibility boundary
+- built-in `Lift` behavior needed for current non-NDR workflows (`poly` and `mixed`) is now covered by native Torch tests
+- custom callable lift functions are not part of the new native contract yet; they remain outside the Phase 1 verification scope and do not block current migration tasks
+
+Verification:
+- `git -C /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate diff --check` ->
+  - no output
+- `python -m compileall /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/src/dymad/io/trajectory_manager.py /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate/tests/test_torch_transform_modules.py` ->
+  - completed without error
+- `cd /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q` ->
+  - `12 passed, 1268 warnings in 0.86s`
+- `cd /Users/daninghuang/Repos/openakari-codex/modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trans_lift.py -q` ->
+  - `6 passed, 2 warnings in 0.67s`
+
+Added verification note:
+- `projects/dymad_migrate/analysis/2026-03-30-graph-transform-pipeline-and-native-lift-verification.md`
+
 ### 2026-03-30 — Made trajectory preprocessing typed-first for both regular and graph paths
 
 Completed the next Phase 1 step: `TrajectoryManager` preprocessing now treats typed

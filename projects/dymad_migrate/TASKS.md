@@ -202,10 +202,12 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_module.py` and `modules/dymad_migrate/src/dymad/core/torch_transforms.py`, exported the new interfaces via `modules/dymad_migrate/src/dymad/core/__init__.py`, and verified them in `modules/dymad_migrate/tests/test_torch_transform_modules.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_torch_transform_modules.py -q`
 
-- [ ] Port stateless and fitted core transforms to native Torch implementations [requires-frontier] [skill: execute]
+- [x] Port stateless and fitted core transforms to native Torch implementations [requires-frontier] [skill: execute]
   Why: The core data migration cannot rely on autodiff-enabled transforms until the common transform families are native Torch modules.
   Done when: identity, scaler, delay embedding, lift/add-one, compose, and any other regular-workflow-critical non-NDR transforms used by current blocker workflows have Torch-native implementations plus focused equivalence tests against the legacy behavior where still useful.
   Priority: high
+  Evidence: Added `LiftTransform` plus the Torch-native transform family in `modules/dymad_migrate/src/dymad/core/torch_transforms.py`, exported the surface in `modules/dymad_migrate/src/dymad/core/__init__.py`, and added focused equivalence coverage in `modules/dymad_migrate/tests/test_torch_transform_modules.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trans_lift.py tests/test_torch_transform_modules.py -q`
 
 - [x] Add graph-series data specialization on the new typed contract [requires-frontier] [skill: execute]
   Why: The target data layer explicitly includes graph data; postponing graph entirely would leave `DynData` alive as the only serious graph abstraction.
@@ -214,10 +216,12 @@
   Evidence: Added the graph core types in `modules/dymad_migrate/src/dymad/core/graph_series.py`, added graph round-trip adapters in `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and exposed `TrajectoryManagerGraph.create_graph_series_dataset(...)` plus `_transform_graph_series_by_index(...)` in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_adapter.py tests/test_graph_series_core.py -q`
 
-- [ ] Migrate graph-compatible transform application onto the new pipeline [requires-frontier] [skill: execute]
+- [x] Migrate graph-compatible transform application onto the new pipeline [requires-frontier] [skill: execute]
   Why: Data migration is incomplete if graph preprocessing still depends on the old transform stack and shape conventions.
   Done when: the graph preprocessing path applies state/control/edge transforms through the new transform pipeline with typed graph-series objects, covering at least the currently exercised graph transform families outside NDR.
   Priority: high
+  Evidence: Updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so graph preprocessing now routes through `_build_graph_transform_pipeline()`, added `LegacyTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py`, and verified parity against the exercised graph workflow tests in `modules/dymad_migrate/tests/test_assert_trajmgr_graph.py` and `modules/dymad_migrate/tests/test_graph_series_adapter.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q`
 
 - [ ] Wrap NDR transforms behind explicit Torch/autodiff adapters [requires-frontier] [skill: execute]
   Why: NDR is part of the data-transform surface area, but exact pure-Torch replacements are not required to move the architecture forward; explicit wrapped adapters are the practical intermediate target.
