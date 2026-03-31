@@ -444,10 +444,12 @@
   Evidence: Updated `modules/dymad_migrate/src/dymad/training/opt_node.py` so `_process_batch(...)` accepts `TrainerBatch`, routes typed `truncate/window` paths through the batch adapter seam (`batch_to_legacy_runtime(...)`), and preserves legacy `DynData` behavior on the fallback path; added focused typed-batch regression coverage in `modules/dymad_migrate/tests/test_opt_node_typed_batch.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_node_typed_batch.py tests/test_workflow_lti.py -q` -> `17 passed, 2 warnings in 10.90s`
 
-- [ ] Migrate `opt_weak_form` and shared `opt_base` truth handling off `DynData` [requires-frontier] [skill: execute]
+- [x] Migrate `opt_weak_form` and shared `opt_base` truth handling off `DynData` [requires-frontier] [skill: execute]
   Why: shared trainer logic in `opt_base.py` plus `opt_weak_form.py` still uses `DynData`, so the trainer stack cannot become typed-first until those common paths move.
   Done when: `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` and the relevant truth-handling paths in `modules/dymad_migrate/src/dymad/training/opt_base.py` accept typed trainer batches or typed runtime payloads instead of `DynData`.
   Priority: high
+  Evidence: Updated `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` so `_process_batch(...)` accepts `TrainerBatch` and normalizes via `batch_to_legacy_runtime(...)`, updated `modules/dymad_migrate/src/dymad/training/opt_base.py` so shared truth-handling paths (`_additional_criteria_evaluation(...)`, `evaluate_prediction_criterion_single(...)`) consume `TrainerBatch`, and added typed coverage in `modules/dymad_migrate/tests/test_opt_weak_form_typed_batch.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_weak_form_typed_batch.py tests/test_opt_node_typed_batch.py tests/test_workflow_kp.py -q`
 
 - [ ] Migrate remaining utility consumers such as `sako/base.py` off `DynData` [requires-frontier] [skill: execute]
   Why: utility modules still instantiate `DynData` ad hoc, which will keep the object alive even after main runtime and trainer paths migrate.

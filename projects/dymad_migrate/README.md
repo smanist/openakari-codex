@@ -26,6 +26,54 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Migrated `opt_weak_form` and shared `opt_base` truth handling to typed trainer batches
+
+Ran `/orient dymad_migrate` and selected:
+`Migrate opt_weak_form and shared opt_base truth handling off DynData`.
+
+Orient highlights:
+- findings-first gate remains enabled from scheduler work-cycle history (`0/10` non-zero findings sessions)
+- approval queue is empty
+- stale external blockers: none (`projects/akari/TASKS.md` external blocker age is 5 days)
+- efficiency snapshot (latest 10 sessions): `genuine waste 2/10`, `avg turns 1`, `avg cost $0`, no recurring pattern detector alerts
+- task claim succeeded:
+  `claimId=3c6ce9e6ba69624b` (`SESSION_ID=work-session-mne7k2sx`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` so `_process_batch(...)` accepts `TrainerBatch` and normalizes typed payloads through `batch_to_legacy_runtime(...)`
+- updated `modules/dymad_migrate/src/dymad/training/opt_base.py` so shared truth-handling paths (`_additional_criteria_evaluation(...)`, `evaluate_prediction_criterion_single(...)`) accept `TrainerBatch` rather than direct `DynData` signatures
+- added focused typed regression coverage at `modules/dymad_migrate/tests/test_opt_weak_form_typed_batch.py`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Task status:
+- completed `Migrate opt_weak_form and shared opt_base truth handling off DynData`
+
+Verification:
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/training/opt_base.py modules/dymad_migrate/src/dymad/training/opt_weak_form.py`
+  - no output
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_weak_form_typed_batch.py tests/test_opt_node_typed_batch.py tests/test_workflow_kp.py -q`
+  - `15 passed, 2 warnings in 8.73s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 35 minutes
+Task-selected: Migrate `opt_weak_form` and shared `opt_base` truth handling off `DynData`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Designed deterministic NDR parity replacement gate for `test_ndr[0]`
 
 Ran `/orient dymad_migrate` and selected:
