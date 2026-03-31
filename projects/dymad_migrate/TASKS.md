@@ -413,3 +413,43 @@
   Why: The object can only be retired if the package still satisfies the selected regular and graph gates on the typed-batch path.
   Done when: a dated analysis note records the exact regular and graph verification commands for the `DynData`-retired paths and compares them against the current migration baseline.
   Priority: high
+
+- [ ] Replace `models/prediction.py` direct `DynData` construction with typed runtime payloads [requires-frontier] [skill: execute]
+  Why: `models/prediction.py` still constructs empty and collated `DynData` payloads directly, so prediction helpers remain one of the largest runtime blockers to full retirement.
+  Done when: the main prediction helpers in `modules/dymad_migrate/src/dymad/models/prediction.py` consume typed model contexts, typed runtime views, or an explicit narrow compatibility adapter instead of constructing or collating `DynData` directly.
+  Priority: high
+
+- [ ] Replace `model_base` legacy runtime reconstruction with typed runtime contracts [requires-frontier] [skill: execute]
+  Why: `modules/dymad_migrate/src/dymad/models/model_base.py` still reconstructs `DynData` internally, which keeps the legacy object embedded in the core model-facing contract.
+  Done when: `modules/dymad_migrate/src/dymad/models/model_base.py` stops rebuilding `DynData` internally on migrated paths and instead accepts typed runtime payloads or crosses one explicit compatibility seam.
+  Priority: high
+
+- [ ] Migrate recipe modules off `DynData` type signatures [requires-frontier] [skill: execute]
+  Why: `modules/dymad_migrate/src/dymad/models/recipes.py` and `modules/dymad_migrate/src/dymad/models/recipes_corr.py` still declare and consume `DynData`, which keeps runtime-typed APIs from becoming the default model-facing contract.
+  Done when: the migrated recipe entrypoints use typed runtime views, typed model contexts, or a shared typed compatibility interface instead of `DynData`-typed signatures.
+  Priority: medium
+
+- [ ] Migrate `opt_node` to typed trainer batches [requires-frontier] [skill: execute]
+  Why: `opt_linear` is no longer enough; `opt_node` is a major remaining trainer consumer that still depends directly on `DynData`.
+  Done when: `modules/dymad_migrate/src/dymad/training/opt_node.py` accepts typed trainer batches or typed runtime/model-context payloads on its migrated path, and its workflow gate still passes.
+  Priority: high
+
+- [ ] Migrate `opt_weak_form` and shared `opt_base` truth handling off `DynData` [requires-frontier] [skill: execute]
+  Why: shared trainer logic in `opt_base.py` plus `opt_weak_form.py` still uses `DynData`, so the trainer stack cannot become typed-first until those common paths move.
+  Done when: `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` and the relevant truth-handling paths in `modules/dymad_migrate/src/dymad/training/opt_base.py` accept typed trainer batches or typed runtime payloads instead of `DynData`.
+  Priority: high
+
+- [ ] Migrate remaining utility consumers such as `sako/base.py` off `DynData` [requires-frontier] [skill: execute]
+  Why: utility modules still instantiate `DynData` ad hoc, which will keep the object alive even after main runtime and trainer paths migrate.
+  Done when: `modules/dymad_migrate/src/dymad/sako/base.py` and any remaining non-core utility consumers named by the retirement inventory use typed series or typed model-facing payloads instead of constructing `DynData`.
+  Priority: medium
+
+- [ ] Remove public `DynData` export and reverse adapters when only staged deletion seams remain [requires-frontier] [skill: execute]
+  Why: retirement is not complete until `DynData` stops being part of the public surface and reverse adapters stop encouraging new legacy call paths.
+  Done when: `modules/dymad_migrate/src/dymad/io/__init__.py`, `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and `modules/dymad_migrate/src/dymad/core/model_context.py` retain only deletion-staging compatibility code, with public `DynData` export removed if downstream call sites are gone.
+  Priority: medium
+
+- [ ] Delete `modules/dymad_migrate/src/dymad/io/data.py` after production-path references reach zero [requires-frontier] [skill: execute]
+  Why: the retirement campaign is only complete when the legacy object definition itself is gone.
+  Done when: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'` reports no production-path references outside files deleted in the same change set, and `modules/dymad_migrate/src/dymad/io/data.py` is removed.
+  Priority: high

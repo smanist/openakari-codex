@@ -26,6 +26,31 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 - Added the post-checkpoint DynData retirement execution queue
+
+Captured the next technical tasks after checkpoint and `DataInterface` stopped
+constructing `DynData` directly.
+
+Artifacts added:
+- `projects/dymad_migrate/plans/2026-03-30-post-checkpoint-dyndata-retirement-queue.md`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- the remaining retirement blockers are now concentrated in prediction helpers, model-base runtime reconstruction, recipe signatures, the remaining trainer families, and a small number of utility/public-export seams
+- deletion should not be attempted yet; the right next move is to shrink the runtime contract in `models/prediction.py` and `models/model_base.py`
+- public export removal and `io/data.py` deletion should be treated as end-state cleanup, not forcing moves
+
+Task status:
+- added the next execution queue for post-checkpoint `DynData` retirement
+
+Verification:
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'`
+  - reviewed remaining hotspots for queue decomposition
+- `git diff --check -- projects/dymad_migrate`
+  - no output
+
 ### 2026-03-30 - Removed direct DynData construction from checkpoint utilities and DataInterface
 
 Completed the next retirement execution task after the first typed trainer-family migration.
