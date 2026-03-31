@@ -26,6 +26,56 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Removed public `DynData` export and class-based reverse adapters from migration surface
+
+Ran `/orient dymad_migrate` and selected:
+`Remove public DynData export and reverse adapters when only staged deletion seams remain`.
+
+Orient highlights:
+- findings-first gate remains enabled (`0/10` scheduler sessions with non-zero findings)
+- approval queue is empty
+- stale external blockers: none (`projects/akari/TASKS.md` external blocker age is 5 days)
+- efficiency snapshot (latest 10 sessions): `genuine waste 1/10`, `avg turns 1`, `avg cost $0`, `orient overhead n/a` (`numTurns <= 10`)
+- budget gate: n/a (`projects/dymad_migrate/budget.yaml` and `ledger.yaml` are absent; task is non-resource structural work)
+- task claim succeeded:
+  `claimId=0f4e33f35ebe7592` (`SESSION_ID=work-session-mnedzkmc`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- removed public `DynData` export from `modules/dymad_migrate/src/dymad/io/__init__.py`
+- replaced class-based reverse adapters in `modules/dymad_migrate/src/dymad/io/series_adapter.py` with explicit temporary deletion-stage bridges (`regular_series_to_legacy_runtime(...)`, `graph_series_to_legacy_runtime(...)`)
+- updated reverse-adapter call sites in `modules/dymad_migrate/src/dymad/core/model_context.py`, `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`, and `modules/dymad_migrate/src/dymad/io/checkpoint.py`
+- migrated tests away from `from dymad.io import DynData` to `from dymad.io.data import DynData`
+
+Findings:
+- the only `modules/dymad_migrate` call sites depending on public `dymad.io` `DynData` export were tests (`test_assert_trajmgr.py`, `test_assert_trajmgr_graph.py`, `test_sako_runtime_batch_adapter.py`)
+- after this surface cleanup, deletion of `io/data.py` remains blocked by production-path references in `core/model_context.py`, `io/trajectory_manager.py`, `models/runtime_view.py`, and `training/batch_adapter.py`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Task status:
+- completed `Remove public DynData export and reverse adapters when only staged deletion seams remain`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr.py::test_dyndata tests/test_assert_trajmgr_graph.py::test_dyndata_graph -q`
+  - `9 passed, 2 warnings in 0.75s`
+- `rg -n "from dymad\\.io import DynData|DynDataAdapter|dymad\\.io\\.DynData" modules/dymad_migrate/src modules/dymad_migrate/tests -g '*.py'`
+  - no output
+
+Session-type: autonomous
+Duration: 34 minutes
+Task-selected: Remove public `DynData` export and reverse adapters when only staged deletion seams remain
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 11
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Migrated utility spectral-analysis runtime path off ad-hoc `DynData` construction
 
 Ran `/orient dymad_migrate` and selected:

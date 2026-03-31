@@ -460,12 +460,15 @@
   Evidence: Updated `modules/dymad_migrate/src/dymad/sako/base.py` so `SAInterface._setup_sa_terms(...)` now routes batches through `encode_runtime_batch(...)` (typed-runtime or legacy payload) instead of constructing `DynData(x=batch.x)` ad hoc; also updated the utility comment in `modules/dymad_migrate/src/dymad/utils/graph.py` to remove DynData-centric wording and added focused regression coverage in `modules/dymad_migrate/tests/test_sako_runtime_batch_adapter.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_sako_runtime_batch_adapter.py 'tests/test_workflow_sa_lti.py::test_sa[0]' -q` and `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/sako/base.py modules/dymad_migrate/src/dymad/utils/graph.py`
 
-- [ ] Remove public `DynData` export and reverse adapters when only staged deletion seams remain [requires-frontier] [skill: execute]
+- [x] Remove public `DynData` export and reverse adapters when only staged deletion seams remain [requires-frontier] [skill: execute]
   Why: retirement is not complete until `DynData` stops being part of the public surface and reverse adapters stop encouraging new legacy call paths.
   Done when: `modules/dymad_migrate/src/dymad/io/__init__.py`, `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and `modules/dymad_migrate/src/dymad/core/model_context.py` retain only deletion-staging compatibility code, with public `DynData` export removed if downstream call sites are gone.
   Priority: medium
+  Evidence: Removed the public `DynData` export from `modules/dymad_migrate/src/dymad/io/__init__.py`, replaced class-based reverse adapters in `modules/dymad_migrate/src/dymad/io/series_adapter.py` with explicit temporary deletion-stage bridge functions (`regular_series_to_legacy_runtime(...)`, `graph_series_to_legacy_runtime(...)`), updated `modules/dymad_migrate/src/dymad/core/model_context.py`, `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`, and `modules/dymad_migrate/src/dymad/io/checkpoint.py` to use the new seam, and migrated tests that previously imported `DynData` from `dymad.io`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr.py::test_dyndata tests/test_assert_trajmgr_graph.py::test_dyndata_graph -q` and `rg -n "from dymad\\.io import DynData|DynDataAdapter|dymad\\.io\\.DynData" modules/dymad_migrate/src modules/dymad_migrate/tests -g '*.py'`
 
 - [ ] Delete `modules/dymad_migrate/src/dymad/io/data.py` after production-path references reach zero [requires-frontier] [skill: execute]
   Why: the retirement campaign is only complete when the legacy object definition itself is gone.
+  Context (2026-03-31): after public export and class-based reverse-adapter removal, production-path `DynData` references still exist in `core/model_context.py`, `io/trajectory_manager.py`, `models/runtime_view.py`, `training/batch_adapter.py`, and `io/data.py`.
   Done when: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'` reports no production-path references outside files deleted in the same change set, and `modules/dymad_migrate/src/dymad/io/data.py` is removed.
   Priority: high
