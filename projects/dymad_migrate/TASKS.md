@@ -432,10 +432,12 @@
   Evidence: Added `materialize_model_base_forward_payload(...)` in `modules/dymad_migrate/src/dymad/core/model_context.py`, routed `ComposedDynamics.forward(...)` through that seam in `modules/dymad_migrate/src/dymad/models/model_base.py`, and added focused coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py` and `modules/dymad_migrate/tests/test_model_base_runtime_contract.py`.
   Verification: `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io\\.data import DynData|\\bDynData\\b" modules/dymad_migrate/src/dymad/models/model_base.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_component_runtime_view.py tests/test_model_base_runtime_contract.py tests/test_workflow_lti.py -q`
 
-- [ ] Migrate recipe modules off `DynData` type signatures [requires-frontier] [skill: execute]
+- [x] Migrate recipe modules off `DynData` type signatures [requires-frontier] [skill: execute]
   Why: `modules/dymad_migrate/src/dymad/models/recipes.py` and `modules/dymad_migrate/src/dymad/models/recipes_corr.py` still declare and consume `DynData`, which keeps runtime-typed APIs from becoming the default model-facing contract.
   Done when: the migrated recipe entrypoints use typed runtime views, typed model contexts, or a shared typed compatibility interface instead of `DynData`-typed signatures.
   Priority: medium
+  Evidence: Updated `modules/dymad_migrate/src/dymad/models/recipes.py` to use `ModelRuntimePayload`/`ComponentInputPayload` signatures, updated `modules/dymad_migrate/src/dymad/models/recipes_corr.py` to route recipe helper/dynamics inputs through `build_component_input_view(...)`, and added focused typed-context coverage in `modules/dymad_migrate/tests/test_recipes_runtime_view.py`.
+  Verification: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/models/recipes.py modules/dymad_migrate/src/dymad/models/recipes_corr.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_recipes_runtime_view.py tests/test_component_runtime_view.py tests/test_workflow_kp.py -q`
 
 - [x] Migrate `opt_node` to typed trainer batches [requires-frontier] [skill: execute]
   Why: `opt_linear` is no longer enough; `opt_node` is a major remaining trainer consumer that still depends directly on `DynData`.
