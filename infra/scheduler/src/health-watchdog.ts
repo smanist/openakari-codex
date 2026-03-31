@@ -778,7 +778,11 @@ export function analyzeHealth(
   // This pattern indicates the agent was watching a long-running process in-process
   // (training, rendering) instead of using fire-and-forget (ADR 0017).
   const babysittingSessions = sessions.filter(
-    (s) => s.timedOut && s.verification && !s.verification.hasCommit,
+    (s) =>
+      s.timedOut &&
+      s.verification &&
+      !s.verification.hasCommit &&
+      !isTaskStarvation(s),
   );
   if (babysittingSessions.length > 0) {
     const rate = Math.round((babysittingSessions.length / total) * 100);

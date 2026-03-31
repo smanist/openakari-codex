@@ -1143,6 +1143,35 @@ Follow-up verification gap: this environment does not have Node/npm/npx on PATH,
 
 Created the public meta-project scaffold for openakari. Added a project README, task list, and three example artifacts adapted from the original akari repo: a self-improvement measurement plan, a human-intervention trend analysis, and a self-observation diagnosis. These examples show how the system studies its own behavior rather than only external tasks.
 
+### 2026-03-31 (Scheduler health monitoring: dymad starvation cluster and babysitting false positive)
+
+Diagnosed the latest health-monitoring alerts from the most recent 20 rows of `.scheduler/metrics/sessions.jsonl` and found that all three signals (`task_starvation`, `babysitting_detected`, and the `durationMs` outlier) collapse into one `dymad_migrate` window on 2026-03-30.
+
+The key finding is that this was not a repo-wide quality drop or an in-process training loop. Two `dymad_migrate` scheduler runs had `0` commits, `0` files, and `0` touched projects: `x13yb5tx-82fb9a07` (`2026-03-30T12:02:38Z` → `13:01:44Z`, `59.1` minutes, timed out) and `x13yb5tx-d2999e90` (`2026-03-30T13:17:23Z` → `13:17:51Z`, `27.6` seconds). The neighboring successful run at `2026-03-30T14:00:13Z` explicitly logged that `projects/dymad_migrate/TASKS.md` had no open tasks and recovered by generating a mission-gap task.
+
+Applied one narrow watchdog fix in the same session: timed-out task-starvation rows are no longer double-counted as `babysitting_detected`. Recorded the full diagnosis in `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-03-31.md` and added a follow-up task to isolate why the first empty-queue run stalled until timeout without emitting a scheduler log.
+
+Verification:
+- `cd infra/scheduler && npm test -- health-watchdog.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  114 passed (114)`
+- `node - <<'NODE' ... NODE`
+  - `task_starvation 2/20`
+  - `babysitting 0/20`
+  - `starvation_run_ids x13yb5tx-82fb9a07,x13yb5tx-d2999e90`
+  - `babysitting_run_ids (none)`
+
+Session-type: directed
+Duration: 20
+Task-selected: Diagnose scheduler health anomaly signals from the recent 20-session window
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ## Open questions
 
 - How should strategic alignment be sourced while `docs/roadmap.md` is absent in this checkout?
@@ -1151,3 +1180,4 @@ Created the public meta-project scaffold for openakari. Added a project README, 
 - Which knowledge fields should be treated as research progress versus operational maintenance in efficiency reporting?
 - What minimum cadence of explicit self-observation analysis keeps task selection aligned with the mission instead of drifting to maintenance-only work?
 - Which kinds of capability improvements transfer across projects, and which depend on repository-specific history and conventions?
+- Why did scheduler run `x13yb5tx-82fb9a07` time out on 2026-03-30 without emitting a scheduler log, while the later empty-queue run `x13yb5tx-d2999e90` exited in `27.6s` and the `14:00Z` recovery run generated a mission-gap task normally?

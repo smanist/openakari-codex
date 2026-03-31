@@ -90,6 +90,11 @@
   Priority: medium
   Evidence: `projects/akari/README.md` (2026-03-25 log entry “Self-improvement loop example + re-run health watchdog”)
 
+- [ ] Diagnose why empty-queue scheduler run `x13yb5tx-82fb9a07` stalled until timeout [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: Follow-up from `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-03-31.md` — `dymad_migrate` had two zero-work scheduler rows on 2026-03-30, but the first (`2026-03-30T12:02:38Z` → `13:01:44Z`) timed out after `59.1` minutes with no scheduler log while the second exited in `27.6s` and the `14:00Z` run recovered by generating a mission-gap task.
+  Done when: A dated diagnosis identifies whether the stall lived in agent runtime, scheduler logging, or empty-queue task-selection flow, using evidence from `x13yb5tx-82fb9a07` and at least one neighboring successful `dymad_migrate` run.
+  Priority: high
+
 ## Mission gap tasks
 
 - [x] Create akari strategic alignment snapshot from current artifacts [fleet-eligible] [skill: analyze] [zero-resource]

@@ -723,6 +723,28 @@ describe("analyzeHealth", () => {
       expect(babysitCheck).toBeDefined();
       expect(babysitCheck!.severity).toBe("medium");
     });
+
+    it("does not flag timed-out task-starvation sessions as babysitting", () => {
+      const sessions = [
+        ...Array.from({ length: 9 }, (_, i) =>
+          productiveSession({ runId: `ok-${i}` }),
+        ),
+        session({
+          runId: "starved-timeout",
+          timedOut: true,
+          verification: {
+            ...defaultVerification(),
+            hasCommit: false,
+            commitCount: 0,
+            filesChanged: 0,
+          },
+          crossProject: { projectsTouched: [], findingsPerProject: {}, crossProjectRefs: 0 },
+        }),
+      ];
+      const checks = analyzeHealth(sessions);
+      expect(checks.find((c) => c.id === "task_starvation")).toBeDefined();
+      expect(checks.find((c) => c.id === "babysitting_detected")).toBeUndefined();
+    });
   });
 
   // ── Custom options ─────────────────────────────────────────────────────
