@@ -19,6 +19,60 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Routed the first graph checkpoint prediction path through typed model context
+
+Completed the graph-side twin of the regular runtime task.
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so the public single-graph prediction path now builds transformed typed graph series, materializes `GraphModelContext`, and crosses the temporary compatibility boundary through `to_legacy_runtime()`
+- added focused graph routing coverage in `modules/dymad_migrate/tests/test_regular_slice_integration.py`
+- kept nested batched graph edge-index payloads (`list[list[edge_index]]`) on the legacy path for now so the first graph slice stays narrow and workflow-safe
+
+Findings:
+- the current graph workflow gates (`ltg`, `ltga`) are satisfied with a typed context boundary on the single-graph public path
+- graph runtime needs a dedicated node-wise transform step before context construction; the regular batch path is not reusable as-is
+- preserving the nested-list graph fallback is the right temporary compromise: it avoids widening this slice while still migrating the workflow-critical public path
+
+Task status:
+- completed `Route one graph prediction path through the typed model context`
+
+Verification:
+- `python -m compileall modules/dymad_migrate/src/dymad/io/checkpoint.py modules/dymad_migrate/tests/test_regular_slice_integration.py`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q`
+  - `6 passed, 2 warnings in 0.72s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
+  - `30 passed, 2 warnings in 37.92s`
+
+Immediate next task:
+- split model helper/components away from direct `DynData` field access
+
+### 2026-03-30 — Routed the first regular checkpoint prediction path through typed model context
+
+Completed the next model-runtime task after the boundary/adapters landed.
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so the non-graph `predict_fn(...)` path now builds a typed regular series batch, materializes `RegularModelContext`, and crosses the temporary compatibility boundary through `to_legacy_runtime()`
+- added a focused regression in `modules/dymad_migrate/tests/test_regular_slice_integration.py` that proves the checkpoint-backed regular prediction path now routes through `RegularModelContext`
+- removed the now-unused direct regular `DynData` assembly helper from `checkpoint.py`
+
+Findings:
+- the regular checkpoint path can move to typed runtime context without changing the existing workflow gate
+- the import-cycle risk is at `checkpoint -> core -> model_context -> io`; the correct fix is lazy legacy imports inside `model_context.py`, not widening package-level imports
+- the compatibility boundary is still narrow: only `RegularModelContext.to_legacy_runtime()` constructs the legacy runtime payload for this path
+
+Task status:
+- completed `Route one regular prediction path through the typed model context`
+
+Verification:
+- `python -m compileall modules/dymad_migrate/src/dymad/core/model_context.py modules/dymad_migrate/src/dymad/io/checkpoint.py modules/dymad_migrate/tests/test_regular_slice_integration.py`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q`
+  - `5 passed, 2 warnings in 0.60s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
+  - `15 passed, 2 warnings in 12.94s`
+
+Immediate next task:
+- route one graph prediction path through the typed model context
+
 ### 2026-03-30 — Designed the typed model-runtime boundary and landed the first model-context adapter
 
 Completed the first two tasks in the post-data/transform module queue.

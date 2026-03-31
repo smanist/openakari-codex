@@ -314,15 +314,19 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/core/model_context.py`, exported it from `modules/dymad_migrate/src/dymad/core/__init__.py`, added helper-preservation coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py`, and tightened `modules/dymad_migrate/src/dymad/io/series_adapter.py` so fixed-topology graph edge payloads round-trip cleanly through the temporary legacy adapter.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py -q`
 
-- [ ] Route one regular prediction path through the typed model context [requires-frontier] [skill: execute]
+- [x] Route one regular prediction path through the typed model context [requires-frontier] [skill: execute]
   Why: The next module migration should establish one real regular execution path that consumes typed model context instead of depending on raw `DynData` assembly.
   Done when: one public regular prediction path in `modules/dymad_migrate/src/dymad/models/` or checkpoint-backed prediction consumes typed model context before any legacy adapter boundary, with regression coverage against the current workflow gate.
   Priority: high
+  Evidence: Updated the regular checkpoint-backed prediction path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` so the non-graph branch builds a typed regular series batch, materializes `RegularModelContext`, and only then crosses the temporary `to_legacy_runtime()` boundary; added regression coverage in `modules/dymad_migrate/tests/test_regular_slice_integration.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
 
-- [ ] Route one graph prediction path through the typed model context [requires-frontier] [skill: execute]
+- [x] Route one graph prediction path through the typed model context [requires-frontier] [skill: execute]
   Why: Graph prediction is one of the main reasons `DynData` survives; the next module migration should prove the typed context also works for graph execution.
   Done when: one public graph prediction path in `modules/dymad_migrate/src/dymad/models/` or checkpoint-backed prediction consumes typed graph model context before any legacy adapter boundary, with regression coverage against the current graph workflow gate.
   Priority: high
+  Evidence: Updated the single-graph checkpoint-backed prediction path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` so fixed-topology and per-step single-graph inputs build transformed typed graph series, materialize `GraphModelContext`, and only then cross the temporary `to_legacy_runtime()` boundary; added focused graph regression coverage in `modules/dymad_migrate/tests/test_regular_slice_integration.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
 
 - [ ] Split model helper/components away from direct `DynData` field access [requires-frontier] [skill: execute]
   Why: Helper-level field accessors in `models/components.py` are a major source of `DynData` coupling and need to be moved behind typed context readers before broader model/runtime cleanup.
