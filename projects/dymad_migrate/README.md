@@ -26,6 +26,64 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Routed model_base forward runtime through explicit typed seam
+
+Ran `/orient dymad_migrate` and selected:
+`Replace model_base legacy runtime reconstruction with typed runtime contracts`.
+
+Orient highlights:
+- findings-first gate remains enabled from recent scheduler history (`0/10` non-zero findings sessions)
+- approval queue is empty
+- `dymad_migrate` has no project-local `budget.yaml`/`ledger.yaml` gate for this zero-resource implementation task
+- task claim succeeded:
+  `claimId=7a64b50ce768dda8` (`SESSION_ID=work-session-mne14l2o`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- added `materialize_model_base_forward_payload(...)` in `modules/dymad_migrate/src/dymad/core/model_context.py` as the explicit compatibility seam for model-base forward payloads
+- updated `modules/dymad_migrate/src/dymad/models/model_base.py` to remove direct `DynData` reconstruction and route `forward(...)` through the seam
+- added focused regression coverage in:
+  - `modules/dymad_migrate/tests/test_model_context_adapter.py`
+  - `modules/dymad_migrate/tests/test_model_base_runtime_contract.py`
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-31-model-base-runtime-contract-verification.md`
+- `projects/dymad_migrate/analysis/2026-03-31-model-base-runtime-contract-pytest.log`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- `model_base.py` now crosses one explicit compatibility seam instead of rebuilding `DynData` inline
+- regular and graph forward payload materialization is now centralized in `core/model_context.py`
+- project-wide textual `DynData` reference count remains `87` after this task (`rg -n "\\bDynData\\b" ... | wc -l`)
+
+Task status:
+- completed `Replace model_base legacy runtime reconstruction with typed runtime contracts`
+
+Verification:
+- `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io\\.data import DynData|\\bDynData\\b" modules/dymad_migrate/src/dymad/models/model_base.py`
+  - no output
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_component_runtime_view.py tests/test_model_base_runtime_contract.py tests/test_workflow_lti.py -q`
+  - `24 passed, 2 warnings in 10.70s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 47 minutes
+Task-selected: Replace `model_base` legacy runtime reconstruction with typed runtime contracts
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 8
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 - Retired direct DynData construction from prediction runtime prep
 
 Ran `/orient dymad_migrate` and selected:
