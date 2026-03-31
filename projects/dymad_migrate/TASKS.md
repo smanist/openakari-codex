@@ -244,10 +244,12 @@
   Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md` and updated `projects/dymad_migrate/architecture/migration-scoreboard.md` to reflect the centralized transform-builder boundary plus explicit NDR and graph-edge adapter status.
   Verification: `rg -n \"^# Data/Transform Boundary Verification|^## Findings|19 passed, 1268 warnings\" projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md` and `rg -n \"transform_builder.py|NDR stages are explicit non-differentiable adapters|checkpoint hydration now constructs transforms through the central typed builder\" projects/dymad_migrate/architecture/migration-scoreboard.md`
 
-- [ ] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
+- [x] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
   Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-replacement-design.md`, added deterministic probe script `projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py`, and updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md` section `3a` with the replacement gate (`seed=54`, strict thresholds, both-package verification).
+  Verification: `cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py --seed 54 --trials 12` and `cd modules/dymad_migrate && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py --seed 54 --trials 12`
 
 - [x] Adjudicate parity-critical gate status using the flake-aware NDR policy [requires-frontier] [skill: analyze] [zero-resource]
   Why: Mission gap - README Done-when requires preserving selected parity-critical workflows, but the latest aggregate gate note (`2026-03-30-parity-critical-gate-outcomes.md`) predates policy-based adjudication and still records parity as unstable.

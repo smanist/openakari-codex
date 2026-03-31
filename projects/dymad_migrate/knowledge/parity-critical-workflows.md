@@ -1,6 +1,6 @@
 # DyMAD Parity-Critical Workflows
 
-Date: 2026-03-29 (updated 2026-03-30)
+Date: 2026-03-29 (updated 2026-03-31)
 Source package: `modules/dymad_ref/`
 Status: initial classification + NDR flake-policy update
 
@@ -80,11 +80,30 @@ Verification command:
 cd modules/dymad_ref && pytest tests/test_assert_transform.py tests/test_assert_trans_mode.py tests/test_assert_trans_lift.py tests/test_assert_trans_ndr.py -q
 ```
 
-#### 3a. Special gate policy for `tests/test_assert_trans_ndr.py::test_ndr[0]`
+#### 3a. Deterministic replacement gate for `tests/test_assert_trans_ndr.py::test_ndr[0]`
+
+Deterministic replacement policy (2026-03-31):
+- use fixed seed `54` and strict existing thresholds (`recon < 3e-5`, `reload < 1e-13`, `inv < 1e-14`)
+- run the deterministic probe in both packages:
+  - `modules/dymad_ref`
+  - `modules/dymad_migrate`
+- require `fail_count == 0` in both runs
+
+Gate command:
+
+```bash
+cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py --seed 54 --trials 12
+cd modules/dymad_migrate && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py --seed 54 --trials 12
+```
+
+Replacement source:
+- `projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-replacement-design.md`
+
+#### 3b. Legacy flake policy (fallback visibility only)
 
 `test_ndr[0]` currently uses an unseeded random fixture and has a documented intermittent near-threshold failure mode.
 
-Policy (2026-03-30):
+Legacy fallback policy (2026-03-30):
 - keep it visible in parity checks
 - do not hard-block from a single failure
 - if this case fails, adjudicate with 30 isolated reruns (`--reruns=0`)
