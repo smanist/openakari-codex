@@ -26,6 +26,54 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Migrated recipe modules to typed runtime signatures/views
+
+Ran `/orient dymad_migrate` and selected:
+`Migrate recipe modules off DynData type signatures`.
+
+Orient highlights:
+- findings-first gate remains enabled from scheduler history (`0/10` non-zero findings sessions)
+- approval queue is empty
+- stale external blockers: none (`projects/akari/TASKS.md` external blocker age is 5 days)
+- efficiency snapshot (latest 10 sessions): `genuine waste 2/10`, `avg turns 1`, `avg cost $0`, no recurring pattern detector alerts
+- task claim succeeded:
+  `claimId=acff27b302c163ab` (`SESSION_ID=work-session-mne9p8pb`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/models/recipes.py` to replace `DynData`-typed recipe signatures with `ModelRuntimePayload`/`ComponentInputPayload`
+- updated `modules/dymad_migrate/src/dymad/models/recipes_corr.py` so recipe helper/dynamics paths use `build_component_input_view(...)` instead of `DynData`-typed signatures
+- added focused typed-context regression coverage at `modules/dymad_migrate/tests/test_recipes_runtime_view.py`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Task status:
+- completed `Migrate recipe modules off DynData type signatures`
+
+Verification:
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/models/recipes.py modules/dymad_migrate/src/dymad/models/recipes_corr.py`
+  - no output
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_recipes_runtime_view.py tests/test_component_runtime_view.py tests/test_workflow_kp.py -q`
+  - `16 passed, 2 warnings in 8.70s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 33 minutes
+Task-selected: Migrate recipe modules off `DynData` type signatures
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Migrated `opt_weak_form` and shared `opt_base` truth handling to typed trainer batches
 
 Ran `/orient dymad_migrate` and selected:
