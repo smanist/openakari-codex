@@ -26,6 +26,35 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 - Removed direct DynData construction from checkpoint utilities and DataInterface
+
+Completed the next retirement execution task after the first typed trainer-family migration.
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so regular and graph checkpoint prediction payloads are built from typed series/model contexts before crossing the temporary legacy runtime seam
+- removed direct `DynData` construction and `DynData.collate` use from migrated `DataInterface` setup paths by switching to `TrajectoryManager.process_all(typed=True)`
+- narrowed the remaining compatibility boundary in `checkpoint.py` to the explicit `DynDataAdapter` hop used by the learned encoder path
+- updated `DataInterface.apply_obs(...)` to use typed trainer-batch accessors instead of legacy field access
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-30-checkpoint-datainterface-typed-boundary-verification.md`
+
+Findings:
+- `checkpoint.py` no longer directly imports or constructs `DynData` on the migrated regular and graph prediction paths
+- `DataInterface` now consumes typed trajectory-manager outputs instead of reconstructing legacy runtime batches locally
+- the remaining compatibility use in this file is explicit and deletion-stage only: `DynDataAdapter` still exists solely to satisfy the learned encoder interface
+
+Task status:
+- completed `Remove direct DynData construction from checkpoint utilities and DataInterface`
+
+Verification:
+- `rg -n "DynData\\(|DynData\\.collate|from dymad\\.io\\.data import DynData|from dymad\\.io import DynData" modules/dymad_migrate/src/dymad/io/checkpoint.py`
+  - no output
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_di.py -q`
+  - `7 passed, 2 warnings in 0.69s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_kp.py tests/test_workflow_ltg.py -q`
+  - `27 passed, 2 warnings in 33.20s`
+
 ### 2026-03-30 - Migrated the first trainer family to typed batches
 
 Completed the next retirement execution task after typed dataloader emission.

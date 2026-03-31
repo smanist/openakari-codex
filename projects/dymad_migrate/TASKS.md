@@ -402,10 +402,12 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/training/batch_adapter.py`, updated `modules/dymad_migrate/src/dymad/training/ls_update.py`, `modules/dymad_migrate/src/dymad/training/opt_linear.py`, and `modules/dymad_migrate/src/dymad/training/driver.py`, and added focused driver coverage in `modules/dymad_migrate/tests/test_linear_typed_batch_driver.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_ltg.py -q`
 
-- [ ] Remove direct `DynData` construction from checkpoint utilities and `DataInterface` [requires-frontier] [skill: execute]
+- [x] Remove direct `DynData` construction from checkpoint utilities and `DataInterface` [requires-frontier] [skill: execute]
   Why: Even after runtime-path migration, helper utilities still construct new `DynData` instances directly and will keep the object alive unless they are moved.
   Done when: `modules/dymad_migrate/src/dymad/io/checkpoint.py` and `DataInterface` stop directly constructing `DynData` on the migrated paths, except for explicitly marked temporary deletion-stage adapters.
   Priority: medium
+  Evidence: Updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so regular and graph checkpoint prediction payloads are built from typed series/model contexts, and `DataInterface` now uses typed trajectory-manager loaders plus the narrow `DynDataAdapter` compatibility seam for the learned encoder case.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_di.py tests/test_workflow_kp.py tests/test_workflow_ltg.py -q`
 
 - [ ] Verify the DynData-retired regular and graph workflow gates [requires-frontier] [skill: analyze] [zero-resource]
   Why: The object can only be retired if the package still satisfies the selected regular and graph gates on the typed-batch path.
