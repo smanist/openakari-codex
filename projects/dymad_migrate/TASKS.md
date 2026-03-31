@@ -423,10 +423,12 @@
   Evidence: Added the explicit compatibility seam `materialize_prediction_runtime(...)` and `ModelRuntimePayload` in `modules/dymad_migrate/src/dymad/core/model_context.py`, updated `modules/dymad_migrate/src/dymad/models/prediction.py` to route `_prepare_data(...)` through that seam, and added focused adapter coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py`.
   Verification: `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io import DynData|ws: DynData" modules/dymad_migrate/src/dymad/models/prediction.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_regular_slice_integration.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
 
-- [ ] Replace `model_base` legacy runtime reconstruction with typed runtime contracts [requires-frontier] [skill: execute]
+- [x] Replace `model_base` legacy runtime reconstruction with typed runtime contracts [requires-frontier] [skill: execute]
   Why: `modules/dymad_migrate/src/dymad/models/model_base.py` still reconstructs `DynData` internally, which keeps the legacy object embedded in the core model-facing contract.
   Done when: `modules/dymad_migrate/src/dymad/models/model_base.py` stops rebuilding `DynData` internally on migrated paths and instead accepts typed runtime payloads or crosses one explicit compatibility seam.
   Priority: high
+  Evidence: Added `materialize_model_base_forward_payload(...)` in `modules/dymad_migrate/src/dymad/core/model_context.py`, routed `ComposedDynamics.forward(...)` through that seam in `modules/dymad_migrate/src/dymad/models/model_base.py`, and added focused coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py` and `modules/dymad_migrate/tests/test_model_base_runtime_contract.py`.
+  Verification: `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io\\.data import DynData|\\bDynData\\b" modules/dymad_migrate/src/dymad/models/model_base.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_component_runtime_view.py tests/test_model_base_runtime_contract.py tests/test_workflow_lti.py -q`
 
 - [ ] Migrate recipe modules off `DynData` type signatures [requires-frontier] [skill: execute]
   Why: `modules/dymad_migrate/src/dymad/models/recipes.py` and `modules/dymad_migrate/src/dymad/models/recipes_corr.py` still declare and consume `DynData`, which keeps runtime-typed APIs from becoming the default model-facing contract.
