@@ -90,10 +90,23 @@
   Priority: medium
   Evidence: `projects/akari/README.md` (2026-03-25 log entry “Self-improvement loop example + re-run health watchdog”)
 
-- [ ] Diagnose why empty-queue scheduler run `x13yb5tx-82fb9a07` stalled until timeout [requires-frontier] [skill: diagnose] [zero-resource]
+- [x] Diagnose why empty-queue scheduler run `x13yb5tx-82fb9a07` stalled until timeout [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Follow-up from `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-03-31.md` — `dymad_migrate` had two zero-work scheduler rows on 2026-03-30, but the first (`2026-03-30T12:02:38Z` → `13:01:44Z`) timed out after `59.1` minutes with no scheduler log while the second exited in `27.6s` and the `14:00Z` run recovered by generating a mission-gap task.
   Done when: A dated diagnosis identifies whether the stall lived in agent runtime, scheduler logging, or empty-queue task-selection flow, using evidence from `x13yb5tx-82fb9a07` and at least one neighboring successful `dymad_migrate` run.
   Priority: high
+  Evidence: `projects/akari/diagnosis/diagnosis-empty-queue-timeout-x13yb5tx-82fb9a07-2026-03-31.md`
+  Verification: `python - <<'PY' ... PY` -> `starved_rows 2`; `x13yb5tx-82fb9a07 ... 3545920 True 1 None`; `x13yb5tx-d2999e90 ... 27607 False 1 None`; neighboring productive rows `x13yb5tx-6c37df95` and `x13yb5tx-a8632cea` stayed in the `413307-446487 ms` range with commits/files.
+  Verification: `rg -n "If no actionable tasks are found|Mission gap analysis .* primary fallback|found no open tasks" .agents/skills/orient/SKILL.md projects/dymad_migrate/README.md` -> orient skill shows empty-queue fallback is prompt-level mission-gap generation, and `projects/dymad_migrate/README.md` records the `14:00Z` recovery run generating a mission-gap task after finding no open tasks.
+
+- [ ] Implement scheduler-side empty-queue preflight before spawning work sessions [requires-frontier] [skill: execute] [zero-resource]
+  Why: `projects/akari/diagnosis/diagnosis-empty-queue-timeout-x13yb5tx-82fb9a07-2026-03-31.md` shows empty-queue recovery currently lives inside `/orient` prompt instructions, so a first-turn stall can burn the full timeout before task-supply recovery happens.
+  Done when: Scheduler execution checks the scoped project's open-task count before spawning the agent and either (a) generates/selects a mission-gap task automatically, or (b) exits with an explicit `empty_queue` result in under 60 seconds; regression coverage includes an x13-style empty-queue case.
+  Priority: high
+
+- [ ] Record timeout-path partial-turn provenance for interrupted Codex sessions [requires-frontier] [skill: execute] [zero-resource]
+  Why: `projects/akari/diagnosis/diagnosis-empty-queue-timeout-x13yb5tx-82fb9a07-2026-03-31.md` could localize the stall to empty-queue handling only indirectly because the timed-out row preserved almost no turn-level context beyond `numTurns=1` and `modelUsage=null`.
+  Done when: Timed-out Codex sessions persist structured timeout provenance (at minimum `turnStartedCount`, `turnCompletedCount`, and whether empty-queue preflight ran) into metrics or logs, and a regression test covers a first-turn timeout case.
+  Priority: medium
 
 ## Mission gap tasks
 

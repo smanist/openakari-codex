@@ -14,6 +14,37 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-03-31 (Resolved the `x13yb5tx-82fb9a07` empty-queue timeout root cause)
+
+Completed the follow-up diagnosis for the `dymad_migrate` timeout row `x13yb5tx-82fb9a07` and narrowed the failure to the empty-queue task-selection seam rather than scheduler logging or in-process babysitting.
+
+The key new finding is that the timeout was a control-gap in how empty queues are handled. In the latest 20 session rows, both zero-work `dymad_migrate` runs share the same empty-work signature: `2/20 = 10.0%` starvation rows, with `x13yb5tx-82fb9a07` at `3545920 ms` (`59.1 min`, `timedOut=true`, `numTurns=1`, `modelUsage=null`) and `x13yb5tx-d2999e90` at `27607 ms` (`27.6 s`, `timedOut=false`, `numTurns=1`, `modelUsage=null`). The neighboring productive runs stayed in the `413307-446487 ms` range and the `14:00Z` recovery run explicitly logged that `projects/dymad_migrate/TASKS.md` had no open tasks and only recovered after generating a mission-gap task.
+
+The diagnosis outcome is that empty-queue recovery is currently prompt-level `/orient` behavior, not scheduler-enforced control flow. When that first turn succeeds, the session can generate a mission-gap task and continue; when it stalls, the session can burn the full timeout without producing work. Recorded the diagnosis in `projects/akari/diagnosis/diagnosis-empty-queue-timeout-x13yb5tx-82fb9a07-2026-03-31.md`, completed the corresponding follow-up task in `projects/akari/TASKS.md`, and added two execution follow-ups: one for scheduler-side empty-queue preflight and one for timeout-path provenance.
+
+Verification:
+- `python - <<'PY' ... PY`
+  - `window_rows 20`
+  - `starved_rows 2`
+  - `x13yb5tx-82fb9a07 2026-03-30T13:01:44.361Z 3545920 True 1 None`
+  - `x13yb5tx-d2999e90 2026-03-30T13:17:51.447Z 27607 False 1 None`
+  - `neighbor x13yb5tx-6c37df95 2026-03-30T11:06:59.418Z 413307 2 3 0 0`
+  - `neighbor x13yb5tx-a8632cea 2026-03-30T14:07:40.377Z 446487 2 3 1 1`
+- `rg -n "If no actionable tasks are found|Mission gap analysis .* primary fallback|found no open tasks" .agents/skills/orient/SKILL.md projects/dymad_migrate/README.md`
+  - `.agents/skills/orient/SKILL.md:87` shows the empty-queue fallback is mission-gap analysis inside `/orient`
+  - `projects/dymad_migrate/README.md:1185` shows the `14:00Z` recovery run found no open tasks and generated a mission-gap task
+
+Session-type: directed
+Duration: 24
+Task-selected: Diagnose the root cause of empty-queue timeout `x13yb5tx-82fb9a07`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 (Scheduler health monitoring: dymad starvation cluster and babysitting false positive)
 
 Diagnosed the latest health-monitoring alerts from the most recent 20 rows of `.scheduler/metrics/sessions.jsonl` and found that all three signals (`task_starvation`, `babysitting_detected`, and the `durationMs` outlier) collapse into one `dymad_migrate` window on 2026-03-30.
@@ -1180,4 +1211,4 @@ Created the public meta-project scaffold for openakari. Added a project README, 
 - Which knowledge fields should be treated as research progress versus operational maintenance in efficiency reporting?
 - What minimum cadence of explicit self-observation analysis keeps task selection aligned with the mission instead of drifting to maintenance-only work?
 - Which kinds of capability improvements transfer across projects, and which depend on repository-specific history and conventions?
-- Why did scheduler run `x13yb5tx-82fb9a07` time out on 2026-03-30 without emitting a scheduler log, while the later empty-queue run `x13yb5tx-d2999e90` exited in `27.6s` and the `14:00Z` recovery run generated a mission-gap task normally?
+- Should scheduler-side empty-queue preflight auto-generate mission-gap work, or return an explicit `empty_queue` result for a separate task-supply path to handle?
