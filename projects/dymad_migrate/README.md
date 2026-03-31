@@ -26,6 +26,57 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Migrated utility spectral-analysis runtime path off ad-hoc `DynData` construction
+
+Ran `/orient dymad_migrate` and selected:
+`Migrate remaining utility consumers such as sako/base.py off DynData`.
+
+Orient highlights:
+- findings-first gate remains enabled (`0/10` scheduler work-cycle sessions with non-zero findings)
+- approval queue is empty
+- stale external blockers: none (`projects/akari/TASKS.md` external blocker age is 5 days)
+- efficiency snapshot (latest 10 sessions): `genuine waste 2/10`, `avg turns 1`, `avg cost $0`, no recurring pattern-detector alerts
+- task claim succeeded:
+  `claimId=68a29bb48215a87c` (`SESSION_ID=work-session-mnebueov`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/sako/base.py` to remove direct `DynData` import/construction from `SAInterface._setup_sa_terms(...)` and route encoder payloads through `encode_runtime_batch(...)` (typed runtime when available, legacy fallback otherwise)
+- updated `modules/dymad_migrate/src/dymad/utils/graph.py` utility docstring wording so it no longer references DynData-specific processing
+- added focused regression coverage in `modules/dymad_migrate/tests/test_sako_runtime_batch_adapter.py`
+
+Findings:
+- importing `dymad.training.batch_adapter` inside `dymad.sako.base` introduces a circular import path (`sako -> training -> ls_update -> sako`); using a local runtime adapter in `sako/base.py` avoids the cycle while preserving typed-batch compatibility
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Task status:
+- completed `Migrate remaining utility consumers such as sako/base.py off DynData`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_sako_runtime_batch_adapter.py 'tests/test_workflow_sa_lti.py::test_sa[0]' -q`
+  - `3 passed, 2 warnings in 1.43s`
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/sako/base.py modules/dymad_migrate/src/dymad/utils/graph.py`
+  - no output
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 34 minutes
+Task-selected: Migrate remaining utility consumers such as `sako/base.py` off `DynData`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Migrated recipe modules to typed runtime signatures/views
 
 Ran `/orient dymad_migrate` and selected:

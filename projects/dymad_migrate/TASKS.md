@@ -453,10 +453,12 @@
   Evidence: Updated `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` so `_process_batch(...)` accepts `TrainerBatch` and normalizes via `batch_to_legacy_runtime(...)`, updated `modules/dymad_migrate/src/dymad/training/opt_base.py` so shared truth-handling paths (`_additional_criteria_evaluation(...)`, `evaluate_prediction_criterion_single(...)`) consume `TrainerBatch`, and added typed coverage in `modules/dymad_migrate/tests/test_opt_weak_form_typed_batch.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_weak_form_typed_batch.py tests/test_opt_node_typed_batch.py tests/test_workflow_kp.py -q`
 
-- [ ] Migrate remaining utility consumers such as `sako/base.py` off `DynData` [requires-frontier] [skill: execute]
+- [x] Migrate remaining utility consumers such as `sako/base.py` off `DynData` [requires-frontier] [skill: execute]
   Why: utility modules still instantiate `DynData` ad hoc, which will keep the object alive even after main runtime and trainer paths migrate.
   Done when: `modules/dymad_migrate/src/dymad/sako/base.py` and any remaining non-core utility consumers named by the retirement inventory use typed series or typed model-facing payloads instead of constructing `DynData`.
   Priority: medium
+  Evidence: Updated `modules/dymad_migrate/src/dymad/sako/base.py` so `SAInterface._setup_sa_terms(...)` now routes batches through `encode_runtime_batch(...)` (typed-runtime or legacy payload) instead of constructing `DynData(x=batch.x)` ad hoc; also updated the utility comment in `modules/dymad_migrate/src/dymad/utils/graph.py` to remove DynData-centric wording and added focused regression coverage in `modules/dymad_migrate/tests/test_sako_runtime_batch_adapter.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_sako_runtime_batch_adapter.py 'tests/test_workflow_sa_lti.py::test_sa[0]' -q` and `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/sako/base.py modules/dymad_migrate/src/dymad/utils/graph.py`
 
 - [ ] Remove public `DynData` export and reverse adapters when only staged deletion seams remain [requires-frontier] [skill: execute]
   Why: retirement is not complete until `DynData` stops being part of the public surface and reverse adapters stop encouraging new legacy call paths.
