@@ -344,42 +344,56 @@
 
 ## DynData retirement planning tasks
 
-- [ ] Inventory the remaining `DynData` dependency surface after Phase 1 [requires-frontier] [skill: diagnose] [zero-resource]
+- [x] Inventory the remaining `DynData` dependency surface after Phase 1 [requires-frontier] [skill: diagnose] [zero-resource]
   Why: `DynData` retirement should be managed as a separate queue, and the first requirement is a precise inventory of which files and call paths still depend on it.
   Done when: `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md` lists the remaining dependencies across model runtime, training, checkpoint, dataloader, and analysis paths with file references and dependency categories.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md` with six dependency categories, concrete file references, allowed temporary boundaries, and deletion criteria.
+  Verification: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'`
 
-- [ ] Define the phased `DynData` retirement plan and cutoff rules [requires-frontier] [skill: multi] [zero-resource]
+- [x] Define the phased `DynData` retirement plan and cutoff rules [requires-frontier] [skill: multi] [zero-resource]
   Why: Retirement spans multiple modules; the project needs an explicit phase order and deletion criteria so sessions do not remove adapters too early or leave dead compatibility seams indefinitely.
   Done when: `projects/dymad_migrate/plans/` contains a dated `DynData` retirement plan with phases, no-new-dependency rule, adapter deletion criteria, and the verification gates required before each phase.
   Priority: high
+  Evidence: Updated `projects/dymad_migrate/plans/2026-03-30-dyndata-retirement-centered-path.md` to active status and added the no-new policy, adapter deletion criteria, phase gates, and immediate execution order.
+  Verification: `git diff --check -- projects/dymad_migrate/plans/2026-03-30-dyndata-retirement-centered-path.md`
 
-- [ ] Add a no-new-`DynData` dependency policy to the project record [fleet-eligible] [skill: govern] [zero-resource]
+- [x] Add a no-new-`DynData` dependency policy to the project record [fleet-eligible] [skill: govern] [zero-resource]
   Why: Retirement will drift if new code keeps reintroducing fresh `DynData` dependencies while the old ones are being reduced.
   Done when: the project README and/or a decision note explicitly states that new code must target typed series/model-context objects and may only touch `DynData` at shrinking compatibility boundaries.
   Priority: medium
+  Evidence: Added a `Working rules` section to `projects/dymad_migrate/README.md` that forbids new `DynData` dependencies outside the temporary retirement boundaries recorded in the inventory.
+  Verification: `rg -n "Working rules|DynData dependencies are not allowed" projects/dymad_migrate/README.md`
 
-- [ ] Define the first dataloader/batch replacement targets for post-runtime retirement [requires-frontier] [skill: multi] [zero-resource]
+- [x] Define the first dataloader/batch replacement targets for post-runtime retirement [requires-frontier] [skill: multi] [zero-resource]
   Why: Even after model runtime migration, `DynData` will remain alive until batch collation and trainer inputs stop depending on it.
   Done when: a short design note identifies the first `RegularSeriesBatch` / `GraphSeriesBatch` replacements for dataloader and trainer consumption, with concrete legacy call sites named.
   Priority: medium
+  Evidence: Added `projects/dymad_migrate/architecture/dyndata-batch-contract-design.md` defining `RegularTrainerBatch` / `GraphTrainerBatch`, the exact loader and trainer call sites to replace, and the first migration order.
+  Verification: `rg -n "RegularTrainerBatch|GraphTrainerBatch|opt_linear|TrajectoryManager" projects/dymad_migrate/architecture/dyndata-batch-contract-design.md`
 
 ## DynData retirement execution tasks
 
-- [ ] Replace the first model helper/component family with typed context readers [requires-frontier] [skill: execute]
+- [x] Replace the first model helper/component family with typed context readers [requires-frontier] [skill: execute]
   Why: `models/components.py` is one of the densest remaining `DynData` dependency clusters, and helper-level field access is the first real shrink point after the runtime boundary work.
   Done when: one coherent helper family in `modules/dymad_migrate/src/dymad/models/components.py` reads from typed context readers or a narrow typed compatibility object instead of directly indexing `DynData`, and the affected regular and graph runtime tests still pass.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/models/runtime_view.py`, updated `modules/dymad_migrate/src/dymad/models/components.py` and `modules/dymad_migrate/src/dymad/models/model_base.py`, and added `modules/dymad_migrate/tests/test_component_runtime_view.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_component_runtime_view.py tests/test_model_context_adapter.py -q`
 
-- [ ] Define typed dataloader and trainer batch contracts replacing `DynData` [requires-frontier] [skill: multi] [zero-resource]
+- [x] Define typed dataloader and trainer batch contracts replacing `DynData` [requires-frontier] [skill: multi] [zero-resource]
   Why: `DynData` cannot be deleted while `TrajectoryManager` and trainer entrypoints still treat it as the canonical batch object.
   Done when: a design note defines the first `RegularSeriesBatch` / `GraphSeriesBatch` or equivalent trainer-facing batch contracts, names the exact `TrajectoryManager` and trainer call sites to replace, and states which compatibility adapters remain temporary.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/architecture/dyndata-batch-contract-design.md` defining `RegularTrainerBatch` / `GraphTrainerBatch`, the exact loader and trainer call sites to replace, and the first migration order.
+  Verification: `rg -n "RegularTrainerBatch|GraphTrainerBatch|opt_linear|TrajectoryManager" projects/dymad_migrate/architecture/dyndata-batch-contract-design.md`
 
-- [ ] Make `TrajectoryManager` emit typed batches on the new path [requires-frontier] [skill: execute]
+- [x] Make `TrajectoryManager` emit typed batches on the new path [requires-frontier] [skill: execute]
   Why: Retirement needs the dataloader boundary to stop centering `DynData`.
   Done when: one regular path and one graph path in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` and its dataloaders emit typed batches instead of `DynData`, with verification coverage for batch shape and metadata.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/core/trainer_batch.py`, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `process_data(...)`, `process_all(...)`, and `create_dataloaders(...)` support `typed=True`, and added coverage in `modules/dymad_migrate/tests/test_typed_trainer_batches.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_typed_trainer_batches.py tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py -q`
 
 - [ ] Replace trainer batch consumption in the first optimizer family [requires-frontier] [skill: execute]
   Why: Removing `DynData` requires at least one real trainer family to consume typed batches instead of the legacy object.

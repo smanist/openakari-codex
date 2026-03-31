@@ -1,12 +1,14 @@
 # DynData Retirement Centered Path
 
 Date: 2026-03-30
-Status: proposed
+Status: active
 Depends on:
 - `projects/dymad_migrate/plans/2026-03-30-model-runtime-next-module-and-dyndata-retirement.md`
 - `projects/dymad_migrate/architecture/model-runtime-boundary-design.md`
 - `projects/dymad_migrate/architecture/training-layer-design.md`
 - `projects/dymad_migrate/architecture/migration-scoreboard.md`
+- `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md`
+- `projects/dymad_migrate/architecture/dyndata-batch-contract-design.md`
 
 ## Decision
 
@@ -28,6 +30,17 @@ Not in scope:
 - full `PhasePipeline` / `TrainerRun` / `CVDriver` migration
 - full typed model-spec builder migration
 - spectral-analysis adapter work
+
+## No-new-DynData policy
+
+Effective immediately:
+
+- new code must target typed series, typed model contexts, or typed trainer batches
+- no new production code may introduce fresh `DynData` dependencies outside the
+  temporary boundaries named in
+  `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md`
+- when a migrated path still needs legacy behavior, it must cross an explicit adapter
+  seam rather than reconstructing `DynData` ad hoc in unrelated files
 
 ## Why this is viable now
 
@@ -73,6 +86,69 @@ Not in scope:
 14. remove `DynData` from public exports
 15. delete reverse adapters still targeting `DynData` if no call sites remain
 16. delete `modules/dymad_migrate/src/dymad/io/data.py`
+
+## Adapter deletion criteria
+
+The temporary boundaries may be deleted only when their downstream consumers are gone.
+
+Delete `core/model_context.py -> to_legacy_runtime()` when:
+- `models/prediction.py` no longer requires `DynData`
+- remaining model helpers consume typed runtime payloads directly
+
+Delete reverse conversions in `io/series_adapter.py` when:
+- `TrajectoryManager`, `checkpoint.py`, and trainers no longer require `DynData`
+
+Delete `models/runtime_view.py` compatibility with raw `DynData` when:
+- helper families no longer receive raw legacy runtime payloads
+
+Delete `io/__init__.py` export and `io/data.py` when:
+- `rg -n "\bDynData\b" modules/dymad_migrate/src/dymad -g '*.py'`
+  only reports staging shims scheduled for deletion in the same change set
+
+## Verification gates by phase
+
+Phase 1 gate:
+
+```bash
+git diff --check -- projects/dymad_migrate
+```
+
+Phase 2 gate:
+
+```bash
+cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_trajmgr_graph.py -q
+```
+
+Phase 3 gate:
+
+```bash
+cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q
+```
+
+Phase 4 gate:
+
+```bash
+cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q
+```
+
+Phase 5 gate:
+
+```bash
+rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'
+```
+
+Expected outcome for Phase 5:
+- no remaining production-path `DynData` references outside files deleted in the same change set
+
+## Immediate execution order
+
+The next concrete execution order is:
+
+1. make `TrajectoryManager` emit typed trainer batches on one regular and one graph path
+2. migrate `opt_linear` plus `ls_update` to the typed trainer-batch contract
+3. migrate `opt_node` and `opt_weak_form`
+4. remove checkpoint and `DataInterface` direct `DynData` construction on migrated paths
+5. then delete public export and compatibility shims
 
 ## Practical implication
 

@@ -17,7 +17,73 @@ The primary architecture contract for the migration currently lives in `modules/
 
 The immediate risk is not lack of architectural direction; it is loss of migration context across sessions. Akari needs a project-local README, plan, and task queue so Codex can work incrementally without re-deriving the same decisions every time.
 
+## Working rules
+
+- `modules/dymad_ref/` remains the behavioral oracle and is still read-only.
+- `modules/mcp_test/` remains a read-only architecture reference.
+- New code in `modules/dymad_migrate/` must target typed series, typed model contexts, or typed trainer batches.
+- New `DynData` dependencies are not allowed outside the temporary retirement boundaries recorded in `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md`.
+
 ## Log
+
+### 2026-03-30 - Added typed trainer-batch emission in TrajectoryManager
+
+Completed the first retirement execution step after the planning queue closed.
+
+Code changes:
+- added `modules/dymad_migrate/src/dymad/core/trainer_batch.py` with `RegularTrainerBatch` and `GraphTrainerBatch`
+- updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `process_data(...)`, `process_all(...)`, and `create_dataloaders(...)` support `typed=True`
+- preserved the legacy default path while storing typed datasets in parallel so the new batch path can be exercised safely
+- added focused coverage in `modules/dymad_migrate/tests/test_typed_trainer_batches.py`
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-30-typed-trainer-batch-emission-verification.md`
+
+Findings:
+- regular and graph trajectory managers can now emit typed trainer batches without `DynData.collate` on the new path
+- graph typed batching no longer needs the legacy pre-collated `batch_size=1` workaround on that path
+- the next real blocker is trainer consumption, not dataloader emission
+
+Task status:
+- completed `Make TrajectoryManager emit typed batches on the new path`
+
+Verification:
+- `python -m compileall modules/dymad_migrate/src/dymad/core/trainer_batch.py modules/dymad_migrate/src/dymad/io/trajectory_manager.py modules/dymad_migrate/tests/test_typed_trainer_batches.py`
+  - completed without error
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_typed_trainer_batches.py tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py -q`
+  - `6 passed, 2 warnings in 0.75s`
+
+### 2026-03-30 - Started the DynData retirement queue
+
+Persisted the retirement baseline and the first execution contract after the
+model-runtime slice closed.
+
+Artifacts added:
+- `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md`
+- `projects/dymad_migrate/architecture/dyndata-batch-contract-design.md`
+
+Artifacts updated:
+- `projects/dymad_migrate/plans/2026-03-30-dyndata-retirement-centered-path.md`
+
+Findings:
+- `DynData` still appears in 18 production-source files and 103 textual references
+  across `modules/dymad_migrate/src/dymad`
+- the main deletion bottleneck is no longer public prediction entrypoints; it is the
+  batch boundary in `trajectory_manager.py`, `DataInterface`, and trainer consumers
+- the narrowest first typed-batch execution target is `opt_linear` plus `ls_update`,
+  after `TrajectoryManager` stops emitting `DynData`
+
+Task status:
+- completed `Inventory the remaining DynData dependency surface after Phase 1`
+- completed `Define the phased DynData retirement plan and cutoff rules`
+- completed `Add a no-new-DynData dependency policy to the project record`
+- completed `Define the first dataloader/batch replacement targets for post-runtime retirement`
+
+Verification:
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'`
+  - `18` files, `103` textual references
+- `git diff --check -- projects/dymad_migrate`
+  - no output
 
 ### 2026-03-30 — Finished the last two model-runtime tasks
 
