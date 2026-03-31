@@ -26,6 +26,52 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Migrated OptNODE batch processing to accept typed trainer batches
+
+Ran `/orient dymad_migrate` and selected:
+`Migrate opt_node to typed trainer batches`.
+
+Orient highlights:
+- findings-first gate remains enabled from scheduler work-cycle history (`0/10` non-zero findings sessions)
+- approval queue is empty
+- stale external blockers: none (`projects/akari/TASKS.md` blocker is 5 days old)
+- efficiency snapshot (latest 10 sessions): `genuine waste 8/10`, `avg turns 1`, `avg cost $0`, recurring pattern `zeroKnowledge`
+- task claim succeeded:
+  `claimId=5823ae9b9a0c5c16` (`SESSION_ID=work-session-mne39r09`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/training/opt_node.py` so `_process_batch(...)` now accepts `TrainerBatch` and routes typed `truncate/window` paths through `batch_to_legacy_runtime(...)`
+- preserved legacy `DynData` behavior through the same compatibility seam for non-typed callers
+- added focused typed-batch regression tests in `modules/dymad_migrate/tests/test_opt_node_typed_batch.py`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Task status:
+- completed `Migrate opt_node to typed trainer batches`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_node_typed_batch.py tests/test_workflow_lti.py -q`
+  - `17 passed, 2 warnings in 10.90s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 40 minutes
+Task-selected: Migrate `opt_node` to typed trainer batches
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Routed model_base forward runtime through explicit typed seam
 
 Ran `/orient dymad_migrate` and selected:

@@ -435,10 +435,12 @@
   Done when: the migrated recipe entrypoints use typed runtime views, typed model contexts, or a shared typed compatibility interface instead of `DynData`-typed signatures.
   Priority: medium
 
-- [ ] Migrate `opt_node` to typed trainer batches [requires-frontier] [skill: execute]
+- [x] Migrate `opt_node` to typed trainer batches [requires-frontier] [skill: execute]
   Why: `opt_linear` is no longer enough; `opt_node` is a major remaining trainer consumer that still depends directly on `DynData`.
   Done when: `modules/dymad_migrate/src/dymad/training/opt_node.py` accepts typed trainer batches or typed runtime/model-context payloads on its migrated path, and its workflow gate still passes.
   Priority: high
+  Evidence: Updated `modules/dymad_migrate/src/dymad/training/opt_node.py` so `_process_batch(...)` accepts `TrainerBatch`, routes typed `truncate/window` paths through the batch adapter seam (`batch_to_legacy_runtime(...)`), and preserves legacy `DynData` behavior on the fallback path; added focused typed-batch regression coverage in `modules/dymad_migrate/tests/test_opt_node_typed_batch.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_node_typed_batch.py tests/test_workflow_lti.py -q` -> `17 passed, 2 warnings in 10.90s`
 
 - [ ] Migrate `opt_weak_form` and shared `opt_base` truth handling off `DynData` [requires-frontier] [skill: execute]
   Why: shared trainer logic in `opt_base.py` plus `opt_weak_form.py` still uses `DynData`, so the trainer stack cannot become typed-first until those common paths move.
