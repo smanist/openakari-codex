@@ -26,6 +26,57 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 - Verified DynData-retired regular and graph workflow gates
+
+Ran `/orient dymad_migrate` and selected the highest-value open task:
+`Verify the DynData-retired regular and graph workflow gates`.
+
+Orient highlights:
+- findings-first gate trigger remains active from scheduler work-cycle history:
+  `0/10` sessions with non-zero (`newExperimentFindings + logEntryFindings`)
+- task-claim API was unavailable (`curl` exit `7`, HTTP `000`), so execution
+  proceeded via SOP fallback
+
+Scope classification:
+- routine analysis, `consumes_resources: false` (no external API/model calls,
+  no GPU, no long-running detached compute)
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gate-verification.md`
+- `projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gates-pytest.log`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- migration package gate result on the selected regular+graph workflows:
+  `56 passed, 2 warnings in 55.11s`
+- comparison baseline from
+  `projects/dymad_migrate/analysis/2026-03-30-model-runtime-parity-gates.md`:
+  `56 passed, 2 warnings in 61.80s`
+- pass/warning counts are unchanged from baseline; no workflow regression detected
+  for this checkpoint
+
+Task status:
+- completed `Verify the DynData-retired regular and graph workflow gates`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
+  - `56 passed, 2 warnings in 55.11s`
+- `rg -n "56 passed, 2 warnings" projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gates-pytest.log projects/dymad_migrate/analysis/2026-03-30-model-runtime-parity-gates.md`
+  - confirmed baseline and current summaries in both artifacts
+
+Session-type: autonomous
+Duration: 28 minutes
+Task-selected: Verify the DynData-retired regular and graph workflow gates
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 - Added the post-checkpoint DynData retirement execution queue
 
 Captured the next technical tasks after checkpoint and `DataInterface` stopped

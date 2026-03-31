@@ -409,10 +409,12 @@
   Evidence: Updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so regular and graph checkpoint prediction payloads are built from typed series/model contexts, and `DataInterface` now uses typed trajectory-manager loaders plus the narrow `DynDataAdapter` compatibility seam for the learned encoder case.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_di.py tests/test_workflow_kp.py tests/test_workflow_ltg.py -q`
 
-- [ ] Verify the DynData-retired regular and graph workflow gates [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Verify the DynData-retired regular and graph workflow gates [requires-frontier] [skill: analyze] [zero-resource]
   Why: The object can only be retired if the package still satisfies the selected regular and graph gates on the typed-batch path.
   Done when: a dated analysis note records the exact regular and graph verification commands for the `DynData`-retired paths and compares them against the current migration baseline.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gate-verification.md` and raw gate output at `projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gates-pytest.log`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
 
 - [ ] Replace `models/prediction.py` direct `DynData` construction with typed runtime payloads [requires-frontier] [skill: execute]
   Why: `models/prediction.py` still constructs empty and collated `DynData` payloads directly, so prediction helpers remain one of the largest runtime blockers to full retirement.
