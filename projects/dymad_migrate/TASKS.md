@@ -484,10 +484,12 @@
   Evidence: Added `projects/dymad_migrate/analysis/2026-03-31-done-when-closure-adjudication.md` with condition-by-condition evidence mapping, fresh command outputs, and an explicit status decision to keep the project active while adding seam-completion follow-up tasks.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_public_load_model_boundary.py -q` (`2 passed, 2 warnings in 0.71s`) and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q` plus `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q` (both `26 passed, 2 warnings`).
 
-- [ ] Implement typed model-spec compatibility objects for predefined model entrypoints [requires-frontier] [skill: execute]
+- [x] Implement typed model-spec compatibility objects for predefined model entrypoints [requires-frontier] [skill: execute]
   Why: Mission gap — closure adjudication confirmed `model-spec` remains `design-only` in `projects/dymad_migrate/architecture/migration-scoreboard.md`.
   Done when: `modules/dymad_migrate/src/dymad/models/` includes typed model-spec objects plus adapters for at least one predefined model family used by workflow tests, and focused regression tests verify adapter-driven construction without string-map internals.
   Priority: high
+  Evidence: Added typed model-spec compatibility objects in `modules/dymad_migrate/src/dymad/models/model_spec.py`, routed `PredefinedModel` in `modules/dymad_migrate/src/dymad/models/collections.py` through `build_model_from_spec(...)`, and added focused adapter tests in `modules/dymad_migrate/tests/test_model_spec_adapter.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py 'tests/test_workflow_lti.py::test_lti[7]' -q` (`3 passed, 2 warnings in 1.61s`).
 
 - [ ] Start training-layer split by introducing phase/state primitives behind current driver entrypoints [requires-frontier] [skill: execute]
   Why: Mission gap — closure adjudication confirmed `training` remains `design-only` and still centered on legacy orchestration shapes.

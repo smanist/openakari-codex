@@ -26,6 +26,60 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Added typed model-spec compatibility prototype for predefined model entrypoints
+
+Ran `/orient dymad_migrate` and selected:
+`Implement typed model-spec compatibility objects for predefined model entrypoints`.
+
+Orient highlights:
+- uncommitted work: clean (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- stale external blockers: none (`projects/akari/TASKS.md` has one external blocker dated `2026-03-26`, age `5` days)
+- budget/deadline: `projects/dymad_migrate/` has no `budget.yaml`/`ledger.yaml` (non-resource task); `projects/pca_vs_ttd` deadline remains `2026-06-01` with no recorded spend
+- findings-first gate: enabled (`0/10 = 0.0%` scheduler `work-cycle` sessions with non-zero findings)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`1` finding over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- recurring pattern-detector alerts: none (no pattern reached `>=3` occurrences in `infra/scheduler/src/patterns.ts`)
+- horizon-scan intel: no recent reports under `.scheduler/skill-reports/`
+- task claim succeeded:
+  `claimId=1a7816f1060fda4f` (`SESSION_ID=work-session-mnekf2e2`)
+
+Scope classification:
+- structural (verifiable) implementation task, `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/artifact changes:
+- added typed model-spec compatibility objects at `modules/dymad_migrate/src/dymad/models/model_spec.py`
+- routed `PredefinedModel` in `modules/dymad_migrate/src/dymad/models/collections.py` through typed `ModelSpec` objects and `build_model_from_spec(...)`
+- added `build_model_from_spec(...)` in `modules/dymad_migrate/src/dymad/models/helpers.py` and exported typed spec objects in `modules/dymad_migrate/src/dymad/models/__init__.py`
+- added focused adapter coverage at `modules/dymad_migrate/tests/test_model_spec_adapter.py`
+- updated migration state in `projects/dymad_migrate/architecture/migration-scoreboard.md` (`model-spec`: `design-only` -> `prototype`)
+- recorded checkpoint findings in `projects/dymad_migrate/analysis/2026-03-31-model-spec-compatibility-prototype.md`
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- predefined model entrypoints now create typed compatibility objects before crossing the legacy builder seam
+- LTI-family predefined entrypoint behavior remains intact under the typed adapter path
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `3 passed, 2 warnings in 1.61s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py -q`
+  - `2 passed, 2 warnings in 0.40s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 35 minutes
+Task-selected: Implement typed model-spec compatibility objects for predefined model entrypoints
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 10
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Adjudicated `Done when` closure and replenished mission-gap task supply
 
 Ran `/orient dymad_migrate` and selected:
