@@ -395,10 +395,12 @@
   Evidence: Added `modules/dymad_migrate/src/dymad/core/trainer_batch.py`, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `process_data(...)`, `process_all(...)`, and `create_dataloaders(...)` support `typed=True`, and added coverage in `modules/dymad_migrate/tests/test_typed_trainer_batches.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_typed_trainer_batches.py tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py -q`
 
-- [ ] Replace trainer batch consumption in the first optimizer family [requires-frontier] [skill: execute]
+- [x] Replace trainer batch consumption in the first optimizer family [requires-frontier] [skill: execute]
   Why: Removing `DynData` requires at least one real trainer family to consume typed batches instead of the legacy object.
   Done when: one coherent trainer family (`opt_node`, `opt_linear`, or `opt_weak_form` plus its helpers) accepts typed batches or typed runtime/model contexts, and its workflow gate still passes.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/training/batch_adapter.py`, updated `modules/dymad_migrate/src/dymad/training/ls_update.py`, `modules/dymad_migrate/src/dymad/training/opt_linear.py`, and `modules/dymad_migrate/src/dymad/training/driver.py`, and added focused driver coverage in `modules/dymad_migrate/tests/test_linear_typed_batch_driver.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_ltg.py -q`
 
 - [ ] Remove direct `DynData` construction from checkpoint utilities and `DataInterface` [requires-frontier] [skill: execute]
   Why: Even after runtime-path migration, helper utilities still construct new `DynData` instances directly and will keep the object alive unless they are moved.

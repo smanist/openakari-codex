@@ -26,6 +26,36 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 - Migrated the first trainer family to typed batches
+
+Completed the next retirement execution task after typed dataloader emission.
+
+Code changes:
+- added `modules/dymad_migrate/src/dymad/training/batch_adapter.py` as the narrow training-side batch normalization seam
+- updated `modules/dymad_migrate/src/dymad/training/ls_update.py` so linear-feature and evaluation helpers accept typed trainer batches
+- updated `modules/dymad_migrate/src/dymad/training/opt_linear.py` so the linear trainer accepts typed batches directly
+- updated `modules/dymad_migrate/src/dymad/training/driver.py` so pure `Linear` phases request typed loaders while keeping legacy trajectory datasets for prediction-criterion evaluation
+- added focused coverage in `modules/dymad_migrate/tests/test_linear_typed_batch_driver.py`
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-30-linear-trainer-typed-batch-verification.md`
+
+Findings:
+- the first trainer family now consumes typed regular and graph batches without widening the compatibility boundary into unrelated modules
+- enabling typed loaders only for pure `Linear` phases is the correct intermediate cut; mixed stacks should remain legacy until their trainer consumers migrate
+- keeping dataset objects legacy while moving only the dataloader batches preserves prediction-criterion evaluation without blocking the retirement queue
+
+Task status:
+- completed `Replace trainer batch consumption in the first optimizer family`
+
+Verification:
+- `python -m compileall modules/dymad_migrate/src/dymad/training/batch_adapter.py modules/dymad_migrate/src/dymad/training/ls_update.py modules/dymad_migrate/src/dymad/training/opt_linear.py modules/dymad_migrate/src/dymad/training/driver.py modules/dymad_migrate/tests/test_linear_typed_batch_driver.py`
+  - completed without error
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_linear_typed_batch_driver.py tests/test_typed_trainer_batches.py -q`
+  - `4 passed, 2 warnings in 0.72s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_ltg.py -q`
+  - `31 passed, 2 warnings in 33.72s`
+
 ### 2026-03-30 - Added typed trainer-batch emission in TrajectoryManager
 
 Completed the first retirement execution step after the planning queue closed.
