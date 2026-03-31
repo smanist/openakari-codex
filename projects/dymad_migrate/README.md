@@ -19,6 +19,55 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 — Finished the last two model-runtime tasks
+
+Completed the remaining runtime queue before the planned `DynData` retirement shift.
+
+Code changes:
+- added `modules/dymad_migrate/src/dymad/models/runtime_view.py` as the narrow helper-facing runtime adapter
+- updated `modules/dymad_migrate/src/dymad/models/components.py` so encoder, decoder, feature, and graph composer helpers read through the runtime-view adapter instead of directly indexing `DynData`
+- aligned `modules/dymad_migrate/src/dymad/models/model_base.py` signatures with the broader runtime payload type
+- added focused helper coverage in `modules/dymad_migrate/tests/test_component_runtime_view.py`
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-30-model-runtime-parity-gates.md`
+
+Findings:
+- helper-level `DynData` field access in `components.py` can be removed without regressing the current regular/graph workflow gates
+- the selected runtime parity gates match the current reference baseline exactly:
+  - `modules/dymad_migrate`: `56 passed, 2 warnings in 61.80s`
+  - `modules/dymad_ref`: `56 passed, 2 warnings in 61.77s`
+- the model-runtime seam now has enough evidence to mark it `verified` in the migration scoreboard
+
+Task status:
+- completed `Split model helper/components away from direct DynData field access`
+- completed `Record regular and graph prediction parity gates for the typed model-runtime boundary`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_component_runtime_view.py tests/test_model_context_adapter.py -q`
+  - `4 passed, 2 warnings in 0.66s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
+  - `56 passed, 2 warnings in 61.80s`
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
+  - `56 passed, 2 warnings in 61.77s`
+
+### 2026-03-30 — Re-centered the post-runtime plan on DynData retirement
+
+Recorded a new sequencing decision for the case where spectral-analysis and the broader
+training architecture are both deferred.
+
+Decision:
+- after the remaining two runtime tasks, the next major focus can be `DynData` retirement
+- this is viable only as a data-object replacement campaign, not as a full training redesign
+
+Scope rule:
+- narrow edits across model, prediction, training, checkpoint, and dataloader are allowed
+- broader training-architecture work, spectral-analysis, and model-spec migration stay deferred
+
+Artifacts added:
+- `projects/dymad_migrate/plans/2026-03-30-dyndata-retirement-centered-path.md`
+- a new `DynData retirement execution tasks` section in `projects/dymad_migrate/TASKS.md`
+
 ### 2026-03-30 — Routed the first graph checkpoint prediction path through typed model context
 
 Completed the graph-side twin of the regular runtime task.

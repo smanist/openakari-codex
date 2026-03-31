@@ -328,15 +328,19 @@
   Evidence: Updated the single-graph checkpoint-backed prediction path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` so fixed-topology and per-step single-graph inputs build transformed typed graph series, materialize `GraphModelContext`, and only then cross the temporary `to_legacy_runtime()` boundary; added focused graph regression coverage in `modules/dymad_migrate/tests/test_regular_slice_integration.py`.
   Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
 
-- [ ] Split model helper/components away from direct `DynData` field access [requires-frontier] [skill: execute]
+- [x] Split model helper/components away from direct `DynData` field access [requires-frontier] [skill: execute]
   Why: Helper-level field accessors in `models/components.py` are a major source of `DynData` coupling and need to be moved behind typed context readers before broader model/runtime cleanup.
   Done when: the first targeted helper/component family reads from typed model context or a narrow compatibility adapter rather than directly indexing `DynData` fields, and the affected prediction tests still pass.
   Priority: high
+  Evidence: Added `modules/dymad_migrate/src/dymad/models/runtime_view.py` as the narrow runtime-view adapter, updated `modules/dymad_migrate/src/dymad/models/components.py` so encoder/decoder/feature/composer helpers read through that adapter instead of directly indexing `DynData`, aligned `modules/dymad_migrate/src/dymad/models/model_base.py` signatures, and added focused coverage in `modules/dymad_migrate/tests/test_component_runtime_view.py`.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_component_runtime_view.py tests/test_model_context_adapter.py -q`
 
-- [ ] Record regular and graph prediction parity gates for the typed model-runtime boundary [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Record regular and graph prediction parity gates for the typed model-runtime boundary [requires-frontier] [skill: analyze] [zero-resource]
   Why: The next module migration should be signed off with explicit regular and graph prediction evidence before training migration starts.
   Done when: a dated analysis note records the exact regular and graph prediction verification commands for the typed model-runtime boundary and compares the selected gates against `dymad_ref` where relevant.
   Priority: high
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-model-runtime-parity-gates.md` and updated `projects/dymad_migrate/architecture/migration-scoreboard.md` to mark the model-runtime seam as verified.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q` and `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
 
 ## DynData retirement planning tasks
 
@@ -359,3 +363,35 @@
   Why: Even after model runtime migration, `DynData` will remain alive until batch collation and trainer inputs stop depending on it.
   Done when: a short design note identifies the first `RegularSeriesBatch` / `GraphSeriesBatch` replacements for dataloader and trainer consumption, with concrete legacy call sites named.
   Priority: medium
+
+## DynData retirement execution tasks
+
+- [ ] Replace the first model helper/component family with typed context readers [requires-frontier] [skill: execute]
+  Why: `models/components.py` is one of the densest remaining `DynData` dependency clusters, and helper-level field access is the first real shrink point after the runtime boundary work.
+  Done when: one coherent helper family in `modules/dymad_migrate/src/dymad/models/components.py` reads from typed context readers or a narrow typed compatibility object instead of directly indexing `DynData`, and the affected regular and graph runtime tests still pass.
+  Priority: high
+
+- [ ] Define typed dataloader and trainer batch contracts replacing `DynData` [requires-frontier] [skill: multi] [zero-resource]
+  Why: `DynData` cannot be deleted while `TrajectoryManager` and trainer entrypoints still treat it as the canonical batch object.
+  Done when: a design note defines the first `RegularSeriesBatch` / `GraphSeriesBatch` or equivalent trainer-facing batch contracts, names the exact `TrajectoryManager` and trainer call sites to replace, and states which compatibility adapters remain temporary.
+  Priority: high
+
+- [ ] Make `TrajectoryManager` emit typed batches on the new path [requires-frontier] [skill: execute]
+  Why: Retirement needs the dataloader boundary to stop centering `DynData`.
+  Done when: one regular path and one graph path in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` and its dataloaders emit typed batches instead of `DynData`, with verification coverage for batch shape and metadata.
+  Priority: high
+
+- [ ] Replace trainer batch consumption in the first optimizer family [requires-frontier] [skill: execute]
+  Why: Removing `DynData` requires at least one real trainer family to consume typed batches instead of the legacy object.
+  Done when: one coherent trainer family (`opt_node`, `opt_linear`, or `opt_weak_form` plus its helpers) accepts typed batches or typed runtime/model contexts, and its workflow gate still passes.
+  Priority: high
+
+- [ ] Remove direct `DynData` construction from checkpoint utilities and `DataInterface` [requires-frontier] [skill: execute]
+  Why: Even after runtime-path migration, helper utilities still construct new `DynData` instances directly and will keep the object alive unless they are moved.
+  Done when: `modules/dymad_migrate/src/dymad/io/checkpoint.py` and `DataInterface` stop directly constructing `DynData` on the migrated paths, except for explicitly marked temporary deletion-stage adapters.
+  Priority: medium
+
+- [ ] Verify the DynData-retired regular and graph workflow gates [requires-frontier] [skill: analyze] [zero-resource]
+  Why: The object can only be retired if the package still satisfies the selected regular and graph gates on the typed-batch path.
+  Done when: a dated analysis note records the exact regular and graph verification commands for the `DynData`-retired paths and compares them against the current migration baseline.
+  Priority: high
