@@ -26,6 +26,74 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-30 - Retired direct DynData construction from prediction runtime prep
+
+Ran `/orient dymad_migrate` and selected:
+`Replace models/prediction.py direct DynData construction with typed runtime payloads`.
+
+Orient highlights:
+- findings-first gate remains enabled from scheduler work-cycle history:
+  `0/10` non-zero findings sessions
+- approval queue is empty
+- `dymad_migrate` has no project-local `budget.yaml`/`ledger.yaml` gates for this
+  zero-resource implementation step
+- task claim succeeded:
+  `claimId=faa1812d6d2d82ee` (`SESSION_ID=work-session-mndyzf16`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- added `ModelRuntimePayload` and `materialize_prediction_runtime(...)` to
+  `modules/dymad_migrate/src/dymad/core/model_context.py` as the explicit
+  prediction compatibility seam
+- updated `modules/dymad_migrate/src/dymad/models/prediction.py` to consume
+  `ModelRuntimePayload | None` and route `_prepare_data(...)` through the seam
+  instead of direct `DynData()` / `DynData.collate(...)`
+- added focused adapter tests in
+  `modules/dymad_migrate/tests/test_model_context_adapter.py`
+
+Artifacts added:
+- `projects/dymad_migrate/analysis/2026-03-30-prediction-runtime-retirement.md`
+- `projects/dymad_migrate/analysis/2026-03-30-prediction-runtime-retirement-pytest.log`
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- `models/prediction.py` now contains no direct legacy-runtime construction or
+  collate calls (verified via `rg`)
+- prediction runtime prep now accepts typed model contexts directly while
+  preserving legacy payload support behind one compatibility seam
+- current source scan reports `87` textual `DynData` references across
+  `modules/dymad_migrate/src/dymad` (`rg ... | wc -l`)
+
+Task status:
+- completed `Replace models/prediction.py direct DynData construction with typed runtime payloads`
+
+Verification:
+- `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io import DynData|ws: DynData" modules/dymad_migrate/src/dymad/models/prediction.py`
+  - no output
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_regular_slice_integration.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
+  - `64 passed, 2 warnings in 54.06s`
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py' | wc -l`
+  - `87`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 38 minutes
+Task-selected: Replace `models/prediction.py` direct `DynData` construction with typed runtime payloads
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 8
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-30 - Verified DynData-retired regular and graph workflow gates
 
 Ran `/orient dymad_migrate` and selected the highest-value open task:
