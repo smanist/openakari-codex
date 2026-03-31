@@ -26,6 +26,60 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Deleted `io/data.py` and retired production-path `DynData` references
+
+Ran `/orient dymad_migrate` and selected:
+`Delete modules/dymad_migrate/src/dymad/io/data.py after production-path references reach zero`.
+
+Orient highlights:
+- findings-first gate remains enabled (`0/10` scheduler work-cycle sessions with non-zero findings)
+- approval queue is empty
+- stale external blockers: none (`projects/akari/TASKS.md` external blocker age is 5 days)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (all `costUsd=0`), `genuine waste 0/10`, `avg turns 1.0`, `avg cost $0.00`, `orient overhead n/a` (`numTurns <= 10`), recurring pattern alerts: none
+- budget gate: n/a (`projects/dymad_migrate/budget.yaml` and `ledger.yaml` are absent; selected task is non-resource structural work)
+- task claim succeeded:
+  `claimId=7062b505c36255ec` (`SESSION_ID=work-session-mneg4qie`)
+
+Scope classification:
+- structural (verifiable) implementation, `consumes_resources: false`
+
+Code changes:
+- replaced the legacy runtime object name and import surface from `DynData` to `LegacyRuntimeBatch` across production modules and dependent tests
+- added `modules/dymad_migrate/src/dymad/io/legacy_runtime.py` as the renamed legacy runtime container implementation
+- updated remaining production seams in `core/model_context.py`, `io/trajectory_manager.py`, `models/runtime_view.py`, `training/batch_adapter.py`, and `io/series_adapter.py` to remove `DynData` references
+- removed `modules/dymad_migrate/src/dymad/io/data.py`
+
+Findings:
+- after the prior public-surface cleanup, full retirement required a broad type-and-import rename through both runtime and test seams; no isolated single-file delete path remained
+- the rename-based retirement path preserved behavior across the current typed-series/typed-batch regression gates without adding new compatibility adapters
+
+Artifacts updated:
+- `projects/dymad_migrate/TASKS.md`
+
+Task status:
+- completed `Delete modules/dymad_migrate/src/dymad/io/data.py after production-path references reach zero`
+
+Verification:
+- `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'`
+  - no output
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr.py::test_dyndata tests/test_assert_trajmgr_graph.py::test_dyndata_graph tests/test_model_context_adapter.py tests/test_linear_typed_batch_driver.py -q`
+  - `17 passed, 2 warnings in 0.76s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 40 minutes
+Task-selected: Delete `modules/dymad_migrate/src/dymad/io/data.py` after production-path references reach zero
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 14
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Removed public `DynData` export and class-based reverse adapters from migration surface
 
 Ran `/orient dymad_migrate` and selected:
