@@ -474,3 +474,27 @@
   Priority: high
   Evidence: Replaced the legacy runtime object name and import surface from `DynData` to `LegacyRuntimeBatch` across production modules and dependent tests; added `modules/dymad_migrate/src/dymad/io/legacy_runtime.py`; updated imports in `core/model_context.py`, `io/trajectory_manager.py`, `models/runtime_view.py`, `training/batch_adapter.py`, and `io/series_adapter.py`; and removed `modules/dymad_migrate/src/dymad/io/data.py`.
   Verification: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'` (no output) and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr.py::test_dyndata tests/test_assert_trajmgr_graph.py::test_dyndata_graph tests/test_model_context_adapter.py tests/test_linear_typed_batch_driver.py -q` (`17 passed, 2 warnings in 0.76s`).
+
+## Mission gap tasks
+
+- [x] Adjudicate DyMAD migration `Done when` closure against current artifacts [requires-frontier] [skill: analyze] [zero-resource]
+  Why: Mission gap — `projects/dymad_migrate/TASKS.md` had zero open tasks while `README.md` still lacks an explicit closure adjudication that maps each `Done when` condition to current verification evidence and a status decision.
+  Done when: A dated analysis note maps each `README.md` `Done when` condition to concrete code/docs/tests, records exact verification command outputs for the selected closure gate, and updates `projects/dymad_migrate/README.md` with the resulting project-status decision (either completed with rationale or active with explicit remaining gaps).
+  Priority: high
+  Evidence: Added `projects/dymad_migrate/analysis/2026-03-31-done-when-closure-adjudication.md` with condition-by-condition evidence mapping, fresh command outputs, and an explicit status decision to keep the project active while adding seam-completion follow-up tasks.
+  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_public_load_model_boundary.py -q` (`2 passed, 2 warnings in 0.71s`) and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q` plus `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q` (both `26 passed, 2 warnings`).
+
+- [ ] Implement typed model-spec compatibility objects for predefined model entrypoints [requires-frontier] [skill: execute]
+  Why: Mission gap — closure adjudication confirmed `model-spec` remains `design-only` in `projects/dymad_migrate/architecture/migration-scoreboard.md`.
+  Done when: `modules/dymad_migrate/src/dymad/models/` includes typed model-spec objects plus adapters for at least one predefined model family used by workflow tests, and focused regression tests verify adapter-driven construction without string-map internals.
+  Priority: high
+
+- [ ] Start training-layer split by introducing phase/state primitives behind current driver entrypoints [requires-frontier] [skill: execute]
+  Why: Mission gap — closure adjudication confirmed `training` remains `design-only` and still centered on legacy orchestration shapes.
+  Done when: `modules/dymad_migrate/src/dymad/training/` contains an initial typed phase/state primitive seam exercised by at least one existing workflow gate, with compatibility adapters explicitly marked for temporary use.
+  Priority: high
+
+- [ ] Implement first spectral-analysis adapter boundary over typed runtime handles [requires-frontier] [skill: execute]
+  Why: Mission gap — closure adjudication confirmed `spectral-analysis` remains `design-only` and lacks adapter-boundary code despite design docs and diagnostics.
+  Done when: `modules/dymad_migrate/src/dymad/sako/` includes an explicit adapter boundary that routes one SA workflow through typed runtime handles, and parity is verified against the selected `test_workflow_sa_lti.py` gate.
+  Priority: medium

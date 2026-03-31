@@ -26,6 +26,63 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-03-31 - Adjudicated `Done when` closure and replenished mission-gap task supply
+
+Ran `/orient dymad_migrate` and selected:
+`Adjudicate DyMAD migration Done when closure against current artifacts`.
+
+Orient highlights:
+- uncommitted work: clean (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- stale external blockers: none (only external-blocked task found was `projects/akari/TASKS.md` dated `2026-03-26`, age `5` days)
+- budget/deadline: `projects/dymad_migrate/` has no `budget.yaml`/`ledger.yaml` (non-resource task); other active projects include `pca_vs_ttd` with deadline `2026-06-01` and no ledger spend
+- findings-first gate: enabled (`0/10` latest scheduler `work-cycle` sessions had non-zero findings)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`1` finding over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- recurring pattern-detector alerts: none (no pattern reached the `>=3` threshold in `infra/scheduler/src/patterns.ts`)
+- horizon-scan intel: no recent horizon-scan report files under `.scheduler/skill-reports/`
+- task claim succeeded:
+  `claimId=28dfd9a4ed8b9b24` (`SESSION_ID=work-session-mnei9wft`)
+
+Scope classification:
+- structural (verifiable) analysis/governance task, `consumes_resources: false`
+
+Code/artifact changes:
+- added closure adjudication analysis note at `projects/dymad_migrate/analysis/2026-03-31-done-when-closure-adjudication.md`
+- completed the closure-adjudication task in `projects/dymad_migrate/TASKS.md`
+- added three new mission-gap execution tasks for design-only seams (`model-spec`, `training`, `spectral-analysis`) so the queue is no longer empty
+
+Findings:
+- all three README done-when criteria are currently satisfiable with fresh command-level verification:
+  - layered boundary evidence path (`core`/`facade`/`store`/`exec`) exists
+  - parity gate spot-check matches between packages (`26 passed` in both `dymad_migrate` and `dymad_ref` for `lti+kp`)
+  - end-to-end boundary routing gate passes (`2 passed` for checkpoint/public-load layered tests)
+- migration asymmetry remains: scoreboard still includes design-only seams; project status is explicitly kept `active` pending those implementation tasks
+
+Verification:
+- `ls -d modules/dymad_migrate/src/dymad/{core,facade,store,exec}`
+  - all four directories present
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_public_load_model_boundary.py -q`
+  - `2 passed, 2 warnings in 0.71s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q`
+  - `26 passed, 2 warnings in 20.08s`
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q`
+  - `26 passed, 2 warnings in 19.96s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check result: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 39 minutes
+Task-selected: Adjudicate DyMAD migration `Done when` closure against current artifacts
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Deleted `io/data.py` and retired production-path `DynData` references
 
 Ran `/orient dymad_migrate` and selected:
