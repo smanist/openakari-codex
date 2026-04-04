@@ -26,6 +26,59 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Routed linear training metric reads through typed phase results
+
+Ran `/orient dymad_migrate` and selected:
+`Route the linear-training workflow through \`TrainerRun\` plus \`PhasePipeline\``.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/dymad_migrate`, `projects/akari`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across the latest 10 scheduler `dymad-migrate` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=fbc5f3692c9a9e59` (`SESSION_ID=work-session-mnk1lbsk`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- updated `modules/dymad_migrate/src/dymad/training/phase_pipeline.py` to add typed `PhaseResult.get_metric(...)`
+- updated `modules/dymad_migrate/src/dymad/training/driver.py` so `run_cv_single(...)` reads the final metric from typed `PhaseResult` instead of re-materializing legacy `RunState`
+- expanded `modules/dymad_migrate/tests/test_training_phase_runtime.py` with coverage for typed phase metric reads and a regression asserting `run_cv_single(...)` uses `PhaseResult.get_metric(...)`
+- added `projects/dymad_migrate/plans/2026-04-04-linear-trainer-run-routing.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-linear-trainer-run-routing-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` (`training` seam `prototype` -> `adopted` with linear workflow verification provenance)
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- the linear single-split orchestration path now stays on typed training seam objects for final metric extraction (`PhaseResult -> TrainerState.best_loss`) instead of immediately collapsing back to legacy `RunState`
+- focused linear workflow gates (`test_lti[10]`, `test_lti[14]`) remained green after the seam change, supporting `training` status movement to `adopted`
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_training_phase_runtime.py -q`
+  - `5 passed, 2 warnings in 0.69s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_lti.py::test_lti[10]' 'tests/test_workflow_lti.py::test_lti[14]' -q`
+  - `2 passed, 2 warnings in 1.48s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 15 minutes
+Task-selected: Route the linear-training workflow through `TrainerRun` plus `PhasePipeline`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 9
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Routed one single-split path through a minimal `TrainerRun` wrapper
 
 Ran `/orient dymad_migrate` and selected:
