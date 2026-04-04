@@ -26,6 +26,60 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Recorded strict `--reruns=0` spectral parity evidence and advanced seam status to verified
+
+Ran `/orient dymad_migrate` and selected:
+`Record the \`--reruns=0\` spectral parity gate and update the scoreboard`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- budget/deadline status: `projects/akari`, `projects/dymad_migrate`, and `projects/multi_fidelity_gp` still have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with empty ledger
+- ledger reconciliation warnings: none detected across active projects
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across the latest 10 scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no stale pending `Type: external` approval items; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission gap analysis (`dymad_migrate`): no new gap tasks generated for the three `Done when` conditions
+- task claim succeeded:
+  `claimId=702fb376d736ee75` (`SESSION_ID=work-session-mnkcb5gd`)
+
+Scope classification:
+- `ROUTINE`, `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `projects/dymad_migrate/plans/2026-04-04-spectral-reruns0-parity-gate.md` with scoped plan and resource-signal classification
+- added `projects/dymad_migrate/analysis/2026-04-04-spectral-reruns0-parity-gate-verification.md` with provenance-backed parity findings
+- added raw pytest artifact `projects/dymad_migrate/analysis/2026-04-04-spectral-reruns0-parity-gate-pytest.log`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` (`spectral-analysis` status `adopted` -> `verified`) and added the new verification artifact reference
+- completed `Record the \`--reruns=0\` spectral parity gate and update the scoreboard` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- the full spectral workflow gate passes in `modules/dymad_migrate` under strict `--reruns=0` execution (`9 passed`)
+- the compatibility-routing test (`test_spectral_analysis_routes_pseudospectrum_through_adapter`) remains green under the strict gate
+- warning behavior remains non-fatal and explicitly recorded (Torch JIT deprecation, complex-cast warning, and `sako.py:151` runtime warnings)
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_sa_lti.py --reruns=0 -q`
+  - `9 passed, 6 warnings in 8.46s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 29 minutes
+Task-selected: Record the `--reruns=0` spectral parity gate and update the scoreboard
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Routed `SpectralAnalysis` compatibility workflow through typed adapter seam
 
 Ran `/orient dymad_migrate` and selected:
