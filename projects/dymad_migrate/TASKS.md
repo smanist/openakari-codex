@@ -124,7 +124,7 @@ This queue lists remaining work only.
   Done when: a dated analysis note under `projects/dymad_migrate/analysis/` maps each Blocker/Milestone workflow from `projects/dymad_migrate/knowledge/parity-critical-workflows.md` to current migration verification evidence (or explicit gaps), records the exact command/output for at least one representative parity gate, and updates `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation notes plus `projects/dymad_migrate/README.md` session log with findings and follow-up actions.
   Priority: high
 
-- [ ] Verify split parity for sampling/control workflow (`test_workflow_sample.py`) in `dymad_ref` and `dymad_migrate` [fleet-eligible] [skill: analyze] [zero-resource]
+- [x] Verify split parity for sampling/control workflow (`test_workflow_sample.py`) in `dymad_ref` and `dymad_migrate` [fleet-eligible] [skill: analyze] [zero-resource]
   Why: The refreshed parity closure evidence map shows one remaining blocker/milestone gap: sampling/control has reference-side evidence but no dedicated split parity artifact for the migration package.
   Done when: a dated analysis note records exact `pytest tests/test_workflow_sample.py -q` commands and summary outputs for both packages, updates `projects/dymad_migrate/analysis/2026-04-04-parity-critical-closure-evidence-map.md` with the new artifact links, and revises the migration scoreboard interpretation if the gap is closed.
   Priority: high

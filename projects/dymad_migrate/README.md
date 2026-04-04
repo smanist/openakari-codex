@@ -26,6 +26,65 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Closed sampling/control split parity and finished parity-closure map
+
+Ran `/orient dymad_migrate` and selected:
+`Verify split parity for sampling/control workflow (\`test_workflow_sample.py\`) in \`dymad_ref\` and \`dymad_migrate\``.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- project context check: `docs/roadmap.md` does not exist in this repo; orient proceeded with project-scoped artifacts plus scheduler metrics
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- ledger reconciliation warnings: none detected (`projects/*/experiments/*/progress.json` with `consumption_audit` not present)
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across latest 10 scheduler sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `10/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: `zeroKnowledge` repeated in `10/10` latest sessions (>=3 trigger threshold)
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): no new tasks generated; the remaining open parity task was selected directly
+- task claim succeeded:
+  `claimId=05ad8a2aa5976cbd` (`SESSION_ID=work-session-mnkvm1zh`)
+
+Scope classification:
+- routine analysis, `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `projects/dymad_migrate/analysis/2026-04-04-sampling-split-parity-verification.md`
+- added split parity logs:
+  - `projects/dymad_migrate/analysis/2026-04-04-sample-split-parity-dymad_ref-pytest.log`
+  - `projects/dymad_migrate/analysis/2026-04-04-sample-split-parity-dymad_migrate-pytest.log`
+- updated `projects/dymad_migrate/analysis/2026-04-04-parity-critical-closure-evidence-map.md` to mark sampling/control as covered
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation to reflect full `7/7` blocker+milestone split coverage
+- completed `Verify split parity for sampling/control workflow (\`test_workflow_sample.py\`) in \`dymad_ref\` and \`dymad_migrate\`` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- `tests/test_workflow_sample.py` split parity is aligned at this checkpoint: both packages report `6 passed, 2 warnings`
+- blocker+milestone parity-closure artifact coverage is now `7/7`
+- no blocker/milestone split-parity artifact gaps remain in the closure map
+
+Verification:
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_sample.py -q | tee /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-04-04-sample-split-parity-dymad_ref-pytest.log`
+  - `6 passed, 2 warnings in 1.07s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_sample.py -q | tee /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-04-04-sample-split-parity-dymad_migrate-pytest.log`
+  - `6 passed, 2 warnings in 1.08s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 24 minutes
+Task-selected: Verify split parity for sampling/control workflow (`test_workflow_sample.py`) in `dymad_ref` and `dymad_migrate`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Refreshed parity-critical closure evidence map and generated sampling split-parity follow-up
 
 Ran `/orient dymad_migrate` and selected:
