@@ -55,7 +55,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/training/` has an `ExecutionServices` seam owning logger/path/device policy, and `TrainerState` / `PhaseContext` no longer need to carry those concerns implicitly.
   Priority: medium
 
-- [ ] Introduce a minimal `TrainerRun` wrapper for one single-split training path [requires-frontier] [skill: execute]
+- [x] Introduce a minimal `TrainerRun` wrapper for one single-split training path [requires-frontier] [skill: execute]
   Why: The target hierarchy includes `TrainerRun`, but the current driver layer still jumps directly from driver code into trainer classes and checkpoint paths.
   Done when: one single-split path in `modules/dymad_migrate/src/dymad/training/driver.py` or `trainer.py` constructs a `TrainerRun` object that owns run identity, artifact paths, and one `PhasePipeline`.
   Priority: high
