@@ -26,6 +26,57 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Verified the first typed model-spec family gate and advanced the seam scoreboard
+
+Ran `/orient dymad_migrate` and selected:
+`Verify the first typed model-spec family against an existing workflow gate and update the scoreboard`.
+
+Orient highlights:
+- uncommitted work: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/dymad_migrate`, `projects/akari`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` latest scheduler `work-cycle` sessions with non-zero findings)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`1` finding over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=f764f8f3f222c650` (`SESSION_ID=work-session-mnjqvi3u`)
+
+Scope classification:
+- routine, `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Project-memory changes:
+- added `projects/dymad_migrate/analysis/2026-04-04-model-spec-first-family-verification.md` with command/output provenance for the first typed model-spec family gate
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md`:
+  - `Date` advanced to `2026-04-04`
+  - `model-spec` seam status updated from `prototype` to `verified`
+  - verification artifact list now includes the new dated analysis note
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- the first migrated typed model-spec family path (`LTI`) now has an explicit verification artifact pairing adapter-level typed-dispatch tests with a workflow-level gate
+- project memory now records `model-spec` as `verified` for the first typed-dispatch family path, with provenance to the dated checkpoint note
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `4 passed, 2 warnings in 1.63s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 29 minutes
+Task-selected: Verify the first typed model-spec family against an existing workflow gate and update the scoreboard
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Routed the LTI family through typed builder dispatch
 
 Ran `/orient dymad_migrate` and selected:
