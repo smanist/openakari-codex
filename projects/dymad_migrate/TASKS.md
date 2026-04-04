@@ -92,7 +92,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/store/` and `modules/dymad_migrate/src/dymad/facade/` can register and resolve one spectral snapshot handle type, with focused boundary tests covering creation and lookup.
   Priority: medium
 
-- [ ] Implement a `SpectralAnalysisAdapter` over `SAKO` and `RALowRank` using typed snapshots [requires-frontier] [skill: execute]
+- [x] Implement a `SpectralAnalysisAdapter` over `SAKO` and `RALowRank` using typed snapshots [requires-frontier] [skill: execute]
   Why: The numerical kernels are already separable; the missing piece is an adapter that turns typed spectral inputs into the current analysis operations.
   Done when: `modules/dymad_migrate/src/dymad/sako/` contains an adapter object that consumes the typed spectral snapshot and delegates pseudospectrum, measure, and Jacobian-related calls to `SAKO` / `RALowRank` or small helper seams.
   Priority: high

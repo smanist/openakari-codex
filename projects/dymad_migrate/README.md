@@ -26,6 +26,60 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Added a typed spectral adapter seam over `SAKO` and `RALowRank`
+
+Ran `/orient dymad_migrate` and selected:
+`Implement a \`SpectralAnalysisAdapter\` over \`SAKO\` and \`RALowRank\` using typed snapshots`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/dymad_migrate` and `projects/akari` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across the latest 10 scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=df98896740b4bd3e` (`SESSION_ID=work-session-mnk80tke`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `modules/dymad_migrate/src/dymad/sako/adapter.py` with typed `SpectralEigensystem` and `SpectralAnalysisAdapter` seams that consume `SpectralSnapshot` and construct/delegate `SAKO` + `RALowRank`
+- updated `modules/dymad_migrate/src/dymad/sako/__init__.py` exports for `SpectralAnalysisAdapter` and `SpectralEigensystem`
+- added `modules/dymad_migrate/tests/test_spectral_adapter.py` to verify kernel construction and delegation for pseudospectrum, measure, and Jacobian helper calls
+- added `projects/dymad_migrate/plans/2026-04-04-spectral-analysis-adapter.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-spectral-adapter-delegation-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` spectral-analysis row with adapter code/provenance
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- spectral-analysis seam now has a dedicated typed adapter that turns snapshot + eigensystem inputs into `SAKO` and `RALowRank` delegates
+- delegated seam coverage now includes pseudospectrum (`estimate_ps` / `resolvent_analysis`), measure (`estimate_measure`), and Jacobian helper calls (`eval_eigfunc_jac` / `eval_eigmode_jac`)
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_spectral_adapter.py tests/test_spectral_snapshot.py -q`
+  - `7 passed, 2 warnings in 0.63s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[5]' -q`
+  - `1 passed, 2 warnings in 1.50s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 43 minutes
+Task-selected: Implement a `SpectralAnalysisAdapter` over `SAKO` and `RALowRank` using typed snapshots
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Added a typed spectral snapshot seam for checkpoint-backed SA setup
 
 Ran `/orient dymad_migrate` and selected:
