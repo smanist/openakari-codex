@@ -23,7 +23,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/models/model_spec.py` defines typed rollout/memory sub-specs used by at least one predefined family in `modules/dymad_migrate/src/dymad/models/collections.py`, and focused tests assert those typed fields directly.
   Priority: high
 
-- [ ] Route one predefined family through typed builder dispatch instead of `to_legacy_tuple()` fallback [requires-frontier] [skill: execute]
+- [x] Route one predefined family through typed builder dispatch instead of `to_legacy_tuple()` fallback [requires-frontier] [skill: execute]
   Why: `ModelSpec` will remain a veneer until one real builder path consumes typed fields without collapsing immediately back to the legacy tuple contract.
   Done when: one predefined family used by an existing workflow gate is built through a typed dispatch path in `modules/dymad_migrate/src/dymad/models/helpers.py`, with the fallback tuple conversion retained only for unmigrated families.
   Priority: high
