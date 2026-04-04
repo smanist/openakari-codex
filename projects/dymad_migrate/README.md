@@ -26,6 +26,66 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Introduced `ExecutionServices` seam for training runtime policy
+
+Ran `/orient dymad_migrate` and selected:
+`Introduce \`ExecutionServices\` and remove logger/path setup from trainer-state shims`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- project context check: `docs/roadmap.md` does not exist in this repo; orient proceeded with project-scoped artifacts plus scheduler metrics
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- ledger reconciliation warnings: none detected
+- findings-first gate: enabled (`0/10 = 0.0%` rolling non-zero findings across latest scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): no new gap tasks generated for current `Done when` criteria
+- task claim succeeded:
+  `claimId=814bb53f16678b26` (`SESSION_ID=work-session-mnkp6k7p`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `modules/dymad_migrate/src/dymad/training/execution_services.py` as an explicit runtime-policy seam
+- updated training orchestration/runtime files to use explicit services policy:
+  `driver.py`, `trainer_run.py`, `phase_pipeline.py`, `phase_runtime.py`, `stacked_opt.py`, `opt_base.py`, `opt_linear.py`, `opt_node.py`, `opt_weak_form.py`, and `training/__init__.py`
+- updated `modules/dymad_migrate/tests/test_training_phase_runtime.py` for execution-services propagation coverage
+- added `projects/dymad_migrate/plans/2026-04-04-execution-services-seam.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-execution-services-seam-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` training seam provenance/notes
+- completed `Introduce \`ExecutionServices\` and remove logger/path setup from trainer-state shims` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- training device/path/logger policy is now explicit and shared through `ExecutionServices` instead of being re-derived in multiple training entry points
+- `TrainerState` compatibility adapters now carry explicit execution policy (`execution_services`) while still materializing legacy `RunState` at boundaries
+- `OptBase` checkpoint/results path ownership now follows the shared execution seam, reducing duplicated setup logic across optimizer families
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_training_phase_runtime.py tests/test_linear_typed_batch_driver.py -q`
+  - `7 passed, 2 warnings in 0.85s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `1 passed, 2 warnings in 1.50s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 58 minutes
+Task-selected: Introduce `ExecutionServices` and remove logger/path setup from trainer-state shims
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 18
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Reduced `RunState` to an explicit compatibility shim boundary
 
 Ran `/orient dymad_migrate` and selected:
