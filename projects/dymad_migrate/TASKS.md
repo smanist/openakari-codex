@@ -102,7 +102,7 @@ This queue lists remaining work only.
   Done when: the legacy `SpectralAnalysis(...)` construction path delegates through the new adapter for at least one `tests/test_workflow_sa_lti.py` path while preserving current caller shape.
   Priority: high
 
-- [ ] Split plotting helpers out of `sako/base.py` into an optional plotting adapter [requires-frontier] [skill: execute]
+- [x] Split plotting helpers out of `sako/base.py` into an optional plotting adapter [requires-frontier] [skill: execute]
   Why: Plotting is one of the remaining reasons `sako/base.py` still mixes workflow, numerical, and presentation concerns.
   Done when: plotting helpers currently defined in `modules/dymad_migrate/src/dymad/sako/base.py` move behind a separate optional plotting adapter module, and the analysis adapter no longer owns plotting code directly.
   Priority: medium
