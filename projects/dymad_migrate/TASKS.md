@@ -107,7 +107,7 @@ This queue lists remaining work only.
   Done when: plotting helpers currently defined in `modules/dymad_migrate/src/dymad/sako/base.py` move behind a separate optional plotting adapter module, and the analysis adapter no longer owns plotting code directly.
   Priority: medium
 
-- [ ] Record the `--reruns=0` spectral parity gate and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
+- [x] Record the `--reruns=0` spectral parity gate and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
   Why: The design note already chose `test_workflow_sa_lti.py --reruns=0` as the right gate; once the adapter lands, the project needs explicit evidence and a visible status change.
   Done when: a dated analysis note records the exact spectral parity command(s) and outputs, including warning behavior if present, and `projects/dymad_migrate/architecture/migration-scoreboard.md` updates `spectral-analysis` from `design-only` to the correct next status.
   Priority: high
