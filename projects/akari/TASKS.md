@@ -222,3 +222,13 @@
   Evidence: `infra/scheduler/src/verify-knowledge.test.ts`
   Verification: `cd infra/scheduler && npx vitest run src/verify-knowledge.test.ts` → `Test Files 1 passed (1); Tests 77 passed (77)`.
   Verification: `cd infra/scheduler && npx vitest run src/verify.test.ts` → `Test Files 1 passed (1); Tests 1 passed (1)`.
+
+- [ ] Investigate low knowledge output anomaly [detected: 2026-04-04]
+  Why: anomaly-detection:knowledgeTotal — Knowledge output 1 is 3.0σ below mean 2
+  Done when: Knowledge drop explained or task selection improved
+  Priority: medium
+
+- [ ] Investigate low knowledge output anomaly [detected: 2026-04-04]
+  Why: anomaly-detection:knowledgeTotal — Knowledge output 1 is 3.0σ below mean 2
+  Done when: Knowledge drop explained or task selection improved
+  Priority: medium
