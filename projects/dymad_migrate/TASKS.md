@@ -50,7 +50,7 @@ This queue lists remaining work only.
   Done when: phase results record typed trainer-state and phase-context outputs directly, with legacy `RunState` materialization kept only behind explicit compatibility adapters.
   Priority: high
 
-- [ ] Introduce `ExecutionServices` and remove logger/path setup from trainer-state shims [requires-frontier] [skill: execute]
+- [x] Introduce `ExecutionServices` and remove logger/path setup from trainer-state shims [requires-frontier] [skill: execute]
   Why: The training design calls for non-checkpointable services to live outside run state, but device/logging/path policy still leaks through `StackedOpt` and `OptBase`.
   Done when: `modules/dymad_migrate/src/dymad/training/` has an `ExecutionServices` seam owning logger/path/device policy, and `TrainerState` / `PhaseContext` no longer need to carry those concerns implicitly.
   Priority: medium
