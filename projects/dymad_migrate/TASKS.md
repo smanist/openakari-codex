@@ -28,7 +28,7 @@ This queue lists remaining work only.
   Done when: one predefined family used by an existing workflow gate is built through a typed dispatch path in `modules/dymad_migrate/src/dymad/models/helpers.py`, with the fallback tuple conversion retained only for unmigrated families.
   Priority: high
 
-- [ ] Introduce an explicit rollout-engine seam for the first typed model-spec family [requires-frontier] [skill: execute]
+- [x] Introduce an explicit rollout-engine seam for the first typed model-spec family [requires-frontier] [skill: execute]
   Why: The target architecture separates model structure from rollout policy; the current prediction path still mixes those concerns even when a typed spec exists.
   Done when: `modules/dymad_migrate/src/dymad/models/` contains a small rollout-engine seam for the first migrated family, and one continuous or discrete prediction path selects that seam from typed spec metadata rather than implicit legacy string logic.
   Priority: high
