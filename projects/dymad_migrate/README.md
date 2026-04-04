@@ -26,6 +26,63 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Refreshed parity-critical closure evidence map and generated sampling split-parity follow-up
+
+Ran `/orient dymad_migrate` and selected:
+`Audit parity-critical workflow preservation against \`modules/dymad_ref\` and update closure evidence map`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- project context check: `docs/roadmap.md` does not exist in this repo; orient proceeded with project-scoped artifacts plus scheduler metrics
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` rolling non-zero findings across latest 10 scheduler sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): generated one task because `TASKS.md` had no open items
+- task claim succeeded:
+  `claimId=158eb7e552b2e2cb` (`SESSION_ID=work-session-mnktgw24`)
+
+Scope classification:
+- routine analysis, `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added a mission-gap task in `projects/dymad_migrate/TASKS.md`, then completed it in this session
+- added `projects/dymad_migrate/analysis/2026-04-04-parity-critical-closure-evidence-map.md`
+- added fresh split-parity logs:
+  - `projects/dymad_migrate/analysis/2026-04-04-lti-split-parity-dymad_ref-pytest.log`
+  - `projects/dymad_migrate/analysis/2026-04-04-lti-split-parity-dymad_migrate-pytest.log`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation with refreshed parity-closure coverage status
+- added follow-up task `Verify split parity for sampling/control workflow (\`test_workflow_sample.py\`) in \`dymad_ref\` and \`dymad_migrate\`` to close the final parity evidence gap
+
+Findings:
+- parity-critical blocker+milestone coverage is now explicitly mapped as `6/7` covered with one concrete remaining gap (`workflow_sample`)
+- fresh split parity on `tests/test_workflow_lti.py` remains aligned at this checkpoint (`15 passed, 2 warnings` in both packages)
+- remaining parity gap is narrow and actionable: sampling/control has reference-side evidence but lacks a migration split artifact
+
+Verification:
+- `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py -q | tee /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-04-04-lti-split-parity-dymad_ref-pytest.log`
+  - `15 passed, 2 warnings in 11.23s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q | tee /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-04-04-lti-split-parity-dymad_migrate-pytest.log`
+  - `15 passed, 2 warnings in 10.82s`
+
+Compound:
+- not run (this session followed the scheduler directive to complete steps 1-5 of the autonomous work cycle)
+
+Session-type: autonomous
+Duration: 38 minutes
+Task-selected: Audit parity-critical workflow preservation against `modules/dymad_ref` and update closure evidence map
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Thinned `dymad.core` / `dymad.models` package re-export surfaces
 
 Ran `/orient dymad_migrate` and selected:

@@ -36,5 +36,6 @@ The project is no longer in pure design mode, but it is still highly asymmetric:
 - training now has an adopted seam (`TrainerRun` + `PhasePipeline`) with explicit `ExecutionServices` runtime policy, linear workflow parity, and one non-linear `NODE` workflow instrumented through `TrainerRun`; `RunState` is now documented and used as a compatibility shim rather than the primary fold-data carrier
 - spectral analysis is now verified with explicit `--reruns=0` workflow parity evidence in addition to the adapter-routing artifacts
 - package public-API cleanup has started: migration-internal imports no longer route through broad `dymad.core` / `dymad.models` barrels, and the package `__all__` surfaces are now explicitly regression-tested
+- parity-closure evidence was refreshed on `2026-04-04` (`projects/dymad_migrate/analysis/2026-04-04-parity-critical-closure-evidence-map.md`): `6/7` blocker+milestone workflows are covered, with `workflow_sample` still missing a split (`dymad_ref` + `dymad_migrate`) parity artifact
 
 That asymmetry is acceptable only if it stays visible. This scoreboard exists to keep that visible.

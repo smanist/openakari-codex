@@ -116,3 +116,15 @@ This queue lists remaining work only.
   Why: Spectral snapshot handles now exist for registration/lookup, but the spectral execution path still bypasses `exec` and does not yet consume the handle flow end-to-end.
   Done when: one focused spectral flow resolves a `specsnap_*` handle through `facade`/`store` before invoking adapter-backed spectral operations, with a targeted test that proves handle-based routing.
   Priority: medium
+
+## Mission gap tasks
+
+- [x] Audit parity-critical workflow preservation against `modules/dymad_ref` and update closure evidence map [requires-frontier] [skill: analyze] [zero-resource]
+  Why: Mission gap — no open task currently traces the `Done when` condition to preserve selected parity-critical legacy workflows against `modules/dymad_ref`.
+  Done when: a dated analysis note under `projects/dymad_migrate/analysis/` maps each Blocker/Milestone workflow from `projects/dymad_migrate/knowledge/parity-critical-workflows.md` to current migration verification evidence (or explicit gaps), records the exact command/output for at least one representative parity gate, and updates `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation notes plus `projects/dymad_migrate/README.md` session log with findings and follow-up actions.
+  Priority: high
+
+- [ ] Verify split parity for sampling/control workflow (`test_workflow_sample.py`) in `dymad_ref` and `dymad_migrate` [fleet-eligible] [skill: analyze] [zero-resource]
+  Why: The refreshed parity closure evidence map shows one remaining blocker/milestone gap: sampling/control has reference-side evidence but no dedicated split parity artifact for the migration package.
+  Done when: a dated analysis note records exact `pytest tests/test_workflow_sample.py -q` commands and summary outputs for both packages, updates `projects/dymad_migrate/analysis/2026-04-04-parity-critical-closure-evidence-map.md` with the new artifact links, and revises the migration scoreboard interpretation if the gap is closed.
+  Priority: high
