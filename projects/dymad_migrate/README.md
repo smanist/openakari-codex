@@ -26,6 +26,57 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Routed `SpectralAnalysis` compatibility workflow through typed adapter seam
+
+Ran `/orient dymad_migrate` and selected:
+`Route the legacy \`SpectralAnalysis\` compatibility class through the new adapter for one SA workflow`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/akari`, `projects/dymad_migrate`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across the latest 10 scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=ad98ff07a3d5beeb` (`SESSION_ID=work-session-mnka5zji`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- updated `modules/dymad_migrate/src/dymad/sako/base.py` so `SpectralAnalysis` constructs a typed `SpectralAnalysisAdapter` seam and delegates pseudospectrum/resolvent, measure, and Jacobian helper operations through it
+- updated `modules/dymad_migrate/tests/test_workflow_sa_lti.py` with `test_spectral_analysis_routes_pseudospectrum_through_adapter`, proving compatibility routing via adapter-method instrumentation
+- added `projects/dymad_migrate/plans/2026-04-04-spectral-compat-routing.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-spectral-compat-routing-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` (`spectral-analysis` status `prototype` -> `adopted` with new compatibility-routing provenance)
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- the legacy `SpectralAnalysis(...)` workflow surface now routes through the typed spectral adapter seam for workflow-facing spectral-kernel operations
+- compatibility routing is now verified by a workflow test that checks adapter delegation directly (`estimate_ps` path)
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_spectral_adapter.py tests/test_spectral_snapshot.py 'tests/test_workflow_sa_lti.py::test_spectral_analysis_routes_pseudospectrum_through_adapter' 'tests/test_workflow_sa_lti.py::test_sa[5]' -q`
+  - `9 passed, 2 warnings in 2.76s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 32 minutes
+Task-selected: Route the legacy `SpectralAnalysis` compatibility class through the new adapter for one SA workflow
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Added a typed spectral adapter seam over `SAKO` and `RALowRank`
 
 Ran `/orient dymad_migrate` and selected:
