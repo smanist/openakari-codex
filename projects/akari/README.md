@@ -30,7 +30,8 @@ Verification:
 - `sed -n '1,240p' '.scheduler/logs/“dymad-migrate”-2026-04-04T06-04-48-098Z.log'`
   - log ends with `How do you want to proceed`, confirming the session asked for user input instead of completing autonomous closeout
 - `cd infra/scheduler && npx vitest run src/health-tasks.test.ts`
-  - verified after the formatter change in this session
+  - `Test Files  1 passed (1)`
+  - `Tests  16 passed (16)`
 
 Session-type: directed
 Duration: 24
