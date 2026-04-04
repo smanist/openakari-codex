@@ -26,6 +26,58 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Routed the LTI family through typed builder dispatch
+
+Ran `/orient dymad_migrate` and selected:
+`Route one predefined family through typed builder dispatch instead of to_legacy_tuple() fallback`.
+
+Orient highlights:
+- uncommitted work: none (`git status --short` empty at session start)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/dymad_migrate`, `projects/akari`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` latest scheduler `work-cycle` sessions with non-zero findings)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`1` finding over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences (no recurring no-commit, missing-log, uncommitted-files, timeout, or high-cost pattern in latest 10 sessions)
+- horizon-scan intel: none (no `horizon-scan-*.md` files under `.scheduler/skill-reports/`)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=5a8d3cb78ecf0c65` (`SESSION_ID=work-session-mnjoqc6w`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code changes:
+- updated `modules/dymad_migrate/src/dymad/models/helpers.py` with an explicit LTI-family typed dispatch seam:
+  - detects the migrated typed family from rollout/memory metadata
+  - routes through `_build_lti_legacy_tuple(...)` instead of the generic `to_legacy_tuple()` fallback
+  - validates predictor compatibility (`continuous` for continuous-time, `discrete` for discrete-time)
+- expanded `modules/dymad_migrate/tests/test_model_spec_adapter.py` with a regression that monkeypatches `ModelSpec.to_legacy_tuple()` to fail and verifies the LTI typed dispatch path still succeeds
+- recorded checkpoint findings in `projects/dymad_migrate/analysis/2026-04-04-lti-typed-builder-dispatch.md`
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- one predefined family (`LTI`) now uses typed dispatch metadata in the builder path instead of immediately collapsing to the generic tuple fallback
+- unmigrated families still use the existing fallback path, preserving compatibility while isolating the first typed builder seam
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `4 passed, 2 warnings in 1.67s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 36 minutes
+Task-selected: Route one predefined family through typed builder dispatch instead of `to_legacy_tuple()` fallback
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-03 - Added typed rollout/memory metadata to `ModelSpec` for the LTI family
 
 Ran `/orient dymad_migrate` and selected:
