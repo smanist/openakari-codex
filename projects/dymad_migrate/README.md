@@ -26,6 +26,65 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Reduced `RunState` to an explicit compatibility shim boundary
+
+Ran `/orient dymad_migrate` and selected:
+`Reduce \`RunState\` to a compatibility shim and document the remaining adapter boundary`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed `main...origin/main [ahead 1]` with no file changes)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- project context check: `docs/roadmap.md` does not exist in this repo; orient proceeded with project-scoped artifacts plus scheduler metrics
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- ledger reconciliation warnings: none detected
+- findings-first gate: enabled (`0/10 = 0.0%` rolling non-zero findings across latest scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): no new gap tasks generated for current `Done when` criteria
+- task claim succeeded:
+  `claimId=e09cf0f1803cea9e` (`SESSION_ID=work-session-mnkn1eat`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- updated `modules/dymad_migrate/src/dymad/training/driver.py` with typed-context-first fold setup (`_build_phase_context(...)`) and explicit compatibility materialization via `compose_run_state(...)`
+- updated `modules/dymad_migrate/src/dymad/training/helper.py` to mark `RunState` as a compatibility shim with documented checkpointable vs live adapter fields
+- updated `modules/dymad_migrate/tests/test_training_phase_runtime.py` to verify `run_cv_single(...)` routes through typed context + compatibility composition
+- added `projects/dymad_migrate/plans/2026-04-04-runstate-compat-shim.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-runstate-compat-shim-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` training seam provenance/notes
+- completed `Reduce \`RunState\` to a compatibility shim and document the remaining adapter boundary` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- migrated CV fold setup now builds `PhaseContext` first and only reconstructs `RunState` at explicit legacy boundaries
+- `_build_data_state(...)` remains available as a compatibility shim and now delegates to typed context + `compose_run_state(...)`
+- `RunState` is now explicitly documented in-code as legacy compatibility state, not the primary migrated runtime carrier
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_training_phase_runtime.py tests/test_linear_typed_batch_driver.py -q`
+  - `7 passed, 2 warnings in 0.74s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `1 passed, 2 warnings in 1.73s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 45 minutes
+Task-selected: Reduce `RunState` to a compatibility shim and document the remaining adapter boundary
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 9
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Closed typed phase-result task and verified compatibility adapter boundaries
 
 Ran `/orient dymad_migrate` and selected:
