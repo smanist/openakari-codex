@@ -26,6 +26,55 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Closed typed phase-result task and verified compatibility adapter boundaries
+
+Ran `/orient dymad_migrate` and selected:
+`Replace ad-hoc phase records with typed phase result objects tied to \`TrainerState\` and \`PhaseContext\``.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- ledger reconciliation warnings: none detected
+- findings-first gate: enabled (`0/10 = 0.0%` rolling non-zero findings across latest scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): no new gap tasks generated for current `Done when` criteria
+- task claim succeeded:
+  `claimId=c39518dbec384cd2` (`SESSION_ID=work-session-mnkkw8ch`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `projects/dymad_migrate/analysis/2026-04-04-typed-phase-result-objects-verification.md`
+- completed `Replace ad-hoc phase records with typed phase result objects tied to \`TrainerState\` and \`PhaseContext\`` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- `PhaseResult` now records typed `trainer_state` and `phase_context` as primary outputs, with metric reads through `get_metric(...)`
+- `driver.run_cv_single(...)` reads metrics directly from `PhaseResult.get_metric(...)` rather than requiring ad-hoc direct `RunState` access
+- legacy `RunState` reconstruction remains an explicit compatibility boundary (`to_run_state()` / `compose_run_state(...)`) rather than the primary phase output shape
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_training_phase_runtime.py -q`
+  - `5 passed, 2 warnings in 0.67s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `1 passed, 2 warnings in 1.46s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Task-selected: Replace ad-hoc phase records with typed phase result objects tied to `TrainerState` and `PhaseContext`
+Task-completed: yes
+Approvals-created: 0
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Routed one spectral execution path through `exec` using `specsnap_*` handles
 
 Ran `/orient dymad_migrate` and selected:

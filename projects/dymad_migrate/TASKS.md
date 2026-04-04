@@ -45,7 +45,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/training/` contains a first-class `PhasePipeline` abstraction, `StackedOpt` becomes a compatibility wrapper around it, and existing phase config shapes still run.
   Priority: high
 
-- [ ] Replace ad-hoc phase records with typed phase result objects tied to `TrainerState` and `PhaseContext` [requires-frontier] [skill: execute] [in-progress: 2026-04-04]
+- [x] Replace ad-hoc phase records with typed phase result objects tied to `TrainerState` and `PhaseContext` [requires-frontier] [skill: execute]
   Why: `PhaseResult` currently still stores a recomposed legacy `RunState`, which keeps the new training seam from becoming the primary state carrier.
   Done when: phase results record typed trainer-state and phase-context outputs directly, with legacy `RunState` materialization kept only behind explicit compatibility adapters.
   Priority: high
