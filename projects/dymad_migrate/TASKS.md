@@ -70,7 +70,7 @@ This queue lists remaining work only.
   Done when: one non-linear workflow exercised by `modules/dymad_migrate/tests/test_workflow_lti.py` or `modules/dymad_migrate/tests/test_workflow_kp.py` runs through the new training seam with compatibility adapters explicitly marked temporary.
   Priority: high
 
-- [ ] Reduce `RunState` to a compatibility shim and document the remaining adapter boundary [requires-frontier] [skill: execute]
+- [x] Reduce `RunState` to a compatibility shim and document the remaining adapter boundary [requires-frontier] [skill: execute]
   Why: `RunState` is still the legacy center of gravity; once the first run/pipeline path exists, the remaining shim surface should be made explicit and smaller.
   Done when: `modules/dymad_migrate/src/dymad/training/helper.py` clearly scopes `RunState` as a compatibility-only container, unnecessary live-state fields are no longer primary carriers on migrated paths, and the remaining adapter fields are documented in code comments or a project analysis note.
   Priority: medium
