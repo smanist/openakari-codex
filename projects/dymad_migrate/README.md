@@ -26,6 +26,61 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Split spectral plotting helpers into an optional adapter seam
+
+Ran `/orient dymad_migrate` and selected:
+`Split plotting helpers out of \`sako/base.py\` into an optional plotting adapter`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; the only project with budget artifacts is `projects/pca_vs_ttd` and ledger-reconciliation warnings were `0`
+- findings-first gate: enabled (`0/10 = 0.0%` rolling non-zero findings across latest scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- external-work staleness: no pending external approval items; one stale external blocker outside this project at `projects/akari/TASKS.md` (`2026-03-26`, age 9 days)
+- mission-gap check (`dymad_migrate`): no new tasks generated for the current `Done when` criteria
+- task claim succeeded: `claimId=e8d9984f668f9ac2` (`SESSION_ID=work-session-mnkegb7r`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `modules/dymad_migrate/src/dymad/sako/plotting.py` with `SpectralPlottingAdapter` + plotting helpers previously embedded in `base.py`
+- updated `modules/dymad_migrate/src/dymad/sako/base.py` so `SpectralAnalysis` delegates plotting helpers to the optional plotting adapter seam
+- updated `modules/dymad_migrate/src/dymad/sako/__init__.py` exports for `SpectralPlottingAdapter`
+- updated `modules/dymad_migrate/tests/test_workflow_sa_lti.py` with `test_spectral_analysis_routes_plotting_through_adapter`
+- added `projects/dymad_migrate/plans/2026-04-04-spectral-plotting-adapter.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-spectral-plotting-adapter-seam-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` spectral-analysis row with plotting-adapter seam artifacts/provenance
+- completed `Split plotting helpers out of \`sako/base.py\` into an optional plotting adapter` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- spectral plotting behavior is now an explicit optional adapter seam (`SpectralPlottingAdapter`) rather than direct plotting implementation inside `SpectralAnalysis`
+- compatibility API remained stable while plotting moved to adapter-backed delegation
+- adapter/snapshot spectral gates remained green after the plotting split
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_sa_lti.py::test_spectral_analysis_routes_pseudospectrum_through_adapter tests/test_workflow_sa_lti.py::test_spectral_analysis_routes_plotting_through_adapter -q`
+  - `2 passed, 2 warnings in 2.94s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_spectral_adapter.py tests/test_spectral_snapshot.py -q`
+  - `7 passed, 2 warnings in 0.71s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 32 minutes
+Task-selected: Split plotting helpers out of `sako/base.py` into an optional plotting adapter
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 10
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Recorded strict `--reruns=0` spectral parity evidence and advanced seam status to verified
 
 Ran `/orient dymad_migrate` and selected:
