@@ -129,10 +129,10 @@ export function formatAnomalyTask(anomaly: Anomaly): HealthTaskCandidate | null 
   const template = ANOMALY_TEMPLATES[anomaly.metric];
   if (!template) return null;
 
-  const source = `anomaly-detection:${anomaly.metric}`;
+  const source = `anomaly-detection:${anomaly.metric}:${anomaly.sessionRunId}`;
   return {
     line: `- [ ] ${template.verb} [detected: ${today()}]`,
-    why: `${source} — ${anomaly.description}`,
+    why: `${source} (${anomaly.sessionTimestamp}) — ${anomaly.description}`,
     doneWhen: template.doneWhen,
     source,
     priority: anomaly.direction === "high" ? "high" : "medium",

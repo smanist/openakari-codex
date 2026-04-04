@@ -14,6 +14,35 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-04 (Diagnosed low-knowledge alerts and disambiguated anomaly-task provenance)
+
+Diagnosed the two `knowledgeTotal` health alerts for `x13yb5tx-cf5b40e4` (`2026-03-31T10:06:17.026Z`) and `x13yb5tx-5b9a104a` (`2026-04-04T06:04:50.516Z`) from `.scheduler/metrics/sessions.jsonl`. The first row was not a fresh regression: it was a normal completed `dymad_migrate` structural migration session that retired `DynData`/`io/data.py`, and `knowledgeTotal=1` turned out to be a common maintenance pattern for that project (`12/43 = 27.9%` of productive `dymad_migrate` runs in the current metrics file).
+
+The second row was a real workflow interruption, but not a systemic productivity collapse. Its scheduler log shows the autonomous run stopped to ask for user guidance after an unexpected `projects/akari/plans/2026-04-04-scheduler-health-diagnosis-followup.md` file appeared mid-run. That left the session with `hasLogEntry=false`, `hasCompleteFooter=false`, and only a structural preflight footprint even though the underlying `typed phase-result objects` task was later completed successfully in a subsequent `dymad_migrate` session.
+
+Applied one narrow follow-up fix in the same turn: anomaly-generated health tasks now include `sessionRunId` in their source IDs and `Why:` lines, because the previous formatter collapsed both low-knowledge alerts into two indistinguishable duplicate tasks in `projects/akari/TASKS.md`. Recorded the full diagnosis in `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md`, closed the two alert tasks with per-session evidence, and added a follow-up task to diagnose how scheduler-run sessions should handle newly surfaced foreign worktree files without turning into interactive questions.
+
+Verification:
+- `python - <<'PY' ... PY`
+  - `dymad_all_ok 43 mean 2.395 std 2.441 counts {0: 2, 1: 12, 2: 23, 3: 1, 4: 1, 7: 1, 9: 1, 10: 1, 12: 1}`
+  - `dymad_ok_hasLog 40 mean 2.55 std 2.459 counts {1: 11, 2: 23, 3: 1, 4: 1, 7: 1, 9: 1, 10: 1, 12: 1}`
+  - `dymad_recent_apr4 17 mean 1.941 std 0.235 counts {1: 1, 2: 16}`
+- `sed -n '1,240p' '.scheduler/logs/“dymad-migrate”-2026-04-04T06-04-48-098Z.log'`
+  - log ends with `How do you want to proceed`, confirming the session asked for user input instead of completing autonomous closeout
+- `cd infra/scheduler && npx vitest run src/health-tasks.test.ts`
+  - verified after the formatter change in this session
+
+Session-type: directed
+Duration: 24
+Task-selected: Diagnose low-knowledge scheduler health alerts for `x13yb5tx-cf5b40e4` and `x13yb5tx-5b9a104a`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 (Followed up repeated scheduler health alerts and cleared stale babysitting classification)
 
 Diagnosed why the health monitor still reported `task_starvation`, `babysitting_detected`, and the `x13yb5tx-82fb9a07` duration outlier in the latest 20-session window. The underlying anomaly is not new: the only affected rows are still the same two `dymad_migrate` empty-queue sessions from `2026-03-30`, and after the `14:07Z` recovery run there were `17/17` productive, non-timeout sessions through `2026-04-04`.
@@ -1253,6 +1282,7 @@ Created the public meta-project scaffold for openakari. Added a project README, 
 - Which intervention can raise the non-zero-findings session rate above 20% (currently 2/10 in the latest window) without increasing failure rates?
 - Should `findings/$` remain a primary KPI for Codex-local sessions where `costUsd` is frequently 0?
 - Which knowledge fields should be treated as research progress versus operational maintenance in efficiency reporting?
+- How should scheduler-run autonomous sessions handle newly surfaced foreign worktree files: auto-ignore, preflight auto-commit, or exit with a machine-readable blocked status instead of asking an interactive question?
 - What minimum cadence of explicit self-observation analysis keeps task selection aligned with the mission instead of drifting to maintenance-only work?
 - Which kinds of capability improvements transfer across projects, and which depend on repository-specific history and conventions?
 - Should scheduler-side empty-queue preflight auto-generate mission-gap work, or return an explicit `empty_queue` result for a separate task-supply path to handle?

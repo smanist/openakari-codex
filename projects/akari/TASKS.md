@@ -223,12 +223,19 @@
   Verification: `cd infra/scheduler && npx vitest run src/verify-knowledge.test.ts` → `Test Files 1 passed (1); Tests 77 passed (77)`.
   Verification: `cd infra/scheduler && npx vitest run src/verify.test.ts` → `Test Files 1 passed (1); Tests 1 passed (1)`.
 
-- [ ] Investigate low knowledge output anomaly [detected: 2026-04-04]
-  Why: anomaly-detection:knowledgeTotal — Knowledge output 1 is 3.0σ below mean 2
-  Done when: Knowledge drop explained or task selection improved
+- [x] Investigate low knowledge output anomaly for `x13yb5tx-cf5b40e4` [detected: 2026-04-04] [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: `anomaly-detection:knowledgeTotal:x13yb5tx-cf5b40e4` — the `2026-03-31T10:06:17.026Z` `dymad_migrate` run scored monitor-counted `knowledgeTotal=1`, but diagnosis showed it was a normal completed structural migration session (`Delete modules/dymad_migrate/src/dymad/io/data.py after production-path references reach zero`) rather than a new quality drop.
+  Done when: Knowledge drop explained or task selection improved.
   Priority: medium
+  Evidence: `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md`
 
-- [ ] Investigate low knowledge output anomaly [detected: 2026-04-04]
-  Why: anomaly-detection:knowledgeTotal — Knowledge output 1 is 3.0σ below mean 2
-  Done when: Knowledge drop explained or task selection improved
+- [x] Investigate low knowledge output anomaly for `x13yb5tx-5b9a104a` [detected: 2026-04-04] [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: `anomaly-detection:knowledgeTotal:x13yb5tx-5b9a104a` — the `2026-04-04T06:04:50.516Z` `dymad_migrate` run scored monitor-counted `knowledgeTotal=1` because it stopped after structural preflight and task-plan creation when the session asked for user guidance about an unexpected `projects/akari/plans/...` file and never wrote its README log entry.
+  Done when: Knowledge drop explained or task selection improved.
   Priority: medium
+  Evidence: `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md`
+
+- [ ] Diagnose how scheduler-run autonomous sessions should handle newly surfaced foreign worktree files without blocking on a user question [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: Follow-up from `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md` — session `x13yb5tx-5b9a104a` asked for guidance after an unrelated `projects/akari/plans/2026-04-04-scheduler-health-diagnosis-followup.md` file appeared in `git status`, which left the run with `hasLogEntry=false`, `hasCompleteFooter=false`, and only a structural preflight footprint.
+  Done when: A diagnosis identifies whether the right behavior is auto-ignore, preflight auto-commit, or machine-readable blocked exit for foreign files in scheduler sessions, with at least one implementation or SOP follow-up created from the result.
+  Priority: high

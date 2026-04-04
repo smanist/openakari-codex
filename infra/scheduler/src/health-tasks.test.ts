@@ -98,7 +98,8 @@ describe("formatAnomalyTask", () => {
     const task = formatAnomalyTask(anomaly);
     expect(task).not.toBeNull();
     expect(task!.line).toContain("cost");
-    expect(task!.source).toBe("anomaly-detection:costUsd");
+    expect(task!.source).toBe("anomaly-detection:costUsd:abc123");
+    expect(task!.why).toContain("2026-02-21T10:00:00Z");
   });
 
   it("converts low knowledge anomaly to task", () => {
@@ -116,7 +117,7 @@ describe("formatAnomalyTask", () => {
     };
     const task = formatAnomalyTask(anomaly);
     expect(task).not.toBeNull();
-    expect(task!.source).toBe("anomaly-detection:knowledgeTotal");
+    expect(task!.source).toBe("anomaly-detection:knowledgeTotal:def456");
   });
 });
 
