@@ -1,6 +1,6 @@
 # DyMAD Migration
 
-Status: active
+Status: completed
 Mission: Refactor DyMAD into a layered, extensible architecture that preserves parity-critical legacy behavior while creating a clean path to typed APIs, staged training workflows, and future MCP exposure.
 Done when: `modules/dymad_migrate/` documents and implements the agreed `core` / `facade` / `store` / `exec` boundaries, preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`, and exposes at least one verified end-to-end path that matches the MCP layering pattern described by `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
 
@@ -25,6 +25,62 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 - New `DynData` dependencies are not allowed outside the temporary retirement boundaries recorded in `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md`.
 
 ## Log
+
+### 2026-04-04 - Adjudicated `Done when` completion and closed project status
+
+Ran `/orient dymad_migrate` and selected:
+`Adjudicate project completion against \`Done when\` criteria`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- project context check: `docs/roadmap.md` does not exist in this repo; orient proceeded with project-scoped artifacts plus scheduler metrics
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger and budget limits `llm_api_calls 0/0`, `cpu_hours 0/0.1`
+- ledger reconciliation warnings: none detected (`projects/*/experiments/*/progress.json` with `consumption_audit` out-of-bounds ratios not found)
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across latest 10 scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10 = 0.0%`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences in the latest 10 sessions
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): generated one task because `TASKS.md` had no open items
+- task claim succeeded:
+  `claimId=11f95fd91fad8b9a` (`SESSION_ID=work-session-mnkxr7y9`)
+
+Scope classification:
+- routine analysis, `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `projects/dymad_migrate/analysis/2026-04-04-done-when-completion-adjudication.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` status and interpretation with completion-adjudication provenance
+- added and completed `Adjudicate project completion against \`Done when\` criteria` in `projects/dymad_migrate/TASKS.md`
+- set project `Status: completed` in `projects/dymad_migrate/README.md`
+
+Findings:
+- `Done when` criteria are satisfied `3/3` per explicit mapping in `projects/dymad_migrate/analysis/2026-04-04-done-when-completion-adjudication.md`
+- fresh boundary-path verification still passes for both checkpoint and spectral handle-routing end-to-end paths (`1 passed` each)
+- the project can move from active migration to completed archival state; further seam expansion is optional follow-up work, not a completion blocker
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py -q`
+  - `1 passed, 2 warnings in 0.68s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py::test_spectral_exec_flow_resolves_snapshot_handle -q`
+  - `1 passed, 2 warnings in 0.70s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 31 minutes
+Task-selected: Adjudicate project completion against `Done when` criteria
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
 
 ### 2026-04-04 - Closed sampling/control split parity and finished parity-closure map
 

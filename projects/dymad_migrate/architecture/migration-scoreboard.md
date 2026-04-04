@@ -1,7 +1,7 @@
 # DyMAD Migration Scoreboard
 
 Date: 2026-04-04
-Status: active
+Status: completed
 
 ## Purpose
 
@@ -37,5 +37,7 @@ The project is no longer in pure design mode, but it is still highly asymmetric:
 - spectral analysis is now verified with explicit `--reruns=0` workflow parity evidence in addition to the adapter-routing artifacts
 - package public-API cleanup has started: migration-internal imports no longer route through broad `dymad.core` / `dymad.models` barrels, and the package `__all__` surfaces are now explicitly regression-tested
 - parity-closure evidence was refreshed on `2026-04-04` (`projects/dymad_migrate/analysis/2026-04-04-parity-critical-closure-evidence-map.md`) and closed with split sampling parity (`projects/dymad_migrate/analysis/2026-04-04-sampling-split-parity-verification.md`): `7/7` blocker+milestone workflows now have explicit split (`dymad_ref` + `dymad_migrate`) coverage artifacts
+
+Completion adjudication on `2026-04-04` mapped project `Done when` criteria to evidence and found `3/3` conditions satisfied (`projects/dymad_migrate/analysis/2026-04-04-done-when-completion-adjudication.md`).
 
 That asymmetry is acceptable only if it stays visible. This scoreboard exists to keep that visible.

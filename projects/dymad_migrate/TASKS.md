@@ -119,6 +119,11 @@ This queue lists remaining work only.
 
 ## Mission gap tasks
 
+- [x] Adjudicate project completion against `Done when` criteria [requires-frontier] [skill: analyze] [zero-resource]
+  Why: Mission gap — no open task currently verifies whether all three `Done when` conditions are satisfied with explicit artifact mapping and a closure decision.
+  Done when: a dated analysis note maps each `Done when` condition in `projects/dymad_migrate/README.md` to concrete evidence artifacts (or explicit remaining gaps), updates `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation to reflect the adjudication, and records the resulting status/next-step decision in the project README log.
+  Priority: high
+
 - [x] Audit parity-critical workflow preservation against `modules/dymad_ref` and update closure evidence map [requires-frontier] [skill: analyze] [zero-resource]
   Why: Mission gap — no open task currently traces the `Done when` condition to preserve selected parity-critical legacy workflows against `modules/dymad_ref`.
   Done when: a dated analysis note under `projects/dymad_migrate/analysis/` maps each Blocker/Milestone workflow from `projects/dymad_migrate/knowledge/parity-critical-workflows.md` to current migration verification evidence (or explicit gaps), records the exact command/output for at least one representative parity gate, and updates `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation notes plus `projects/dymad_migrate/README.md` session log with findings and follow-up actions.
