@@ -108,6 +108,11 @@
   Done when: Timed-out Codex sessions persist structured timeout provenance (at minimum `turnStartedCount`, `turnCompletedCount`, and whether empty-queue preflight ran) into metrics or logs, and a regression test covers a first-turn timeout case.
   Priority: medium
 
+- [ ] Add a build-freshness guard for scheduler monitoring artifacts [requires-frontier] [skill: execute] [zero-resource]
+  Why: `projects/akari/diagnosis/diagnosis-scheduler-health-signals-followup-2026-04-04.md` showed the live watchdog kept reporting `babysitting_detected` after the source fix because `infra/scheduler/dist/health-watchdog.js` still had stale logic until a manual rebuild.
+  Done when: Scheduler startup or monitoring commands detect stale source/dist drift for health-monitoring code (or otherwise guarantee the latest watchdog logic is what runs), and verification shows a stale bundle is surfaced before `watchdog` reports health results.
+  Priority: medium
+
 ## Mission gap tasks
 
 - [x] Create akari strategic alignment snapshot from current artifacts [fleet-eligible] [skill: analyze] [zero-resource]

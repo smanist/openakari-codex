@@ -14,6 +14,50 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-04 (Followed up repeated scheduler health alerts and cleared stale babysitting classification)
+
+Diagnosed why the health monitor still reported `task_starvation`, `babysitting_detected`, and the `x13yb5tx-82fb9a07` duration outlier in the latest 20-session window. The underlying anomaly is not new: the only affected rows are still the same two `dymad_migrate` empty-queue sessions from `2026-03-30`, and after the `14:07Z` recovery run there were `17/17` productive, non-timeout sessions through `2026-04-04`.
+
+The new finding from this follow-up is deployment-state drift in the scheduler runtime. `infra/scheduler/src/health-watchdog.ts` already excluded task-starvation rows from `babysitting_detected`, but the live compiled bundle under `infra/scheduler/dist/` still had the old logic. Before rebuilding, `node infra/scheduler/dist/cli.js watchdog --limit 20` reported `2 issue(s)` (`task_starvation` and `babysitting_detected`); after `cd infra/scheduler && npm run build`, the same command reported only `task_starvation`. Recorded the diagnosis in `projects/akari/diagnosis/diagnosis-scheduler-health-signals-followup-2026-04-04.md`, added a follow-up task for source/dist build-freshness detection, and refreshed the local scheduler bundle so monitoring now matches the fixed watchdog logic.
+
+Verification:
+- `python - <<'PY' ... PY`
+  - `window_start 2026-03-30T13:01:44.361Z`
+  - `window_end 2026-04-04T05:09:06.567Z`
+  - `starved 2`
+  - `timedout_starved 1`
+  - `max_run x13yb5tx-82fb9a07`
+  - `post_count 17`
+  - `post_starved 0`
+  - `post_timedout 0`
+- `node infra/scheduler/dist/cli.js watchdog --limit 20` (before rebuild)
+  - `Analyzed 20 sessions.`
+  - `Session health watchdog: 2 issue(s) detected`
+  - `task_starvation`
+  - `babysitting_detected`
+- `cd infra/scheduler && npm test -- health-watchdog.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  114 passed (114)`
+- `cd infra/scheduler && npm run build`
+  - success
+- `node infra/scheduler/dist/cli.js watchdog --limit 20` (after rebuild)
+  - `Analyzed 20 sessions.`
+  - `Session health watchdog: 1 issue(s) detected`
+  - `task_starvation`
+- `git ls-files infra/scheduler/dist/health-watchdog.js infra/scheduler/dist/cli.js infra/scheduler/src/health-watchdog.ts`
+  - `infra/scheduler/src/health-watchdog.ts`
+
+Session-type: directed
+Duration: 20
+Task-selected: Diagnose repeated scheduler health alerts from the latest 20-session window
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 (Resolved the `x13yb5tx-82fb9a07` empty-queue timeout root cause)
 
 Completed the follow-up diagnosis for the `dymad_migrate` timeout row `x13yb5tx-82fb9a07` and narrowed the failure to the empty-queue task-selection seam rather than scheduler logging or in-process babysitting.
@@ -1212,3 +1256,4 @@ Created the public meta-project scaffold for openakari. Added a project README, 
 - What minimum cadence of explicit self-observation analysis keeps task selection aligned with the mission instead of drifting to maintenance-only work?
 - Which kinds of capability improvements transfer across projects, and which depend on repository-specific history and conventions?
 - Should scheduler-side empty-queue preflight auto-generate mission-gap work, or return an explicit `empty_queue` result for a separate task-supply path to handle?
+- How should scheduler deployment guarantee that health-monitoring source fixes are reflected in the live `dist` runtime before alerts are emitted?
