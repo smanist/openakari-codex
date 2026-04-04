@@ -60,7 +60,7 @@ This queue lists remaining work only.
   Done when: one single-split path in `modules/dymad_migrate/src/dymad/training/driver.py` or `trainer.py` constructs a `TrainerRun` object that owns run identity, artifact paths, and one `PhasePipeline`.
   Priority: high
 
-- [ ] Route the linear-training workflow through `TrainerRun` plus `PhasePipeline` [requires-frontier] [skill: execute]
+- [x] Route the linear-training workflow through `TrainerRun` plus `PhasePipeline` [requires-frontier] [skill: execute]
   Why: The linear path is already the most migrated trainer family, so it is the safest place to make the new run/pipeline seam real.
   Done when: the linear training path uses `TrainerRun` plus `PhasePipeline` as its primary orchestration surface and the existing focused linear workflow tests still pass.
   Priority: high
