@@ -35,5 +35,6 @@ The project is no longer in pure design mode, but it is still highly asymmetric:
 - model-spec is now verified for the first LTI-family typed-dispatch path, while rollout-engine extraction and broader family migration remain open
 - training now has an adopted seam (`TrainerRun` + `PhasePipeline`) with explicit `ExecutionServices` runtime policy, linear workflow parity, and one non-linear `NODE` workflow instrumented through `TrainerRun`; `RunState` is now documented and used as a compatibility shim rather than the primary fold-data carrier
 - spectral analysis is now verified with explicit `--reruns=0` workflow parity evidence in addition to the adapter-routing artifacts
+- package public-API cleanup has started: migration-internal imports no longer route through broad `dymad.core` / `dymad.models` barrels, and the package `__all__` surfaces are now explicitly regression-tested
 
 That asymmetry is acceptable only if it stays visible. This scoreboard exists to keep that visible.

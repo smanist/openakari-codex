@@ -26,6 +26,67 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Thinned `dymad.core` / `dymad.models` package re-export surfaces
+
+Ran `/orient dymad_migrate` and selected:
+`Thin dymad.core and dymad.models re-export surfaces`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- project context check: `docs/roadmap.md` does not exist in this repo; orient proceeded with project-scoped artifacts plus scheduler metrics
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- ledger reconciliation warnings: none detected
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across latest 10 scheduler sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: no pending `Type: external` approvals; one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- mission-gap analysis (`dymad_migrate`): no new gap tasks generated for current `Done when` criteria
+- task claim succeeded:
+  `claimId=454debb5f9a9a067` (`SESSION_ID=work-session-mnkrbq4u`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` to import `build_model_context` from `dymad.core.model_context` (no package-barrel import)
+- updated `modules/dymad_migrate/src/dymad/sako/base.py` to import `DKBF`/`KBF` from `dymad.models.collections` (no package-barrel import)
+- thinned `modules/dymad_migrate/src/dymad/core/__init__.py` to an explicit bounded compatibility surface
+- thinned `modules/dymad_migrate/src/dymad/models/__init__.py` to predefined-family + model-build/spec compatibility exports
+- added `modules/dymad_migrate/tests/test_public_reexport_surfaces.py` to lock package `__all__` surfaces and guard against internal-symbol re-export drift
+- added `projects/dymad_migrate/plans/2026-04-04-reexport-surface-thinning.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-reexport-surface-thinning-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` interpretation notes with public-API cleanup status
+- completed `Thin dymad.core and dymad.models re-export surfaces` in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- migration-internal source imports no longer use `from dymad.core import ...` or `from dymad.models import ...` broad barrels
+- package-barrel exports are now explicit/bounded and regression-tested instead of implicitly accumulating helpers/maps/predictors
+- targeted checkpoint/model-context and spectral workflow gates remained green after import-surface cleanup
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_public_reexport_surfaces.py tests/test_model_context_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_workflow_sa_lti.py::test_spectral_analysis_routes_pseudospectrum_through_adapter -q`
+  - `13 passed, 2 warnings in 1.81s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_torch_transform_modules.py tests/test_graph_series_core.py 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `10 passed, 2 warnings in 1.61s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 42 minutes
+Task-selected: Thin `dymad.core` and `dymad.models` re-export surfaces
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 10
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Introduced `ExecutionServices` seam for training runtime policy
 
 Ran `/orient dymad_migrate` and selected:

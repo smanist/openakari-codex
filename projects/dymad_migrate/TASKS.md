@@ -11,7 +11,7 @@ This queue lists remaining work only.
 
 ## Surface cleanup
 
-- [ ] Thin `dymad.core` and `dymad.models` re-export surfaces [requires-frontier] [skill: execute]
+- [x] Thin `dymad.core` and `dymad.models` re-export surfaces [requires-frontier] [skill: execute]
   Why: The target architecture explicitly calls for thin `__init__.py` files, but the migration package still encourages broad package-level imports that blur layer boundaries.
   Done when: internal imports under `modules/dymad_migrate/src/dymad/` no longer rely on broad `dymad.core` or `dymad.models` re-export barrels except at explicit public-compatibility seams, `src/dymad/core/__init__.py` and `src/dymad/models/__init__.py` export only the intended stable surface, and focused import-path regression tests cover the remaining public API.
   Priority: medium
