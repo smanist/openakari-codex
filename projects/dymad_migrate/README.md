@@ -26,6 +26,61 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Routed one single-split path through a minimal `TrainerRun` wrapper
+
+Ran `/orient dymad_migrate` and selected:
+`Introduce a minimal \`TrainerRun\` wrapper for one single-split training path`.
+
+Orient highlights:
+- uncommitted work at session start: orphaned module edits under `modules/dymad_migrate/` (committed and pushed before task selection)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/dymad_migrate`, `projects/akari`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` latest scheduler `work-cycle` sessions with non-zero findings)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=ad525a39115332ef` (`SESSION_ID=work-session-mnjzg5uf`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `modules/dymad_migrate/src/dymad/training/trainer_run.py` introducing `TrainerRun` (run identity + artifact roots + one `PhasePipeline`)
+- updated `modules/dymad_migrate/src/dymad/training/driver.py` so `run_cv_single(...)` constructs and runs `TrainerRun` instead of constructing `StackedOpt` directly
+- updated `modules/dymad_migrate/src/dymad/training/__init__.py` to export `TrainerRun`
+- expanded `modules/dymad_migrate/tests/test_training_phase_runtime.py` with a regression that verifies `run_cv_single(...)` routes through `TrainerRun`
+- added `projects/dymad_migrate/plans/2026-04-04-trainer-run-wrapper.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-trainer-run-wrapper-single-split-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` training seam provenance to include the new `TrainerRun` artifact
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- one concrete single-split path (`run_cv_single`) now has explicit `TrainerRun` ownership of run identity and artifact paths while still executing the existing phase-config shape
+- final metric extraction remains compatibility-safe through `PhaseResult.to_run_state()` on the last phase result
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_training_phase_runtime.py -q`
+  - `4 passed, 2 warnings in 0.74s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `1 passed, 2 warnings in 1.79s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 74 minutes
+Task-selected: Introduce a minimal `TrainerRun` wrapper for one single-split training path
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 13
+Commits: 5
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Extracted a first-class `PhasePipeline` seam and wrapped `StackedOpt`
 
 Ran `/orient dymad_migrate` and selected:
