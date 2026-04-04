@@ -97,7 +97,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/sako/` contains an adapter object that consumes the typed spectral snapshot and delegates pseudospectrum, measure, and Jacobian-related calls to `SAKO` / `RALowRank` or small helper seams.
   Priority: high
 
-- [ ] Route the legacy `SpectralAnalysis` compatibility class through the new adapter for one SA workflow [requires-frontier] [skill: execute]
+- [x] Route the legacy `SpectralAnalysis` compatibility class through the new adapter for one SA workflow [requires-frontier] [skill: execute]
   Why: The public spectral surface remains the workflow contract today, so the adapter boundary has to become real through that compatibility class before the seam counts as adopted.
   Done when: the legacy `SpectralAnalysis(...)` construction path delegates through the new adapter for at least one `tests/test_workflow_sa_lti.py` path while preserving current caller shape.
   Priority: high
