@@ -111,3 +111,8 @@ This queue lists remaining work only.
   Why: The design note already chose `test_workflow_sa_lti.py --reruns=0` as the right gate; once the adapter lands, the project needs explicit evidence and a visible status change.
   Done when: a dated analysis note records the exact spectral parity command(s) and outputs, including warning behavior if present, and `projects/dymad_migrate/architecture/migration-scoreboard.md` updates `spectral-analysis` from `design-only` to the correct next status.
   Priority: high
+
+- [ ] Route one spectral execution path through `exec` using facade/store spectral snapshot handles [requires-frontier] [skill: execute]
+  Why: Spectral snapshot handles now exist for registration/lookup, but the spectral execution path still bypasses `exec` and does not yet consume the handle flow end-to-end.
+  Done when: one focused spectral flow resolves a `specsnap_*` handle through `facade`/`store` before invoking adapter-backed spectral operations, with a targeted test that proves handle-based routing.
+  Priority: medium

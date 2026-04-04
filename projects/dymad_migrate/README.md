@@ -26,6 +26,66 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Added spectral snapshot handle flow to facade/store skeleton
+
+Ran `/orient dymad_migrate` and selected:
+`Extend the \`store\` and \`facade\` skeleton with typed spectral snapshot handles`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short --branch` showed only `main...origin/main`)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- module registry check: `dymad_migrate` execution target remains `modules/dymad_migrate/`
+- budget/deadline status: `projects/akari`, `projects/dymad_migrate`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with empty ledger
+- ledger reconciliation warnings: none detected across active projects
+- findings-first gate: enabled (`0/10 = 0.0%` rolling non-zero findings across latest scheduler sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (no `.scheduler/skill-reports/` directory present)
+- external-work staleness: no pending external approval items; one stale external blocker outside this project at `projects/akari/TASKS.md` (`2026-03-26`, age 9 days)
+- mission-gap analysis (`dymad_migrate`): no new gap tasks generated for the current `Done when` criteria
+- task claim succeeded:
+  `claimId=fe997f1736762757` (`SESSION_ID=work-session-mnkglh61`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- updated `modules/dymad_migrate/src/dymad/facade/handles.py` with `SpectralSnapshotHandle` validation for `specsnap_*` handles
+- updated `modules/dymad_migrate/src/dymad/store/object_store.py` and `modules/dymad_migrate/src/dymad/facade/operations.py` with spectral snapshot registration/lookup records and facade methods
+- updated `modules/dymad_migrate/src/dymad/facade/__init__.py` and `modules/dymad_migrate/src/dymad/store/__init__.py` exports
+- updated `modules/dymad_migrate/tests/test_boundary_skeleton.py` with spectral snapshot creation/lookup boundary coverage
+- added `projects/dymad_migrate/plans/2026-04-04-spectral-snapshot-handles.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-spectral-snapshot-handle-boundary-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` spectral-analysis provenance with facade/store spectral-handle artifacts
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- facade/store boundary now supports a typed spectral snapshot handle family (`specsnap_*`) linked to checkpoint provenance
+- spectral snapshot registration/lookup is now available via facade operations (`register_spectral_snapshot`, `get_spectral_snapshot`)
+- importing `dymad.sako.snapshot` in facade/store runtime paths caused a package-init cycle; keeping spectral type imports under `TYPE_CHECKING` preserved the boundary and avoided the cycle
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_spectral_snapshot.py -q`
+  - `7 passed, 2 warnings in 0.75s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_load_model_compat.py -q`
+  - `2 passed, 2 warnings in 0.48s`
+
+Compound:
+- `Compound (fast): 1 action.`
+- added follow-up task `Route one spectral execution path through \`exec\` using facade/store spectral snapshot handles`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 44 minutes
+Task-selected: Extend the `store` and `facade` skeleton with typed spectral snapshot handles
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 12
+Commits: 3
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Split spectral plotting helpers into an optional adapter seam
 
 Ran `/orient dymad_migrate` and selected:
