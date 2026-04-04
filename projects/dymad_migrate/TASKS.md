@@ -33,7 +33,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/models/` contains a small rollout-engine seam for the first migrated family, and one continuous or discrete prediction path selects that seam from typed spec metadata rather than implicit legacy string logic.
   Priority: high
 
-- [ ] Verify the first typed model-spec family against an existing workflow gate and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
+- [x] Verify the first typed model-spec family against an existing workflow gate and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
   Why: Once one family stops depending on the tuple fallback, the project needs explicit proof that the seam moved from `prototype` toward `adopted`.
   Done when: a dated analysis note records the exact command(s) and outputs for the selected typed model-spec workflow gate, and `projects/dymad_migrate/architecture/migration-scoreboard.md` is updated to reflect the new seam status with correct provenance.
   Priority: high
