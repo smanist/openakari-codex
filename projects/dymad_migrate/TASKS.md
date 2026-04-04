@@ -82,7 +82,7 @@ This queue lists remaining work only.
 
 ## Spectral-analysis seam
 
-- [ ] Introduce a typed `SpectralSnapshot` record extracted from checkpoint-backed models [requires-frontier] [skill: execute]
+- [x] Introduce a typed `SpectralSnapshot` record extracted from checkpoint-backed models [requires-frontier] [skill: execute]
   Why: The spectral design calls for snapshot preparation to be distinct from the numerical kernels, but `SAInterface` still computes `_P0/_P1` and weights inside the legacy class.
   Done when: `modules/dymad_migrate/src/dymad/sako/` contains a typed snapshot record that captures the first migrated spectral inputs (`P0`, `P1`, Koopman weights, dimensions, and related metadata) for checkpoint-backed analysis.
   Priority: high
