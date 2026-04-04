@@ -26,6 +26,63 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Added a typed spectral snapshot seam for checkpoint-backed SA setup
+
+Ran `/orient dymad_migrate` and selected:
+`Introduce a typed \`SpectralSnapshot\` record extracted from checkpoint-backed models`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/akari`, `projects/dymad_migrate`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across the latest 10 scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=e507086387398957` (`SESSION_ID=work-session-mnk5vnna`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- added `modules/dymad_migrate/src/dymad/sako/snapshot.py` with typed `KoopmanWeightSnapshot` and `SpectralSnapshot` records plus `build_spectral_snapshot(...)`
+- updated `modules/dymad_migrate/src/dymad/sako/base.py` so `SAInterface` materializes and exposes `snapshot` from checkpoint-backed spectral setup state
+- updated `modules/dymad_migrate/src/dymad/sako/__init__.py` exports for the new snapshot seam
+- added `modules/dymad_migrate/tests/test_spectral_snapshot.py` for full-weight + low-rank snapshot coverage and validation errors
+- added `projects/dymad_migrate/plans/2026-04-04-spectral-snapshot-record.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-spectral-snapshot-seam-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` (`spectral-analysis` status `design-only` -> `prototype`)
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- spectral analysis now has a first typed snapshot seam carrying checkpoint-derived encoded pair matrices (`P0`, `P1`), Koopman weight representation, dimensions, and processor metadata
+- snapshot seam supports both full and low-rank Koopman weight modes with explicit invalid-input guards
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_spectral_snapshot.py -q`
+  - `4 passed, 2 warnings in 0.64s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_sako_runtime_batch_adapter.py -q`
+  - `2 passed, 2 warnings in 0.49s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[5]' -q`
+  - `1 passed, 2 warnings in 1.64s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 41 minutes
+Task-selected: Introduce a typed `SpectralSnapshot` record extracted from checkpoint-backed models
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 9
+Commits: 3
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Routed one non-linear KPI workflow through the `TrainerRun` seam
 
 Ran `/orient dymad_migrate` and selected:
