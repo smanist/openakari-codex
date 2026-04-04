@@ -40,7 +40,7 @@ This queue lists remaining work only.
 
 ## Training seam
 
-- [ ] Extract an explicit `PhasePipeline` object from `StackedOpt` while keeping config compatibility [requires-frontier] [skill: execute]
+- [x] Extract an explicit `PhasePipeline` object from `StackedOpt` while keeping config compatibility [requires-frontier] [skill: execute]
   Why: The project already has `TrainerState` and `PhaseContext`, but phase sequencing still lives inside legacy `StackedOpt`; extracting a real pipeline object is the smallest architectural next step.
   Done when: `modules/dymad_migrate/src/dymad/training/` contains a first-class `PhasePipeline` abstraction, `StackedOpt` becomes a compatibility wrapper around it, and existing phase config shapes still run.
   Priority: high
@@ -75,7 +75,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/training/helper.py` clearly scopes `RunState` as a compatibility-only container, unnecessary live-state fields are no longer primary carriers on migrated paths, and the remaining adapter fields are documented in code comments or a project analysis note.
   Priority: medium
 
-- [ ] Record the first training-seam prototype verification and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
+- [x] Record the first training-seam prototype verification and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
   Why: The scoreboard still marks training as `design-only`; the first prototype needs explicit verification and status movement.
   Done when: a dated analysis note records the exact workflow/test commands and outputs for the migrated training seam, and `projects/dymad_migrate/architecture/migration-scoreboard.md` updates `training` from `design-only` to the correct next status.
   Priority: high
