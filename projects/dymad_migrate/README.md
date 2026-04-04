@@ -26,6 +26,59 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-03 - Added typed rollout/memory metadata to `ModelSpec` for the LTI family
+
+Ran `/orient dymad_migrate` and selected:
+`Extend ModelSpec with typed rollout and memory metadata for one predefined family`.
+
+Orient highlights:
+- uncommitted work: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/dymad_migrate` has no `budget.yaml`/`ledger.yaml` (non-resource task); `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` latest scheduler `work-cycle` sessions with non-zero findings)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`1` finding over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences (no recurring no-commit, missing-log, orphaned-files, timeout, or high-cost pattern in latest 10 sessions)
+- horizon-scan intel: none (`.scheduler/skill-reports/` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (8 days old)
+- task claim API: unavailable (`curl` to `http://localhost:8420/api/tasks/claim` failed with connection error), proceeded without claim per SOP fallback
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute)
+
+Code changes:
+- extended typed model specs in `modules/dymad_migrate/src/dymad/models/model_spec.py` with:
+  - `RolloutSpec(family, predictor, supports_control_inputs)`
+  - `MemorySpec(family, latent_state, requires_delay_window)`
+  - optional `rollout` and `memory` fields on `ModelSpec`
+- passed typed rollout/memory metadata through `LegacyPredefinedModelAdapter.from_legacy_parts(...)`
+- updated `modules/dymad_migrate/src/dymad/models/collections.py` so `PredefinedModel` accepts optional rollout/memory metadata and wired LTI-family entries (`LTI`, `DLTI`, `GLTI`, `DGLTI`) to concrete typed specs
+- expanded `modules/dymad_migrate/tests/test_model_spec_adapter.py` to assert rollout/memory typed fields directly on the LTI typed spec path
+- recorded checkpoint findings in `projects/dymad_migrate/analysis/2026-04-03-model-spec-rollout-memory-metadata.md`
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- typed rollout/memory metadata can now be attached at predefined-model declaration time without breaking the existing legacy tuple builder fallback
+- LTI-family specs now expose typed rollout and memory contracts directly to downstream typed-dispatch migration work
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py 'tests/test_workflow_lti.py::test_lti[7]' -q`
+  - `3 passed, 2 warnings in 2.02s`
+
+Compound:
+- `Compound (fast): no actions.`
+- fleet spot-check: `Fleet: no recent sessions.`
+
+Session-type: autonomous
+Duration: 43 minutes
+Task-selected: Extend `ModelSpec` with typed rollout and memory metadata for one predefined family
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-03 - Refreshed backlog after the DynData-centered phase
 
 Reviewed the current migration state against the architecture contract, the migration

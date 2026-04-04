@@ -18,7 +18,7 @@ This queue lists remaining work only.
 
 ## Model-spec seam
 
-- [ ] Extend `ModelSpec` with typed rollout and memory metadata for one predefined family [requires-frontier] [skill: execute]
+- [x] Extend `ModelSpec` with typed rollout and memory metadata for one predefined family [requires-frontier] [skill: execute]
   Why: The current typed spec layer is still only a family-string wrapper; the next useful step is to encode at least one real rollout/memory contract in typed form.
   Done when: `modules/dymad_migrate/src/dymad/models/model_spec.py` defines typed rollout/memory sub-specs used by at least one predefined family in `modules/dymad_migrate/src/dymad/models/collections.py`, and focused tests assert those typed fields directly.
   Priority: high
