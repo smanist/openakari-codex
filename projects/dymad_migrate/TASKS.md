@@ -1,502 +1,113 @@
 # DyMAD Migration — Tasks
 
-- [x] Inventory the legacy package structure and subsystem boundaries [requires-frontier] [skill: diagnose]
-  Why: Codex cannot migrate subsystem-by-subsystem until the current package is mapped into stable conceptual units with clear ownership and coupling hotspots.
-  Done when: `projects/dymad_migrate/architecture/current-state.md` lists the major legacy subsystems, their responsibilities, key dependencies, and the files/modules that implement them in `modules/dymad_ref/`.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/architecture/current-state.md` with subsystem definitions, hotspot files, and migration-order recommendations derived from `modules/dymad_ref/src/dymad/`.
-  Verification: `find modules/dymad_ref/src/dymad -maxdepth 2 -type d | sort` and `wc -l modules/dymad_ref/src/dymad/**/*.py 2>/dev/null | sort -nr | sed -n '1,10p'`
+Historical completed-task provenance through 2026-03-31 lives in:
 
-- [x] Define the parity-critical workflows and regression gates [requires-frontier] [skill: analyze]
-  Why: The migration needs an explicit answer to "what must not break" before structural work begins, otherwise architectural cleanup will drift away from real user-facing behavior.
-  Done when: `projects/dymad_migrate/knowledge/parity-critical-workflows.md` identifies the initial must-preserve workflows, the corresponding tests/examples/scripts in `modules/dymad_ref/` and `modules/dymad_migrate/`, and the verification command(s) for each.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/knowledge/parity-critical-workflows.md` classifying regular-series, graph-series, transform, training, spectral-analysis, and sampling workflows as blocker/milestone/informative.
-  Verification: `sed -n '1,220p' modules/dymad_ref/tests/README.md` and targeted reads of `modules/dymad_ref/tests/test_workflow_*.py`
+- `projects/dymad_migrate/README.md`
+- `projects/dymad_migrate/plans/`
+- `projects/dymad_migrate/analysis/`
+- git history
 
-- [x] Create the legacy-to-target migration matrix [requires-frontier] [skill: orient]
-  Why: The architecture contract is clear about the target shape, but the mapping from current modules to future `core` / `facade` / `store` / `exec` ownership still needs to be made explicit.
-  Done when: `projects/dymad_migrate/architecture/migration-matrix.md` maps each major legacy subsystem to its intended target layer, notes whether it migrates as-is, splits, or becomes a compatibility adapter, and identifies unresolved ownership conflicts.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/architecture/migration-matrix.md` with layer mapping for `io`, `transform`, `models`, `training`, `sako`, and utility subsystems plus unresolved conflicts.
-  Verification: `sed -n '1,240p' modules/dymad_migrate/tasks/refactor_target_architecture.md`
+This queue lists remaining work only.
 
-- [x] Persist module-role and write-scope policy for autonomous sessions [fleet-eligible] [skill: govern]
-  Why: Future Akari/Codex sessions need an unambiguous, repo-local statement that `dymad_ref` and `mcp_test` are read-only while `dymad_migrate` is the only writable code target.
-  Done when: The project README and initial plan both explicitly state the read-only/writeable module policy and no open task in this project instructs Codex to modify `modules/dymad_ref/` or `modules/mcp_test/`.
-  Priority: high
-  Evidence: Recorded the policy in `projects/dymad_migrate/README.md`, `projects/dymad_migrate/plans/2026-03-29-initial-migration-plan.md`, and `projects/dymad_migrate/decisions/0001-module-roles-and-write-scope.md`.
-  Verification: `sed -n '1,120p' projects/dymad_migrate/README.md` and `sed -n '1,120p' projects/dymad_migrate/plans/2026-03-29-initial-migration-plan.md`
+## Surface cleanup
 
-- [x] Design the first `core` data abstractions replacing `DynData` [requires-frontier] [skill: multi]
-  Why: The current catch-all data object is a central architectural bottleneck, and the migration contract explicitly calls for a smaller typed family with selective fast paths.
-  Done when: `projects/dymad_migrate/architecture/data-layer-design.md` specifies the initial semantic series types, the first storage/layout specializations to implement, and the exact legacy call sites that will migrate first.
-  Priority: high
-  Evidence: `projects/dymad_migrate/architecture/data-layer-design.md` defines `RegularSeries`/`GraphSeries`/`LatentSeries`/`DerivedSeries`, the first four layout specializations, and a phased migration order with concrete legacy file:line call sites.
-  Verification: `rg -n \"^## Initial semantic series types|^## First storage/layout specializations|^## Exact legacy call sites to migrate first|trajectory_manager.py:469|training/driver.py:262|checkpoint.py:135\" projects/dymad_migrate/architecture/data-layer-design.md`
-
-- [x] Identify the first vertical migration slice [requires-frontier] [skill: orient]
-  Why: The project should validate the new architecture on one end-to-end slice before broad refactors create cross-cutting churn.
-  Done when: `projects/dymad_migrate/plans/` contains a follow-up slice plan naming the first end-to-end slice, the legacy entrypoints it replaces or wraps, the tests/examples used for parity, and the implementation sequence.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md` selecting the data-boundary slice, naming exact legacy entrypoints, and specifying in-scope parity gates.
-  Verification: `rg -n "^## Slice name|^## In scope|trajectory_manager.py:159|checkpoint.py:64|test_assert_trajmgr.py|test_workflow_lti.py" projects/dymad_migrate/plans/2026-03-30-first-vertical-slice.md`
-
-- [x] Design the transform migration contract for PyTorch-first fitted modules [requires-frontier] [skill: multi]
-  Why: The target architecture depends on transforms becoming composable fitted `nn.Module` objects, but the compatibility path from current SciPy/NumPy-heavy code needs to be explicit before implementation.
-  Done when: `projects/dymad_migrate/architecture/transform-layer-design.md` defines the base transform protocol, wrapper strategy for external numerical routines, and the first transform families to port.
+- [ ] Thin `dymad.core` and `dymad.models` re-export surfaces [requires-frontier] [skill: execute]
+  Why: The target architecture explicitly calls for thin `__init__.py` files, but the migration package still encourages broad package-level imports that blur layer boundaries.
+  Done when: internal imports under `modules/dymad_migrate/src/dymad/` no longer rely on broad `dymad.core` or `dymad.models` re-export barrels except at explicit public-compatibility seams, `src/dymad/core/__init__.py` and `src/dymad/models/__init__.py` export only the intended stable surface, and focused import-path regression tests cover the remaining public API.
   Priority: medium
-  Evidence: Added `projects/dymad_migrate/architecture/transform-layer-design.md` defining `TransformModule`, field-aware pipelines, transform specs, compatibility adapters, and the first transform families to port.
-  Verification: `rg -n "^## Proposed base protocol|^## Transform spec and compatibility model|^## First transform families to port|TrajectoryManager|checkpoint.py:64" projects/dymad_migrate/architecture/transform-layer-design.md`
 
-- [x] Design the typed model-spec compatibility layer [requires-frontier] [skill: multi]
-  Why: The target contract replaces string maps with typed model specs, but migration needs a clear adapter path for current predefined names such as `LDM`, `KBF`, and related variants.
-  Done when: `projects/dymad_migrate/architecture/model-spec-design.md` defines the proposed spec objects, compatibility adapters, and the minimal predefined-model factory surface required for the first milestone.
+## Model-spec seam
+
+- [ ] Extend `ModelSpec` with typed rollout and memory metadata for one predefined family [requires-frontier] [skill: execute]
+  Why: The current typed spec layer is still only a family-string wrapper; the next useful step is to encode at least one real rollout/memory contract in typed form.
+  Done when: `modules/dymad_migrate/src/dymad/models/model_spec.py` defines typed rollout/memory sub-specs used by at least one predefined family in `modules/dymad_migrate/src/dymad/models/collections.py`, and focused tests assert those typed fields directly.
+  Priority: high
+
+- [ ] Route one predefined family through typed builder dispatch instead of `to_legacy_tuple()` fallback [requires-frontier] [skill: execute]
+  Why: `ModelSpec` will remain a veneer until one real builder path consumes typed fields without collapsing immediately back to the legacy tuple contract.
+  Done when: one predefined family used by an existing workflow gate is built through a typed dispatch path in `modules/dymad_migrate/src/dymad/models/helpers.py`, with the fallback tuple conversion retained only for unmigrated families.
+  Priority: high
+
+- [ ] Introduce an explicit rollout-engine seam for the first typed model-spec family [requires-frontier] [skill: execute]
+  Why: The target architecture separates model structure from rollout policy; the current prediction path still mixes those concerns even when a typed spec exists.
+  Done when: `modules/dymad_migrate/src/dymad/models/` contains a small rollout-engine seam for the first migrated family, and one continuous or discrete prediction path selects that seam from typed spec metadata rather than implicit legacy string logic.
+  Priority: high
+
+- [ ] Verify the first typed model-spec family against an existing workflow gate and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
+  Why: Once one family stops depending on the tuple fallback, the project needs explicit proof that the seam moved from `prototype` toward `adopted`.
+  Done when: a dated analysis note records the exact command(s) and outputs for the selected typed model-spec workflow gate, and `projects/dymad_migrate/architecture/migration-scoreboard.md` is updated to reflect the new seam status with correct provenance.
+  Priority: high
+
+## Training seam
+
+- [ ] Extract an explicit `PhasePipeline` object from `StackedOpt` while keeping config compatibility [requires-frontier] [skill: execute]
+  Why: The project already has `TrainerState` and `PhaseContext`, but phase sequencing still lives inside legacy `StackedOpt`; extracting a real pipeline object is the smallest architectural next step.
+  Done when: `modules/dymad_migrate/src/dymad/training/` contains a first-class `PhasePipeline` abstraction, `StackedOpt` becomes a compatibility wrapper around it, and existing phase config shapes still run.
+  Priority: high
+
+- [ ] Replace ad-hoc phase records with typed phase result objects tied to `TrainerState` and `PhaseContext` [requires-frontier] [skill: execute]
+  Why: `PhaseResult` currently still stores a recomposed legacy `RunState`, which keeps the new training seam from becoming the primary state carrier.
+  Done when: phase results record typed trainer-state and phase-context outputs directly, with legacy `RunState` materialization kept only behind explicit compatibility adapters.
+  Priority: high
+
+- [ ] Introduce `ExecutionServices` and remove logger/path setup from trainer-state shims [requires-frontier] [skill: execute]
+  Why: The training design calls for non-checkpointable services to live outside run state, but device/logging/path policy still leaks through `StackedOpt` and `OptBase`.
+  Done when: `modules/dymad_migrate/src/dymad/training/` has an `ExecutionServices` seam owning logger/path/device policy, and `TrainerState` / `PhaseContext` no longer need to carry those concerns implicitly.
   Priority: medium
-  Evidence: Added `projects/dymad_migrate/architecture/model-spec-design.md` defining the `ModelSpec` family, rollout separation, predefined-model adapters, and the first migration entrypoints from `models/collections.py`, `helpers.py`, and `prediction.py`.
-  Verification: `rg -n "^## Proposed typed spec family|^## Predefined model compatibility|^## Rollout separation|models/collections.py:8|models/helpers.py:155|models/prediction.py:97" projects/dymad_migrate/architecture/model-spec-design.md`
 
-- [x] Design the training split from orchestration to phase primitives [requires-frontier] [skill: multi]
-  Why: Training orchestration currently mixes too many concerns; the migration contract expects a cleaner split between data preparation, phase execution, state tracking, and execution control.
-  Done when: `projects/dymad_migrate/architecture/training-layer-design.md` documents the target training components, their responsibilities, and the first legacy entrypoints to extract.
+- [ ] Introduce a minimal `TrainerRun` wrapper for one single-split training path [requires-frontier] [skill: execute]
+  Why: The target hierarchy includes `TrainerRun`, but the current driver layer still jumps directly from driver code into trainer classes and checkpoint paths.
+  Done when: one single-split path in `modules/dymad_migrate/src/dymad/training/driver.py` or `trainer.py` constructs a `TrainerRun` object that owns run identity, artifact paths, and one `PhasePipeline`.
+  Priority: high
+
+- [ ] Route the linear-training workflow through `TrainerRun` plus `PhasePipeline` [requires-frontier] [skill: execute]
+  Why: The linear path is already the most migrated trainer family, so it is the safest place to make the new run/pipeline seam real.
+  Done when: the linear training path uses `TrainerRun` plus `PhasePipeline` as its primary orchestration surface and the existing focused linear workflow tests still pass.
+  Priority: high
+
+- [ ] Route one non-linear training workflow through the new training seam [requires-frontier] [skill: execute]
+  Why: The training seam is not credible until at least one `NODE` or weak-form workflow uses it in addition to the linear path.
+  Done when: one non-linear workflow exercised by `modules/dymad_migrate/tests/test_workflow_lti.py` or `modules/dymad_migrate/tests/test_workflow_kp.py` runs through the new training seam with compatibility adapters explicitly marked temporary.
+  Priority: high
+
+- [ ] Reduce `RunState` to a compatibility shim and document the remaining adapter boundary [requires-frontier] [skill: execute]
+  Why: `RunState` is still the legacy center of gravity; once the first run/pipeline path exists, the remaining shim surface should be made explicit and smaller.
+  Done when: `modules/dymad_migrate/src/dymad/training/helper.py` clearly scopes `RunState` as a compatibility-only container, unnecessary live-state fields are no longer primary carriers on migrated paths, and the remaining adapter fields are documented in code comments or a project analysis note.
   Priority: medium
-  Evidence: Added `projects/dymad_migrate/architecture/training-layer-design.md` defining `CVDriver -> TrainerRun -> PhasePipeline -> Phase`, the `TrainerState`/`PhaseContext` split, and first legacy migration targets.
-  Verification: `rg -n "^## Required hierarchy|^## State split|^## Legacy-to-target mapping|training/helper.py:9|training/stacked_opt.py:26|training/opt_base.py:19" projects/dymad_migrate/architecture/training-layer-design.md`
 
-- [x] Prototype the facade/store/exec skeleton without moving core math yet [requires-frontier] [skill: execute]
-  Why: The MCP-facing architecture should be validated early at the boundary level, but without polluting the core numerical work before the data/model seams are understood.
-  Done when: `modules/dymad_migrate/` contains a minimal non-invasive skeleton for `facade`, `store`, and `exec`, plus at least one typed handle flow documented against the project plan without changing the numerical behavior of existing core modules.
+- [ ] Record the first training-seam prototype verification and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
+  Why: The scoreboard still marks training as `design-only`; the first prototype needs explicit verification and status movement.
+  Done when: a dated analysis note records the exact workflow/test commands and outputs for the migrated training seam, and `projects/dymad_migrate/architecture/migration-scoreboard.md` updates `training` from `design-only` to the correct next status.
+  Priority: high
+
+## Spectral-analysis seam
+
+- [ ] Introduce a typed `SpectralSnapshot` record extracted from checkpoint-backed models [requires-frontier] [skill: execute]
+  Why: The spectral design calls for snapshot preparation to be distinct from the numerical kernels, but `SAInterface` still computes `_P0/_P1` and weights inside the legacy class.
+  Done when: `modules/dymad_migrate/src/dymad/sako/` contains a typed snapshot record that captures the first migrated spectral inputs (`P0`, `P1`, Koopman weights, dimensions, and related metadata) for checkpoint-backed analysis.
+  Priority: high
+
+- [ ] Extend the `store` and `facade` skeleton with typed spectral snapshot handles [requires-frontier] [skill: execute]
+  Why: The current boundary skeleton only knows checkpoints and prediction requests; spectral analysis needs at least one typed handle flow if it is going to follow the same layering pattern.
+  Done when: `modules/dymad_migrate/src/dymad/store/` and `modules/dymad_migrate/src/dymad/facade/` can register and resolve one spectral snapshot handle type, with focused boundary tests covering creation and lookup.
   Priority: medium
-  Evidence: Added `modules/dymad_migrate/src/dymad/facade/`, `modules/dymad_migrate/src/dymad/store/`, and `modules/dymad_migrate/src/dymad/exec/` with a typed-handle checkpoint-to-prediction request flow, plus plan documentation at `projects/dymad_migrate/plans/2026-03-30-facade-store-exec-skeleton.md`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py -q`
 
-- [x] Design checkpoint/load-model compatibility as the first facade boundary [requires-frontier] [skill: multi]
-  Why: Workflow tests repeatedly depend on `load_model(...)` plus prediction, so checkpoint/model loading is the most practical compatibility surface to preserve while introducing typed facade concepts.
-  Done when: `projects/dymad_migrate/architecture/checkpoint-facade-design.md` describes how current checkpoint loading maps to typed facade/store responsibilities, including which legacy API shapes must remain available through shims.
+- [ ] Implement a `SpectralAnalysisAdapter` over `SAKO` and `RALowRank` using typed snapshots [requires-frontier] [skill: execute]
+  Why: The numerical kernels are already separable; the missing piece is an adapter that turns typed spectral inputs into the current analysis operations.
+  Done when: `modules/dymad_migrate/src/dymad/sako/` contains an adapter object that consumes the typed spectral snapshot and delegates pseudospectrum, measure, and Jacobian-related calls to `SAKO` / `RALowRank` or small helper seams.
+  Priority: high
+
+- [ ] Route the legacy `SpectralAnalysis` compatibility class through the new adapter for one SA workflow [requires-frontier] [skill: execute]
+  Why: The public spectral surface remains the workflow contract today, so the adapter boundary has to become real through that compatibility class before the seam counts as adopted.
+  Done when: the legacy `SpectralAnalysis(...)` construction path delegates through the new adapter for at least one `tests/test_workflow_sa_lti.py` path while preserving current caller shape.
+  Priority: high
+
+- [ ] Split plotting helpers out of `sako/base.py` into an optional plotting adapter [requires-frontier] [skill: execute]
+  Why: Plotting is one of the remaining reasons `sako/base.py` still mixes workflow, numerical, and presentation concerns.
+  Done when: plotting helpers currently defined in `modules/dymad_migrate/src/dymad/sako/base.py` move behind a separate optional plotting adapter module, and the analysis adapter no longer owns plotting code directly.
   Priority: medium
-  Evidence: Added `projects/dymad_migrate/architecture/checkpoint-facade-design.md` with legacy `load_model` call-shape findings, compatibility API-shape requirements, ownership split across `core/facade/store/exec`, and staged shim migration gates tied to workflow tests.
-  Verification: `rg -n "^## Legacy findings to preserve|^## Compatibility surface to keep|^## Boundary ownership|^## First shim design|^## Migration sequence|test_workflow_lti.py:167|test_workflow_sa_lti.py:106|core -> facade -> store -> exec|src/dymad/exec/workflow.py:17-40" projects/dymad_migrate/architecture/checkpoint-facade-design.md`
 
-- [x] Design the spectral-analysis adapter boundary [requires-frontier] [skill: multi]
-  Why: `sako` is a distinctive DyMAD capability but currently couples model loading, numerics, and plotting; migration needs an explicit adapter design rather than preserving that entanglement accidentally.
-  Done when: `projects/dymad_migrate/architecture/spectral-analysis-design.md` specifies which pieces of `sako` remain pure core analysis, which pieces become adapters, and how parity is checked against `test_workflow_sa_lti.py`.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/architecture/spectral-analysis-design.md` defining legacy SA workflow coupling, explicit `core` vs adapter ownership, typed `SpectralSnapshot`/adapter contracts, and a parity gate strategy anchored to `tests/test_workflow_sa_lti.py`.
-  Verification: `rg -n '^## Purpose|^## Boundary ownership|^## Parity strategy for .*test_workflow_sa_lti.py|^### Core ownership|^### Adapter ownership|tests/test_workflow_sa_lti.py|SAKO|RALowRank' projects/dymad_migrate/architecture/spectral-analysis-design.md`
-
-- [x] Diagnose `test_workflow_sa_lti.py::test_sa[4]` rerun and runtime warnings [requires-frontier] [skill: diagnose]
-  Why: 2026-03-30 parity verification passed all required workflow files but `test_sa[4]` reran once and emitted `RuntimeWarning` values in `src/dymad/sako/sako.py:151`; migration should classify whether this is acceptable baseline noise or a stability bug before deeper spectral-boundary work.
-  Done when: `projects/dymad_migrate/analysis/` contains a diagnosis note that (1) reproduces the rerun/warnings with exact command output, (2) identifies likely cause category (numerical instability, test nondeterminism, or expected behavior), and (3) states whether follow-up code changes are required before marking spectral parity stable.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-sa-lti-rerun-warning-diagnosis.md` plus exact command logs at `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns-default.log`, `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns0.log`, and `projects/dymad_migrate/analysis/2026-03-30-sa-lti-test-sa4-reruns0-repeat.log`.
-  Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[4]' -vv && PYTHONPATH=src pytest 'tests/test_workflow_sa_lti.py::test_sa[4]' -vv --reruns=0`
-
-## Mission gap tasks
-
-- [x] Resolve the drift between the recorded first vertical slice and the implemented checkpoint-first skeleton [requires-frontier] [skill: orient] [zero-resource]
-  Why: `projects/dymad_migrate/analysis/2026-03-30-status-review.md` found that the recorded first slice is still the data-boundary migration, while implementation has advanced on a checkpoint-first boundary shim instead.
-  Done when: A dated plan/decision note either (a) re-baselines the first vertical slice to checkpoint-first with rationale, or (b) preserves the current data-boundary-first plan and decomposes the next implementation tasks needed to actually start that slice.
+- [ ] Record the `--reruns=0` spectral parity gate and update the scoreboard [fleet-eligible] [skill: analyze] [zero-resource]
+  Why: The design note already chose `test_workflow_sa_lti.py --reruns=0` as the right gate; once the adapter lands, the project needs explicit evidence and a visible status change.
+  Done when: a dated analysis note records the exact spectral parity command(s) and outputs, including warning behavior if present, and `projects/dymad_migrate/architecture/migration-scoreboard.md` updates `spectral-analysis` from `design-only` to the correct next status.
   Priority: high
-  Evidence: Added `projects/dymad_migrate/plans/2026-03-30-first-slice-reconciliation.md`, which keeps the data-boundary slice as the first real vertical slice and treats the checkpoint-first work as enabling boundary infrastructure.
-  Verification: `rg -n "^## Decision|^## Reconciled interpretation|^## Immediate implementation order|Keep the recorded first vertical slice as the data-boundary slice" projects/dymad_migrate/plans/2026-03-30-first-slice-reconciliation.md`
-
-- [x] Route the public `load_model(...)` workflow through the compatibility boundary [requires-frontier] [skill: execute]
-  Why: The status review found that `load_model_compat(...)` is real and tested, but real workflow callers still use the legacy `dymad.io.checkpoint.load_model(...)` path, so the new boundary is not yet the default surface exercised by workflow parity tests.
-  Done when: `modules/dymad_migrate/src/dymad/io/load_model(...)` or an equivalent public shim routes through `facade/store/exec`, and at least one existing workflow test proves the boundary path is actually exercised.
-  Priority: high
-  Evidence: Public `load_model(...)` in `modules/dymad_migrate/src/dymad/io/checkpoint.py` now delegates to `load_model_compat(...)`, while execution materialization uses `_load_model_legacy(...)`; `tests/test_public_load_model_boundary.py` proves the public path traverses the boundary and `tests/test_workflow_lti.py` passes through the default public entrypoint.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_checkpoint_e2e_layering.py tests/test_regular_series_adapter.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
-
-- [x] Create a plan-to-code migration scoreboard for anti-drift checks [fleet-eligible] [skill: persist] [zero-resource]
-  Why: The status review found that design artifacts are advancing faster than implementation, so future sessions need one file that states which planned seams are still design-only versus implemented and verified.
-  Done when: `projects/dymad_migrate/architecture/migration-scoreboard.md` maps each major planned seam (`data`, `transform`, `model-spec`, `training`, `checkpoint-facade`, `spectral-analysis`) to (a) design artifact, (b) code artifact if any, (c) verification artifact if any, and (d) status (`design-only`, `prototype`, `adopted`, or `verified`).
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/architecture/migration-scoreboard.md` with explicit seam-by-seam mappings, code artifacts, verification artifacts, and status values.
-  Verification: `rg -n "^## Scoreboard|^\\| `data` |^\\| `checkpoint-facade` |^\\| `spectral-analysis` |design-only|prototype|verified" projects/dymad_migrate/architecture/migration-scoreboard.md`
-
-- [x] Implement the first real data-boundary seam for regular trajectories [requires-frontier] [skill: execute]
-  Why: The recorded first vertical slice is still data-boundary-first, but no typed data seam has landed in code yet; this is the clearest next step to prevent the migration from remaining checkpoint-only.
-  Done when: `modules/dymad_migrate/` contains an initial regular-series abstraction plus one adapter path for regular trajectory preprocessing, and a focused test proves one legacy `TrajectoryManager`-style path can emit/use that seam without changing downstream numerical behavior.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/series.py` plus `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and `TrajectoryManager._transform_by_index(...)` now emits typed regular series internally before adapting back to `DynData`; `tests/test_regular_series_adapter.py` verifies a regular preprocessing path round-trips through the seam.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py -q`
-
-- [x] Split parity reporting into reference-oracle status and migration-package status [requires-frontier] [skill: analyze] [zero-resource]
-  Why: Current parity notes mix evidence from `modules/dymad_ref/` and `modules/dymad_migrate/`, which makes it harder to tell whether a claim is about the oracle baseline or the migrated implementation.
-  Done when: A dated analysis note records the same selected workflow gate for both packages separately, with explicit command provenance and a short comparison section, and `projects/dymad_migrate/knowledge/parity-critical-workflows.md` points to this split verification convention.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-lti-split-parity-verification.md` and two separate logs for `tests/test_workflow_lti.py` in `dymad_ref` and `dymad_migrate`, and updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with the split-verification convention.
-  Verification: `rg -n "^## Selected gate|dymad_ref: PASS|dymad_migrate: PASS|invalid broad-run evidence" projects/dymad_migrate/analysis/2026-03-30-lti-split-parity-verification.md` and `rg -n "15 passed, 2 warnings" projects/dymad_migrate/analysis/2026-03-30-lti-parity-dymad_ref-pytest.log projects/dymad_migrate/analysis/2026-03-30-lti-parity-dymad_migrate-pytest.log`
-
-- [x] Prove one public workflow now traverses the default migrated boundary path [requires-frontier] [skill: execute]
-  Why: After rerouting `load_model(...)`, the project should have one regression test that verifies a real public workflow reaches `facade/store/exec` without relying on the explicit `load_model_compat(...)` test-only path.
-  Done when: At least one existing workflow test or a new focused integration test asserts that the default public entrypoint traverses the boundary path, and the test passes in `modules/dymad_migrate`.
-  Priority: medium
-  Evidence: Added `modules/dymad_migrate/tests/test_public_load_model_boundary.py`, which calls the default public `dymad.io.load_model(...)` path and asserts the boundary traversal; `modules/dymad_migrate/tests/test_workflow_lti.py` also passes through the same default public entrypoint after the reroute.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
-
-## Regular working slice tasks
-
-- [x] Implement the minimal regular-series transform pipeline [requires-frontier] [skill: execute]
-  Why: The regular data seam now exists, but the working slice is not real until transform application moves onto typed regular-series objects instead of stopping at legacy NumPy-list transforms.
-  Done when: `modules/dymad_migrate/` includes a minimal regular-series transform pipeline covering the current regular `transform_x` / `transform_u` path, and a focused equivalence test compares its output to the current legacy regular transform path for at least one representative case.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_pipeline.py` and routed regular preprocessing through it in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`; added parity-focused equivalence coverage in `modules/dymad_migrate/tests/test_regular_series_adapter.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py -q`
-
-- [x] Route regular checkpoint prediction through typed regular-series payloads [requires-frontier] [skill: execute]
-  Why: A regular working slice is not complete until checkpoint-time prediction uses the typed regular-series seam rather than reconstructing only legacy `DynData` objects in the regular branch.
-  Done when: the non-graph `predict_fn(...)` path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` builds or consumes `RegularSeries` via the adapter layer before legacy model prediction, and focused tests preserve current caller-visible behavior.
-  Priority: high
-  Evidence: Updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so the non-graph compatibility path builds a typed regular batch and applies `RegularSeriesTransformPipeline` before constructing the legacy runtime payload.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py::test_regular_checkpoint_prediction_uses_typed_series -q`
-
-- [x] Add one end-to-end regular-slice integration test [requires-frontier] [skill: execute]
-  Why: The current focused tests verify the boundary and the data seam separately; the slice milestone needs one test that proves they work together on a real regular workflow path.
-  Done when: a new automated test exercises regular trajectory preprocessing plus public checkpoint loading/prediction and asserts the typed regular-series seam is touched inside the flow.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/tests/test_regular_slice_integration.py`, which verifies both regular preprocessing and public checkpoint prediction touch the typed transform seam in one flow.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py::test_regular_slice_integration_touches_typed_transform_seam -q`
-
-- [x] Record the clean regular-slice parity gate in both packages [requires-frontier] [skill: analyze] [zero-resource]
-  Why: The slice should be signed off against a clean regular-only gate before graph and spectral noise re-enter the picture.
-  Done when: a dated analysis note records clean serial outcomes for `tests/test_assert_trajmgr.py`, `tests/test_assert_transform.py`, and `tests/test_workflow_lti.py` in both `modules/dymad_ref` and `modules/dymad_migrate`, with exact command provenance and any residual gap notes.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-gate.md` and persisted exact pytest output at `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_migrate-pytest.log` and `projects/dymad_migrate/analysis/2026-03-30-regular-slice-parity-dymad_ref-pytest.log`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py tests/test_workflow_lti.py -q` and `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_transform.py tests/test_workflow_lti.py -q`
-
-- [x] Promote the regular slice from prototype to milestone status (or record the blocker) [requires-frontier] [skill: govern] [zero-resource]
-  Why: The scoreboard currently marks `data` as `prototype`; the project needs an explicit closure step that either upgrades the regular slice status or records exactly why it cannot yet be upgraded.
-  Done when: `projects/dymad_migrate/architecture/migration-scoreboard.md` and `projects/dymad_migrate/README.md` are updated to mark the regular slice as `adopted`/`verified` or to record the remaining blocker with concrete evidence.
-  Priority: high
-  Evidence: Updated `projects/dymad_migrate/architecture/migration-scoreboard.md` so the regular `data` and `transform` seams are now marked `verified`, with the regular-slice parity note as the verification artifact.
-  Verification: `rg -n \"\\| `data` |.*`verified`|\\| `transform` |.*`verified`\" projects/dymad_migrate/architecture/migration-scoreboard.md`
-
-## Data/transform module-first migration tasks
-
-- [x] Freeze the new data/transform scope and drop backward-compatibility as a primary constraint [requires-frontier] [skill: orient] [zero-resource]
-  Why: The migration strategy has changed from compatibility-heavy vertical slicing to module-first replacement for data and transforms; that change needs to be explicit so future sessions do not drift back into shims-first work.
-  Done when: a short analysis note records the scope decision, states that old public API compatibility is no longer a primary requirement for data/transform modules, and lists the downstream modules that should be treated as adapter consumers for now.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-data-transform-scope-freeze.md` and the module-first program plan at `projects/dymad_migrate/plans/2026-03-30-data-transform-module-first-migration.md`.
-  Verification: `rg -n "^# Data/Transform Scope Freeze|backward compatibility is not a primary requirement|adapter consumers for now" projects/dymad_migrate/analysis/2026-03-30-data-transform-scope-freeze.md`
-
-- [x] Define the final typed data contract for regular and graph series [requires-frontier] [skill: execute]
-  Why: `RegularSeries` exists, but the full data migration needs the complete semantic contract before loaders and transforms can be rewritten decisively.
-  Done when: `modules/dymad_migrate/src/dymad/core/` includes the agreed regular/graph series and batch/layout types needed for current data workflows, with explicit semantics for time layout, raggedness, device/dtype moves, slicing, batching, and graph edge variation.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/graph_series.py`, exported the graph series types from `modules/dymad_migrate/src/dymad/core/__init__.py`, and added focused coverage in `modules/dymad_migrate/tests/test_graph_series_core.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_core.py -q`
-
-- [x] Replace `DynData` as the design center of trajectory preprocessing [requires-frontier] [skill: execute]
-  Why: The migration does not really start until `TrajectoryManager` and related preprocessing code build typed series objects directly instead of treating them as a side seam next to `DynData`.
-  Done when: regular and graph preprocessing paths in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` construct typed data objects first and adapt to legacy runtime objects only at explicitly marked downstream boundaries.
-  Priority: high
-  Evidence: Extended `modules/dymad_migrate/src/dymad/io/series_adapter.py` with graph adapters, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `TrajectoryManagerGraph._transform_by_index(...)` now routes through `_transform_graph_series_by_index(...)`, and added `modules/dymad_migrate/tests/test_graph_series_adapter.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py -q`
-
-- [x] Introduce a Torch-first transform module protocol and pipeline as the only new transform contract [requires-frontier] [skill: execute]
-  Why: The legacy list-of-NumPy-array transform API will keep leaking across modules unless the new protocol becomes the sole target for new work.
-  Done when: `modules/dymad_migrate/src/dymad/core/` exposes the canonical Torch-first transform base and pipeline interfaces, and new transform work is routed through that interface rather than `dymad.transform.base.Transform`.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_module.py` and `modules/dymad_migrate/src/dymad/core/torch_transforms.py`, exported the new interfaces via `modules/dymad_migrate/src/dymad/core/__init__.py`, and verified them in `modules/dymad_migrate/tests/test_torch_transform_modules.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_torch_transform_modules.py -q`
-
-- [x] Port stateless and fitted core transforms to native Torch implementations [requires-frontier] [skill: execute]
-  Why: The core data migration cannot rely on autodiff-enabled transforms until the common transform families are native Torch modules.
-  Done when: identity, scaler, delay embedding, lift/add-one, compose, and any other regular-workflow-critical non-NDR transforms used by current blocker workflows have Torch-native implementations plus focused equivalence tests against the legacy behavior where still useful.
-  Priority: high
-  Evidence: Added `LiftTransform` plus the Torch-native transform family in `modules/dymad_migrate/src/dymad/core/torch_transforms.py`, exported the surface in `modules/dymad_migrate/src/dymad/core/__init__.py`, and added focused equivalence coverage in `modules/dymad_migrate/tests/test_torch_transform_modules.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trans_lift.py tests/test_torch_transform_modules.py -q`
-
-- [x] Add graph-series data specialization on the new typed contract [requires-frontier] [skill: execute]
-  Why: The target data layer explicitly includes graph data; postponing graph entirely would leave `DynData` alive as the only serious graph abstraction.
-  Done when: fixed-graph and variable-edge graph series/batch types exist on the new core data contract, and the graph trajectory-preparation path can emit them before any downstream legacy adaptation.
-  Priority: high
-  Evidence: Added the graph core types in `modules/dymad_migrate/src/dymad/core/graph_series.py`, added graph round-trip adapters in `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and exposed `TrajectoryManagerGraph.create_graph_series_dataset(...)` plus `_transform_graph_series_by_index(...)` in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_graph_series_adapter.py tests/test_graph_series_core.py -q`
-
-- [x] Migrate graph-compatible transform application onto the new pipeline [requires-frontier] [skill: execute]
-  Why: Data migration is incomplete if graph preprocessing still depends on the old transform stack and shape conventions.
-  Done when: the graph preprocessing path applies state/control/edge transforms through the new transform pipeline with typed graph-series objects, covering at least the currently exercised graph transform families outside NDR.
-  Priority: high
-  Evidence: Updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so graph preprocessing now routes through `_build_graph_transform_pipeline()`, added `LegacyTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py`, and verified parity against the exercised graph workflow tests in `modules/dymad_migrate/tests/test_assert_trajmgr_graph.py` and `modules/dymad_migrate/tests/test_graph_series_adapter.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q`
-
-- [x] Wrap NDR transforms behind explicit Torch/autodiff adapters [requires-frontier] [skill: execute]
-  Why: NDR is part of the data-transform surface area, but exact pure-Torch replacements are not required to move the architecture forward; explicit wrapped adapters are the practical intermediate target.
-  Done when: `DiffMap`, `DiffMapVB`, `Isomap` (and any other live NDR transforms) are exposed through the new transform protocol with explicit gradient-support metadata and documented CPU/wrapper behavior, even if their internals still call external numerics.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/transform_builder.py` plus `NDRTransformModuleAdapter` in `modules/dymad_migrate/src/dymad/core/transform_module.py`, exported the new boundary from `modules/dymad_migrate/src/dymad/core/__init__.py`, and added explicit NDR wrapper coverage in `modules/dymad_migrate/tests/test_transform_builder.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_transform_builder.py -q`
-
-- [x] Remove hidden legacy transform construction from loaders/checkpoint paths [requires-frontier] [skill: execute]
-  Why: Even with new data types and new transforms, the migration will drift if checkpoint/load/model paths keep reconstructing the old transform stack directly.
-  Done when: loader/checkpoint/preprocessing entrypoints build transforms through the new transform protocol and only use legacy transform objects behind narrow, temporary adapters if still needed.
-  Priority: high
-  Evidence: Added the explicit transform-builder boundary in `modules/dymad_migrate/src/dymad/core/transform_builder.py`, routed checkpoint loading through it in `modules/dymad_migrate/src/dymad/io/checkpoint.py`, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so typed regular/graph preprocessing uses builder-constructed modules, and kept graph edge-field legacy handling behind narrow typed adapters only.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr_graph.py tests/test_graph_series_adapter.py tests/test_graph_series_core.py tests/test_torch_transform_modules.py -q`
-
-- [x] Record data/transform migration verification gates and update the scoreboard [requires-frontier] [skill: analyze] [zero-resource]
-  Why: The module-first migration needs its own sign-off criteria separate from the prior compatibility-heavy slice.
-  Done when: a dated analysis note records the exact regular/graph/transform/NDR verification commands for the new module-first data/transform migration, and `projects/dymad_migrate/architecture/migration-scoreboard.md` is updated to reflect the new data/transform module status.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md` and updated `projects/dymad_migrate/architecture/migration-scoreboard.md` to reflect the centralized transform-builder boundary plus explicit NDR and graph-edge adapter status.
-  Verification: `rg -n \"^# Data/Transform Boundary Verification|^## Findings|19 passed, 1268 warnings\" projects/dymad_migrate/analysis/2026-03-30-data-transform-boundary-verification.md` and `rg -n \"transform_builder.py|NDR stages are explicit non-differentiable adapters|checkpoint hydration now constructs transforms through the central typed builder\" projects/dymad_migrate/architecture/migration-scoreboard.md`
-
-- [x] Design a deterministic replacement for the flake-managed `test_ndr[0]` parity exception [requires-frontier] [skill: diagnose] [zero-resource]
-  Why: Compound follow-up from `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` — parity is currently policy-satisfied, but remains risk-bound to a `<=4/30` flake threshold.
-  Done when: A diagnosis/design note evaluates at least two deterministic alternatives (for example seeded fixture strategy, threshold redesign, or migration-side deterministic parity probe), chooses one recommended path, and updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` with either a replacement gate or an explicit deferred-decision rationale.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-replacement-design.md`, added deterministic probe script `projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py`, and updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md` section `3a` with the replacement gate (`seed=54`, strict thresholds, both-package verification).
-  Verification: `cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py --seed 54 --trials 12` and `cd modules/dymad_migrate && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-31-ndr-deterministic-gate-probe.py --seed 54 --trials 12`
-
-- [x] Adjudicate parity-critical gate status using the flake-aware NDR policy [requires-frontier] [skill: analyze] [zero-resource]
-  Why: Mission gap - README Done-when requires preserving selected parity-critical workflows, but the latest aggregate gate note (`2026-03-30-parity-critical-gate-outcomes.md`) predates policy-based adjudication and still records parity as unstable.
-  Done when: A dated analysis note in `projects/dymad_migrate/analysis/` recomputes blocker/milestone gate status using the policy from `knowledge/parity-critical-workflows.md` section `3a`, includes explicit arithmetic/provenance from existing logs, and records whether the parity-preservation Done-when condition is currently satisfied or still blocked.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md` with policy-adjusted blocker arithmetic (`3/30` flake adjudication against `<=4/30`) and an explicit parity Done-when status decision.
-  Verification: `rg -n \"^# Parity Gate Adjudication Under the Flake-Aware NDR Policy|^## Findings|^## Decision|3/30|10/10|currently satisfied\" projects/dymad_migrate/analysis/2026-03-30-parity-policy-adjudication.md`
-
-- [x] Implement checkpoint compatibility through facade/store/exec boundary [requires-frontier] [skill: execute]
-  Why: Mission gap - no implementation task yet for README Done-when condition "`modules/dymad_migrate/` documents and implements the agreed `core` / `facade` / `store` / `exec` boundaries" (per ADR 0049).
-  Done when: `modules/dymad_migrate/src/dymad/io/load_model_compat.py` (or equivalent boundary adapter location) routes checkpoint registration through `facade`/`store`, materialization through `exec`, and `modules/dymad_migrate/tests/test_boundary_skeleton.py` plus a new compatibility-focused test both pass.
-  Priority: medium
-  Evidence: Added `modules/dymad_migrate/src/dymad/io/load_model_compat.py`, extended `modules/dymad_migrate/src/dymad/exec/workflow.py` with `materialize_checkpoint_prediction(...)`, and added `modules/dymad_migrate/tests/test_load_model_compat.py` to verify the adapter plans via `facade/store` and materializes via `exec`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_boundary_skeleton.py tests/test_load_model_compat.py -q`
-
-- [x] Verify parity-critical `load_model` workflows after boundary adapter landing [requires-frontier] [skill: analyze]
-  Why: Mission gap - no explicit verification task yet for README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" (per ADR 0049).
-  Done when: A migration analysis note records pass/fail outcomes for `test_workflow_lti.py`, `test_workflow_kp.py`, `test_workflow_ltg.py`, `test_workflow_ltga.py`, `test_workflow_ker_auto.py`, `test_workflow_ker_ctrl.py`, and `test_workflow_sa_lti.py`, with exact command output and any residual parity gaps.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-verification.md` with file-level pass/fail outcomes and residual parity-gap notes, and persisted exact pytest output at `projects/dymad_migrate/analysis/2026-03-30-load-model-parity-pytest.log`.
-  Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_ker_auto.py tests/test_workflow_ker_ctrl.py tests/test_workflow_sa_lti.py -q`
-
-- [x] Expose one verified end-to-end checkpoint path matching MCP layering [requires-frontier] [skill: execute]
-  Why: Mission gap - no open task yet for README Done-when condition "exposes at least one verified end-to-end path that matches the MCP layering pattern" (per ADR 0049).
-  Done when: `modules/dymad_migrate` includes one runnable path from facade handle registration through exec planning/materialization for checkpoint prediction, validated by an automated test and documented against `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
-  Priority: medium
-  Evidence: Added `modules/dymad_migrate/tests/test_checkpoint_e2e_layering.py` to verify the end-to-end compatibility flow order (`exec -> facade -> store -> materialize`) and added `modules/dymad_migrate/docs/checkpoint-e2e-layering.md` mapping the DyMAD path to the reference layering in `modules/mcp_test/ARCHITECTURE_SUMMARY.md`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_boundary_skeleton.py tests/test_load_model_compat.py -q`
-
-- [x] Diagnose `test_assert_trans_ndr.py::test_ndr[0]` parity-gate failure mode [requires-frontier] [skill: diagnose]
-  Why: `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` recorded a blocker-class failure (`Isomap recon. error`) while milestone workflows still passed; migration needs to classify whether this is deterministic baseline drift or run-to-run numerical instability before parity sign-off.
-  Done when: A diagnosis note in `projects/dymad_migrate/analysis/` reproduces `test_assert_trans_ndr.py::test_ndr[0]` across repeated runs with exact outputs, reports failure frequency and normalized-error range, and states whether parity gating should treat this as a hard blocker or a flake-managed condition.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-ndr-idx0-parity-diagnosis.md` with repeated-run failure arithmetic (`3/30`), normalized-error ranges, and flake-managed gate classification, plus exact logs at `projects/dymad_migrate/analysis/2026-03-30-ndr-test-idx0-reruns0-repeat.log` and `projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.log`.
-  Verification: `cd modules/dymad_ref && PYTHONPATH=src bash -lc 'for i in {1..30}; do echo \"===== RUN $i =====\"; pytest \"tests/test_assert_trans_ndr.py::test_ndr[0]\" --reruns=0 -q; ec=$?; echo \"EXIT_CODE=$ec\"; done'` and `cd modules/dymad_ref && PYTHONPATH=src python /Users/daninghuang/Repos/openakari-codex/projects/dymad_migrate/analysis/2026-03-30-ndr-isomap-ratio-probe.py`
-
-- [x] Define flake-aware parity policy for `test_assert_trans_ndr.py::test_ndr[0]` [requires-frontier] [skill: analyze]
-  Why: The completed diagnosis classified `test_ndr[0]` as flake-managed (`3/30` isolated-run failures, unseeded fixture), so the parity gate needs an explicit policy instead of single-run hard-block semantics.
-  Done when: A short policy note updates `projects/dymad_migrate/knowledge/parity-critical-workflows.md` (or a linked analysis note) with the exact gating rule for this case (for example repeated-run threshold or deterministic fixture requirement), and `projects/dymad_migrate/TASKS.md` references the chosen rule as the parity-check standard.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md` with explicit adjudication thresholds (`<=4/30` flake-managed, `>=5/30` blocker) and failure-type constraints, and updated `projects/dymad_migrate/knowledge/parity-critical-workflows.md` section `3a` to make this the recorded parity standard.
-  Verification: `rg -n 'Special gate policy for .*test_assert_trans_ndr.py::test_ndr\\[0\\]|<= 4/30|>= 5/30|2026-03-30-ndr-flake-policy.md' projects/dymad_migrate/knowledge/parity-critical-workflows.md projects/dymad_migrate/analysis/2026-03-30-ndr-flake-policy.md projects/dymad_migrate/TASKS.md`
-
-- [x] Quantify parity-critical workflow gate outcomes for the current migration baseline [requires-frontier] [skill: analyze]
-  Why: Mission gap - no open task currently verifies the README Done-when condition "preserves the selected parity-critical legacy workflows against `modules/dymad_ref/`" after recent boundary-adapter changes (per ADR 0049).
-  Done when: `projects/dymad_migrate/analysis/` contains a dated note with blocker/milestone parity-gate pass/fail counts from `projects/dymad_migrate/knowledge/parity-critical-workflows.md`, exact verification command(s), and a concise decision on whether parity is currently stable.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-outcomes.md` and persisted exact test output at `projects/dymad_migrate/analysis/2026-03-30-parity-critical-gate-pytest.log`.
-  Verification: `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_assert_trajmgr.py tests/test_assert_dm.py tests/test_assert_trajmgr_graph.py tests/test_assert_graph.py tests/test_assert_transform.py tests/test_assert_trans_mode.py tests/test_assert_trans_lift.py tests/test_assert_trans_ndr.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py tests/test_workflow_sa_lti.py tests/test_assert_resolvent.py tests/test_assert_spectrum.py tests/test_workflow_sample.py -q`
-
-## Model runtime / prediction migration tasks
-
-- [x] Design the typed model-runtime boundary after data/transform [requires-frontier] [skill: multi] [zero-resource]
-  Why: The next highest-leverage module after data/transform is the model runtime / prediction layer, because it is the narrowest remaining boundary that still depends directly on `DynData`.
-  Done when: `projects/dymad_migrate/architecture/model-runtime-boundary-design.md` defines the typed model input/context objects for regular and graph prediction, lists the exact legacy entrypoints to migrate first, and states which compatibility adapters remain temporary.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/architecture/model-runtime-boundary-design.md` to define the typed `RegularModelContext` / `GraphModelContext` boundary, the exact `checkpoint.py` prediction paths to migrate first, and the temporary `typed context -> DynData` compatibility rule.
-  Verification: `rg -n "^# DyMAD Model Runtime Boundary Design|^## Legacy bottlenecks|^## First exact migration targets|^## Verification gates" projects/dymad_migrate/architecture/model-runtime-boundary-design.md`
-
-- [x] Introduce a typed model context adapter for regular and graph series [requires-frontier] [skill: execute]
-  Why: Prediction and model helpers need one stable typed input object before `DynData` can be removed from model-facing signatures.
-  Done when: `modules/dymad_migrate/` contains typed model-context adapters built from `RegularSeries` / `GraphSeries`, and focused tests prove they preserve the current information needed by legacy model helpers.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/model_context.py`, exported it from `modules/dymad_migrate/src/dymad/core/__init__.py`, added helper-preservation coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py`, and tightened `modules/dymad_migrate/src/dymad/io/series_adapter.py` so fixed-topology graph edge payloads round-trip cleanly through the temporary legacy adapter.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py -q`
-
-- [x] Route one regular prediction path through the typed model context [requires-frontier] [skill: execute]
-  Why: The next module migration should establish one real regular execution path that consumes typed model context instead of depending on raw `DynData` assembly.
-  Done when: one public regular prediction path in `modules/dymad_migrate/src/dymad/models/` or checkpoint-backed prediction consumes typed model context before any legacy adapter boundary, with regression coverage against the current workflow gate.
-  Priority: high
-  Evidence: Updated the regular checkpoint-backed prediction path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` so the non-graph branch builds a typed regular series batch, materializes `RegularModelContext`, and only then crosses the temporary `to_legacy_runtime()` boundary; added regression coverage in `modules/dymad_migrate/tests/test_regular_slice_integration.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py -q`
-
-- [x] Route one graph prediction path through the typed model context [requires-frontier] [skill: execute]
-  Why: Graph prediction is one of the main reasons `DynData` survives; the next module migration should prove the typed context also works for graph execution.
-  Done when: one public graph prediction path in `modules/dymad_migrate/src/dymad/models/` or checkpoint-backed prediction consumes typed graph model context before any legacy adapter boundary, with regression coverage against the current graph workflow gate.
-  Priority: high
-  Evidence: Updated the single-graph checkpoint-backed prediction path in `modules/dymad_migrate/src/dymad/io/checkpoint.py` so fixed-topology and per-step single-graph inputs build transformed typed graph series, materialize `GraphModelContext`, and only then cross the temporary `to_legacy_runtime()` boundary; added focused graph regression coverage in `modules/dymad_migrate/tests/test_regular_slice_integration.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py -q` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
-
-- [x] Split model helper/components away from direct `DynData` field access [requires-frontier] [skill: execute]
-  Why: Helper-level field accessors in `models/components.py` are a major source of `DynData` coupling and need to be moved behind typed context readers before broader model/runtime cleanup.
-  Done when: the first targeted helper/component family reads from typed model context or a narrow compatibility adapter rather than directly indexing `DynData` fields, and the affected prediction tests still pass.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/models/runtime_view.py` as the narrow runtime-view adapter, updated `modules/dymad_migrate/src/dymad/models/components.py` so encoder/decoder/feature/composer helpers read through that adapter instead of directly indexing `DynData`, aligned `modules/dymad_migrate/src/dymad/models/model_base.py` signatures, and added focused coverage in `modules/dymad_migrate/tests/test_component_runtime_view.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_component_runtime_view.py tests/test_model_context_adapter.py -q`
-
-- [x] Record regular and graph prediction parity gates for the typed model-runtime boundary [requires-frontier] [skill: analyze] [zero-resource]
-  Why: The next module migration should be signed off with explicit regular and graph prediction evidence before training migration starts.
-  Done when: a dated analysis note records the exact regular and graph prediction verification commands for the typed model-runtime boundary and compares the selected gates against `dymad_ref` where relevant.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-model-runtime-parity-gates.md` and updated `projects/dymad_migrate/architecture/migration-scoreboard.md` to mark the model-runtime seam as verified.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q` and `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
-
-## DynData retirement planning tasks
-
-- [x] Inventory the remaining `DynData` dependency surface after Phase 1 [requires-frontier] [skill: diagnose] [zero-resource]
-  Why: `DynData` retirement should be managed as a separate queue, and the first requirement is a precise inventory of which files and call paths still depend on it.
-  Done when: `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md` lists the remaining dependencies across model runtime, training, checkpoint, dataloader, and analysis paths with file references and dependency categories.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/architecture/dyndata-retirement-inventory.md` with six dependency categories, concrete file references, allowed temporary boundaries, and deletion criteria.
-  Verification: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'`
-
-- [x] Define the phased `DynData` retirement plan and cutoff rules [requires-frontier] [skill: multi] [zero-resource]
-  Why: Retirement spans multiple modules; the project needs an explicit phase order and deletion criteria so sessions do not remove adapters too early or leave dead compatibility seams indefinitely.
-  Done when: `projects/dymad_migrate/plans/` contains a dated `DynData` retirement plan with phases, no-new-dependency rule, adapter deletion criteria, and the verification gates required before each phase.
-  Priority: high
-  Evidence: Updated `projects/dymad_migrate/plans/2026-03-30-dyndata-retirement-centered-path.md` to active status and added the no-new policy, adapter deletion criteria, phase gates, and immediate execution order.
-  Verification: `git diff --check -- projects/dymad_migrate/plans/2026-03-30-dyndata-retirement-centered-path.md`
-
-- [x] Add a no-new-`DynData` dependency policy to the project record [fleet-eligible] [skill: govern] [zero-resource]
-  Why: Retirement will drift if new code keeps reintroducing fresh `DynData` dependencies while the old ones are being reduced.
-  Done when: the project README and/or a decision note explicitly states that new code must target typed series/model-context objects and may only touch `DynData` at shrinking compatibility boundaries.
-  Priority: medium
-  Evidence: Added a `Working rules` section to `projects/dymad_migrate/README.md` that forbids new `DynData` dependencies outside the temporary retirement boundaries recorded in the inventory.
-  Verification: `rg -n "Working rules|DynData dependencies are not allowed" projects/dymad_migrate/README.md`
-
-- [x] Define the first dataloader/batch replacement targets for post-runtime retirement [requires-frontier] [skill: multi] [zero-resource]
-  Why: Even after model runtime migration, `DynData` will remain alive until batch collation and trainer inputs stop depending on it.
-  Done when: a short design note identifies the first `RegularSeriesBatch` / `GraphSeriesBatch` replacements for dataloader and trainer consumption, with concrete legacy call sites named.
-  Priority: medium
-  Evidence: Added `projects/dymad_migrate/architecture/dyndata-batch-contract-design.md` defining `RegularTrainerBatch` / `GraphTrainerBatch`, the exact loader and trainer call sites to replace, and the first migration order.
-  Verification: `rg -n "RegularTrainerBatch|GraphTrainerBatch|opt_linear|TrajectoryManager" projects/dymad_migrate/architecture/dyndata-batch-contract-design.md`
-
-## DynData retirement execution tasks
-
-- [x] Replace the first model helper/component family with typed context readers [requires-frontier] [skill: execute]
-  Why: `models/components.py` is one of the densest remaining `DynData` dependency clusters, and helper-level field access is the first real shrink point after the runtime boundary work.
-  Done when: one coherent helper family in `modules/dymad_migrate/src/dymad/models/components.py` reads from typed context readers or a narrow typed compatibility object instead of directly indexing `DynData`, and the affected regular and graph runtime tests still pass.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/models/runtime_view.py`, updated `modules/dymad_migrate/src/dymad/models/components.py` and `modules/dymad_migrate/src/dymad/models/model_base.py`, and added `modules/dymad_migrate/tests/test_component_runtime_view.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_component_runtime_view.py tests/test_model_context_adapter.py -q`
-
-- [x] Define typed dataloader and trainer batch contracts replacing `DynData` [requires-frontier] [skill: multi] [zero-resource]
-  Why: `DynData` cannot be deleted while `TrajectoryManager` and trainer entrypoints still treat it as the canonical batch object.
-  Done when: a design note defines the first `RegularSeriesBatch` / `GraphSeriesBatch` or equivalent trainer-facing batch contracts, names the exact `TrajectoryManager` and trainer call sites to replace, and states which compatibility adapters remain temporary.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/architecture/dyndata-batch-contract-design.md` defining `RegularTrainerBatch` / `GraphTrainerBatch`, the exact loader and trainer call sites to replace, and the first migration order.
-  Verification: `rg -n "RegularTrainerBatch|GraphTrainerBatch|opt_linear|TrajectoryManager" projects/dymad_migrate/architecture/dyndata-batch-contract-design.md`
-
-- [x] Make `TrajectoryManager` emit typed batches on the new path [requires-frontier] [skill: execute]
-  Why: Retirement needs the dataloader boundary to stop centering `DynData`.
-  Done when: one regular path and one graph path in `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` and its dataloaders emit typed batches instead of `DynData`, with verification coverage for batch shape and metadata.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/core/trainer_batch.py`, updated `modules/dymad_migrate/src/dymad/io/trajectory_manager.py` so `process_data(...)`, `process_all(...)`, and `create_dataloaders(...)` support `typed=True`, and added coverage in `modules/dymad_migrate/tests/test_typed_trainer_batches.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_typed_trainer_batches.py tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py -q`
-
-- [x] Replace trainer batch consumption in the first optimizer family [requires-frontier] [skill: execute]
-  Why: Removing `DynData` requires at least one real trainer family to consume typed batches instead of the legacy object.
-  Done when: one coherent trainer family (`opt_node`, `opt_linear`, or `opt_weak_form` plus its helpers) accepts typed batches or typed runtime/model contexts, and its workflow gate still passes.
-  Priority: high
-  Evidence: Added `modules/dymad_migrate/src/dymad/training/batch_adapter.py`, updated `modules/dymad_migrate/src/dymad/training/ls_update.py`, `modules/dymad_migrate/src/dymad/training/opt_linear.py`, and `modules/dymad_migrate/src/dymad/training/driver.py`, and added focused driver coverage in `modules/dymad_migrate/tests/test_linear_typed_batch_driver.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_ltg.py -q`
-
-- [x] Remove direct `DynData` construction from checkpoint utilities and `DataInterface` [requires-frontier] [skill: execute]
-  Why: Even after runtime-path migration, helper utilities still construct new `DynData` instances directly and will keep the object alive unless they are moved.
-  Done when: `modules/dymad_migrate/src/dymad/io/checkpoint.py` and `DataInterface` stop directly constructing `DynData` on the migrated paths, except for explicitly marked temporary deletion-stage adapters.
-  Priority: medium
-  Evidence: Updated `modules/dymad_migrate/src/dymad/io/checkpoint.py` so regular and graph checkpoint prediction payloads are built from typed series/model contexts, and `DataInterface` now uses typed trajectory-manager loaders plus the narrow `DynDataAdapter` compatibility seam for the learned encoder case.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_slice_integration.py tests/test_load_model_compat.py tests/test_public_load_model_boundary.py tests/test_assert_di.py tests/test_workflow_kp.py tests/test_workflow_ltg.py -q`
-
-- [x] Verify the DynData-retired regular and graph workflow gates [requires-frontier] [skill: analyze] [zero-resource]
-  Why: The object can only be retired if the package still satisfies the selected regular and graph gates on the typed-batch path.
-  Done when: a dated analysis note records the exact regular and graph verification commands for the `DynData`-retired paths and compares them against the current migration baseline.
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gate-verification.md` and raw gate output at `projects/dymad_migrate/analysis/2026-03-30-dyndata-retired-workflow-gates-pytest.log`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
-
-- [x] Replace `models/prediction.py` direct `DynData` construction with typed runtime payloads [requires-frontier] [skill: execute]
-  Why: `models/prediction.py` still constructs empty and collated `DynData` payloads directly, so prediction helpers remain one of the largest runtime blockers to full retirement.
-  Done when: the main prediction helpers in `modules/dymad_migrate/src/dymad/models/prediction.py` consume typed model contexts, typed runtime views, or an explicit narrow compatibility adapter instead of constructing or collating `DynData` directly.
-  Priority: high
-  Evidence: Added the explicit compatibility seam `materialize_prediction_runtime(...)` and `ModelRuntimePayload` in `modules/dymad_migrate/src/dymad/core/model_context.py`, updated `modules/dymad_migrate/src/dymad/models/prediction.py` to route `_prepare_data(...)` through that seam, and added focused adapter coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py`.
-  Verification: `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io import DynData|ws: DynData" modules/dymad_migrate/src/dymad/models/prediction.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_regular_slice_integration.py tests/test_workflow_lti.py tests/test_workflow_kp.py tests/test_workflow_ltg.py tests/test_workflow_ltga.py -q`
-
-- [x] Replace `model_base` legacy runtime reconstruction with typed runtime contracts [requires-frontier] [skill: execute]
-  Why: `modules/dymad_migrate/src/dymad/models/model_base.py` still reconstructs `DynData` internally, which keeps the legacy object embedded in the core model-facing contract.
-  Done when: `modules/dymad_migrate/src/dymad/models/model_base.py` stops rebuilding `DynData` internally on migrated paths and instead accepts typed runtime payloads or crosses one explicit compatibility seam.
-  Priority: high
-  Evidence: Added `materialize_model_base_forward_payload(...)` in `modules/dymad_migrate/src/dymad/core/model_context.py`, routed `ComposedDynamics.forward(...)` through that seam in `modules/dymad_migrate/src/dymad/models/model_base.py`, and added focused coverage in `modules/dymad_migrate/tests/test_model_context_adapter.py` and `modules/dymad_migrate/tests/test_model_base_runtime_contract.py`.
-  Verification: `rg -n "DynData\\.collate|DynData\\(|from dymad\\.io\\.data import DynData|\\bDynData\\b" modules/dymad_migrate/src/dymad/models/model_base.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_context_adapter.py tests/test_component_runtime_view.py tests/test_model_base_runtime_contract.py tests/test_workflow_lti.py -q`
-
-- [x] Migrate recipe modules off `DynData` type signatures [requires-frontier] [skill: execute]
-  Why: `modules/dymad_migrate/src/dymad/models/recipes.py` and `modules/dymad_migrate/src/dymad/models/recipes_corr.py` still declare and consume `DynData`, which keeps runtime-typed APIs from becoming the default model-facing contract.
-  Done when: the migrated recipe entrypoints use typed runtime views, typed model contexts, or a shared typed compatibility interface instead of `DynData`-typed signatures.
-  Priority: medium
-  Evidence: Updated `modules/dymad_migrate/src/dymad/models/recipes.py` to use `ModelRuntimePayload`/`ComponentInputPayload` signatures, updated `modules/dymad_migrate/src/dymad/models/recipes_corr.py` to route recipe helper/dynamics inputs through `build_component_input_view(...)`, and added focused typed-context coverage in `modules/dymad_migrate/tests/test_recipes_runtime_view.py`.
-  Verification: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/models/recipes.py modules/dymad_migrate/src/dymad/models/recipes_corr.py` and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_recipes_runtime_view.py tests/test_component_runtime_view.py tests/test_workflow_kp.py -q`
-
-- [x] Migrate `opt_node` to typed trainer batches [requires-frontier] [skill: execute]
-  Why: `opt_linear` is no longer enough; `opt_node` is a major remaining trainer consumer that still depends directly on `DynData`.
-  Done when: `modules/dymad_migrate/src/dymad/training/opt_node.py` accepts typed trainer batches or typed runtime/model-context payloads on its migrated path, and its workflow gate still passes.
-  Priority: high
-  Evidence: Updated `modules/dymad_migrate/src/dymad/training/opt_node.py` so `_process_batch(...)` accepts `TrainerBatch`, routes typed `truncate/window` paths through the batch adapter seam (`batch_to_legacy_runtime(...)`), and preserves legacy `DynData` behavior on the fallback path; added focused typed-batch regression coverage in `modules/dymad_migrate/tests/test_opt_node_typed_batch.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_node_typed_batch.py tests/test_workflow_lti.py -q` -> `17 passed, 2 warnings in 10.90s`
-
-- [x] Migrate `opt_weak_form` and shared `opt_base` truth handling off `DynData` [requires-frontier] [skill: execute]
-  Why: shared trainer logic in `opt_base.py` plus `opt_weak_form.py` still uses `DynData`, so the trainer stack cannot become typed-first until those common paths move.
-  Done when: `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` and the relevant truth-handling paths in `modules/dymad_migrate/src/dymad/training/opt_base.py` accept typed trainer batches or typed runtime payloads instead of `DynData`.
-  Priority: high
-  Evidence: Updated `modules/dymad_migrate/src/dymad/training/opt_weak_form.py` so `_process_batch(...)` accepts `TrainerBatch` and normalizes via `batch_to_legacy_runtime(...)`, updated `modules/dymad_migrate/src/dymad/training/opt_base.py` so shared truth-handling paths (`_additional_criteria_evaluation(...)`, `evaluate_prediction_criterion_single(...)`) consume `TrainerBatch`, and added typed coverage in `modules/dymad_migrate/tests/test_opt_weak_form_typed_batch.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_opt_weak_form_typed_batch.py tests/test_opt_node_typed_batch.py tests/test_workflow_kp.py -q`
-
-- [x] Migrate remaining utility consumers such as `sako/base.py` off `DynData` [requires-frontier] [skill: execute]
-  Why: utility modules still instantiate `DynData` ad hoc, which will keep the object alive even after main runtime and trainer paths migrate.
-  Done when: `modules/dymad_migrate/src/dymad/sako/base.py` and any remaining non-core utility consumers named by the retirement inventory use typed series or typed model-facing payloads instead of constructing `DynData`.
-  Priority: medium
-  Evidence: Updated `modules/dymad_migrate/src/dymad/sako/base.py` so `SAInterface._setup_sa_terms(...)` now routes batches through `encode_runtime_batch(...)` (typed-runtime or legacy payload) instead of constructing `DynData(x=batch.x)` ad hoc; also updated the utility comment in `modules/dymad_migrate/src/dymad/utils/graph.py` to remove DynData-centric wording and added focused regression coverage in `modules/dymad_migrate/tests/test_sako_runtime_batch_adapter.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_sako_runtime_batch_adapter.py 'tests/test_workflow_sa_lti.py::test_sa[0]' -q` and `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad/sako/base.py modules/dymad_migrate/src/dymad/utils/graph.py`
-
-- [x] Remove public `DynData` export and reverse adapters when only staged deletion seams remain [requires-frontier] [skill: execute]
-  Why: retirement is not complete until `DynData` stops being part of the public surface and reverse adapters stop encouraging new legacy call paths.
-  Done when: `modules/dymad_migrate/src/dymad/io/__init__.py`, `modules/dymad_migrate/src/dymad/io/series_adapter.py`, and `modules/dymad_migrate/src/dymad/core/model_context.py` retain only deletion-staging compatibility code, with public `DynData` export removed if downstream call sites are gone.
-  Priority: medium
-  Evidence: Removed the public `DynData` export from `modules/dymad_migrate/src/dymad/io/__init__.py`, replaced class-based reverse adapters in `modules/dymad_migrate/src/dymad/io/series_adapter.py` with explicit temporary deletion-stage bridge functions (`regular_series_to_legacy_runtime(...)`, `graph_series_to_legacy_runtime(...)`), updated `modules/dymad_migrate/src/dymad/core/model_context.py`, `modules/dymad_migrate/src/dymad/io/trajectory_manager.py`, and `modules/dymad_migrate/src/dymad/io/checkpoint.py` to use the new seam, and migrated tests that previously imported `DynData` from `dymad.io`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr.py::test_dyndata tests/test_assert_trajmgr_graph.py::test_dyndata_graph -q` and `rg -n "from dymad\\.io import DynData|DynDataAdapter|dymad\\.io\\.DynData" modules/dymad_migrate/src modules/dymad_migrate/tests -g '*.py'`
-
-- [x] Delete `modules/dymad_migrate/src/dymad/io/data.py` after production-path references reach zero [requires-frontier] [skill: execute]
-  Why: the retirement campaign is only complete when the legacy object definition itself is gone.
-  Context (2026-03-31): after public export and class-based reverse-adapter removal, production-path `DynData` references still exist in `core/model_context.py`, `io/trajectory_manager.py`, `models/runtime_view.py`, `training/batch_adapter.py`, and `io/data.py`.
-  Done when: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'` reports no production-path references outside files deleted in the same change set, and `modules/dymad_migrate/src/dymad/io/data.py` is removed.
-  Priority: high
-  Evidence: Replaced the legacy runtime object name and import surface from `DynData` to `LegacyRuntimeBatch` across production modules and dependent tests; added `modules/dymad_migrate/src/dymad/io/legacy_runtime.py`; updated imports in `core/model_context.py`, `io/trajectory_manager.py`, `models/runtime_view.py`, `training/batch_adapter.py`, and `io/series_adapter.py`; and removed `modules/dymad_migrate/src/dymad/io/data.py`.
-  Verification: `rg -n "\\bDynData\\b" modules/dymad_migrate/src/dymad -g '*.py'` (no output) and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_regular_series_adapter.py tests/test_graph_series_adapter.py tests/test_sako_runtime_batch_adapter.py tests/test_public_load_model_boundary.py tests/test_assert_trajmgr.py::test_dyndata tests/test_assert_trajmgr_graph.py::test_dyndata_graph tests/test_model_context_adapter.py tests/test_linear_typed_batch_driver.py -q` (`17 passed, 2 warnings in 0.76s`).
-
-## Mission gap tasks
-
-- [x] Adjudicate DyMAD migration `Done when` closure against current artifacts [requires-frontier] [skill: analyze] [zero-resource]
-  Why: Mission gap — `projects/dymad_migrate/TASKS.md` had zero open tasks while `README.md` still lacks an explicit closure adjudication that maps each `Done when` condition to current verification evidence and a status decision.
-  Done when: A dated analysis note maps each `README.md` `Done when` condition to concrete code/docs/tests, records exact verification command outputs for the selected closure gate, and updates `projects/dymad_migrate/README.md` with the resulting project-status decision (either completed with rationale or active with explicit remaining gaps).
-  Priority: high
-  Evidence: Added `projects/dymad_migrate/analysis/2026-03-31-done-when-closure-adjudication.md` with condition-by-condition evidence mapping, fresh command outputs, and an explicit status decision to keep the project active while adding seam-completion follow-up tasks.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_checkpoint_e2e_layering.py tests/test_public_load_model_boundary.py -q` (`2 passed, 2 warnings in 0.71s`) and `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q` plus `cd modules/dymad_ref && PYTHONPATH=src pytest tests/test_workflow_lti.py tests/test_workflow_kp.py -q` (both `26 passed, 2 warnings`).
-
-- [x] Implement typed model-spec compatibility objects for predefined model entrypoints [requires-frontier] [skill: execute]
-  Why: Mission gap — closure adjudication confirmed `model-spec` remains `design-only` in `projects/dymad_migrate/architecture/migration-scoreboard.md`.
-  Done when: `modules/dymad_migrate/src/dymad/models/` includes typed model-spec objects plus adapters for at least one predefined model family used by workflow tests, and focused regression tests verify adapter-driven construction without string-map internals.
-  Priority: high
-  Evidence: Added typed model-spec compatibility objects in `modules/dymad_migrate/src/dymad/models/model_spec.py`, routed `PredefinedModel` in `modules/dymad_migrate/src/dymad/models/collections.py` through `build_model_from_spec(...)`, and added focused adapter tests in `modules/dymad_migrate/tests/test_model_spec_adapter.py`.
-  Verification: `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_model_spec_adapter.py 'tests/test_workflow_lti.py::test_lti[7]' -q` (`3 passed, 2 warnings in 1.61s`).
-
-- [ ] Start training-layer split by introducing phase/state primitives behind current driver entrypoints [requires-frontier] [skill: execute]
-  Why: Mission gap — closure adjudication confirmed `training` remains `design-only` and still centered on legacy orchestration shapes.
-  Done when: `modules/dymad_migrate/src/dymad/training/` contains an initial typed phase/state primitive seam exercised by at least one existing workflow gate, with compatibility adapters explicitly marked for temporary use.
-  Priority: high
-
-- [ ] Implement first spectral-analysis adapter boundary over typed runtime handles [requires-frontier] [skill: execute]
-  Why: Mission gap — closure adjudication confirmed `spectral-analysis` remains `design-only` and lacks adapter-boundary code despite design docs and diagnostics.
-  Done when: `modules/dymad_migrate/src/dymad/sako/` includes an explicit adapter boundary that routes one SA workflow through typed runtime handles, and parity is verified against the selected `test_workflow_sa_lti.py` gate.
-  Priority: medium

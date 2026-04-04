@@ -26,6 +26,61 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-03 - Refreshed backlog after the DynData-centered phase
+
+Reviewed the current migration state against the architecture contract, the migration
+scoreboard, the current `modules/dymad_migrate/` code, and the oversized historical
+task file.
+
+Findings from the review:
+
+- the completed work is now concentrated in four mature seams: `data`, `transform`,
+  `model-runtime`, and `checkpoint-facade`
+- `model-spec` has crossed from pure design into a real prototype, but it still falls
+  back to legacy tuple dispatch for actual construction
+- `training` and `spectral-analysis` remain the main code gaps; both had broad open
+  tasks, but those tasks were too large to schedule cleanly
+- `projects/dymad_migrate/TASKS.md` had become mostly historical ledger rather than an
+  actionable queue
+
+Project-memory changes made in this session:
+
+- added `projects/dymad_migrate/plans/2026-04-03-backlog-refresh.md` to record the
+  post-`DynData` migration state and the next execution themes
+- replaced the old catch-all open tasks in `projects/dymad_migrate/TASKS.md` with a
+  compact remaining-work queue
+- decomposed the remaining work into `19` scoped tasks across:
+  - package-surface cleanup
+  - `model-spec` deepening
+  - `training` seam extraction
+  - `spectral-analysis` adapterization
+
+Cleanup decision:
+
+- keep completed-task provenance in the README log, plans, analysis notes, decisions,
+  and git history
+- keep `TASKS.md` focused on remaining work only
+
+Verification:
+
+- `rg -n "^- \\[ \\]" projects/dymad_migrate/TASKS.md | wc -l`
+  - `19`
+- `sed -n '1,220p' projects/dymad_migrate/TASKS.md`
+  - confirmed the file now contains only the refreshed remaining-work queue
+- `sed -n '1,220p' projects/dymad_migrate/plans/2026-04-03-backlog-refresh.md`
+  - confirmed the backlog-refresh rationale and execution themes were recorded
+
+Session-type: manual
+Duration: 28 minutes
+Task-selected: Refresh `projects/dymad_migrate/TASKS.md` into the next 10-20 actionable tasks
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 0
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-03-31 - Added typed model-spec compatibility prototype for predefined model entrypoints
 
 Ran `/orient dymad_migrate` and selected:
