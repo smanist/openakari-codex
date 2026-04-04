@@ -26,6 +26,58 @@ The immediate risk is not lack of architectural direction; it is loss of migrati
 
 ## Log
 
+### 2026-04-04 - Routed one non-linear KPI workflow through the `TrainerRun` seam
+
+Ran `/orient dymad_migrate` and selected:
+`Route one non-linear training workflow through the new training seam`.
+
+Orient highlights:
+- uncommitted work at session start: none (`git status --short` empty)
+- approval queue: empty (`APPROVAL_QUEUE.md` pending section)
+- budget/deadline status: `projects/akari`, `projects/dymad_migrate`, and `projects/multi_fidelity_gp` have no `budget.yaml`/`ledger.yaml`; `projects/pca_vs_ttd` remains under deadline (`2026-06-01T00:00:00Z`) with an empty ledger
+- findings-first gate: enabled (`0/10 = 0.0%` non-zero findings across the latest 10 scheduler `work-cycle` sessions)
+- efficiency snapshot (latest 10 sessions): findings/$ `n/a` (`0` findings over `$0`), genuine waste `0/10`, orient overhead `n/a` (`numTurns <= 10`), avg cost `$0.00`, avg turns `1.0`
+- cross-session patterns: none detected at `>=3` occurrences
+- horizon-scan intel: none (`.scheduler/skill-reports/horizon-scan-*.md` absent)
+- external-work staleness: one stale external blocker outside this project at `projects/akari/TASKS.md` dated `2026-03-26` (9 days old on `2026-04-04`)
+- task claim succeeded:
+  `claimId=25290b4e70c7078d` (`SESSION_ID=work-session-mnk3qhqf`)
+
+Scope classification:
+- structural (verifiable), `consumes_resources: false` (no LLM/API/GPU/long-running compute signals)
+
+Code/project-memory changes:
+- updated `modules/dymad_migrate/src/dymad/training/phase_pipeline.py` to mark `PhaseResult` legacy `RunState` accessors as temporary compatibility adapters
+- updated `modules/dymad_migrate/tests/test_workflow_kp.py` with `test_non_linear_kp_workflow_routes_through_trainer_run`, which instruments `dymad.training.driver.TrainerRun` and verifies a non-linear `NODE` workflow routes through the seam
+- added `projects/dymad_migrate/plans/2026-04-04-nonlinear-training-seam-routing.md`
+- added `projects/dymad_migrate/analysis/2026-04-04-nonlinear-training-seam-routing-verification.md`
+- updated `projects/dymad_migrate/architecture/migration-scoreboard.md` training seam provenance with the non-linear workflow verification artifact
+- completed the task in `projects/dymad_migrate/TASKS.md`
+
+Findings:
+- one non-linear KPI workflow now has explicit seam evidence for `TrainerRun -> PhasePipeline` routing (`NODE` phase path)
+- temporary compatibility scope is now explicit in `PhaseResult` code-level adapters (`to_run_state`, `run_state`)
+- `tests/test_workflow_kp.py` session-scoped fixture writes `modules/dymad_migrate/tests/kp.npz`; parallel execution can corrupt the archive, while sequential execution remains stable
+
+Verification:
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_training_phase_runtime.py -q`
+  - `5 passed, 2 warnings in 0.73s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest tests/test_workflow_kp.py::test_non_linear_kp_workflow_routes_through_trainer_run -q`
+  - `1 passed, 2 warnings in 1.22s`
+- `cd modules/dymad_migrate && PYTHONPATH=src pytest 'tests/test_workflow_kp.py::test_kp[1]' -q`
+  - `1 passed, 2 warnings in 1.20s`
+
+Session-type: autonomous
+Duration: 34 minutes
+Task-selected: Route one non-linear training workflow through the new training seam
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-04 - Routed linear training metric reads through typed phase results
 
 Ran `/orient dymad_migrate` and selected:

@@ -65,7 +65,7 @@ This queue lists remaining work only.
   Done when: the linear training path uses `TrainerRun` plus `PhasePipeline` as its primary orchestration surface and the existing focused linear workflow tests still pass.
   Priority: high
 
-- [ ] Route one non-linear training workflow through the new training seam [requires-frontier] [skill: execute]
+- [x] Route one non-linear training workflow through the new training seam [requires-frontier] [skill: execute]
   Why: The training seam is not credible until at least one `NODE` or weak-form workflow uses it in addition to the linear path.
   Done when: one non-linear workflow exercised by `modules/dymad_migrate/tests/test_workflow_lti.py` or `modules/dymad_migrate/tests/test_workflow_kp.py` runs through the new training seam with compatibility adapters explicitly marked temporary.
   Priority: high
