@@ -87,7 +87,7 @@ This queue lists remaining work only.
   Done when: `modules/dymad_migrate/src/dymad/sako/` contains a typed snapshot record that captures the first migrated spectral inputs (`P0`, `P1`, Koopman weights, dimensions, and related metadata) for checkpoint-backed analysis.
   Priority: high
 
-- [ ] Extend the `store` and `facade` skeleton with typed spectral snapshot handles [requires-frontier] [skill: execute]
+- [x] Extend the `store` and `facade` skeleton with typed spectral snapshot handles [requires-frontier] [skill: execute]
   Why: The current boundary skeleton only knows checkpoints and prediction requests; spectral analysis needs at least one typed handle flow if it is going to follow the same layering pattern.
   Done when: `modules/dymad_migrate/src/dymad/store/` and `modules/dymad_migrate/src/dymad/facade/` can register and resolve one spectral snapshot handle type, with focused boundary tests covering creation and lookup.
   Priority: medium
