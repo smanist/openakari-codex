@@ -3,7 +3,7 @@ entries:
     module: akari
     path: modules/akari
     type: local-scratch
-  - project: dymad_migrate
-    module: dymad_migrate
-    path: modules/dymad_migrate
+  - project: dymad_dev
+    module: dymad_dev
+    path: modules/dymad_dev
     type: submodule
