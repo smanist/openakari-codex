@@ -14,6 +14,14 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-15 (Scaffolded the DyMAD development project)
+
+Created the durable project scaffold for `projects/dymad_dev/` around the already-registered `modules/dymad_dev/` module. The new project records two linked workstreams requested by the user: config-driven noise injection during trajectory sampling, and a real denoising `data` phase in the typed training pipeline.
+
+Also added a bounded implementation plan and a planned benchmark record so the work is anchored to a measurable question rather than just a code change: does denoising improve clean-reference signal fidelity and downstream training quality under injected noise?
+
+Sources: `projects/dymad_dev/README.md`, `projects/dymad_dev/TASKS.md`, `projects/dymad_dev/plans/2026-04-15-noise-and-denoise-pipeline.md`, `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/EXPERIMENT.md`
+
 ### 2026-04-04 (Diagnosed low-knowledge alerts and disambiguated anomaly-task provenance)
 
 Diagnosed the two `knowledgeTotal` health alerts for `x13yb5tx-cf5b40e4` (`2026-03-31T10:06:17.026Z`) and `x13yb5tx-5b9a104a` (`2026-04-04T06:04:50.516Z`) from `.scheduler/metrics/sessions.jsonl`. The first row was not a fresh regression: it was a normal completed `dymad_migrate` structural migration session that retired `DynData`/`io/data.py`, and `knowledgeTotal=1` turned out to be a common maintenance pattern for that project (`12/43 = 27.9%` of productive `dymad_migrate` runs in the current metrics file).
