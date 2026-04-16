@@ -14,6 +14,42 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-15 (Partial execution on Family 2 seed stabilization; fail-fast evidence logged)
+
+Ran `/orient dymad_dev`, selected and claimed `Stabilize kernel and Koopman slow regressions by seed-only edits`, then executed a fail-fast verification pass focused on Family 2 (`kernel` / `koopman`) without changing thresholds or baselines.
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false` (no LLM API calls, no external API calls, no GPU compute, no long-running detached jobs).
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Stabilize kernel and Koopman slow regressions by seed-only edits","project":"dymad_dev","agentId":"work-session-mo0w5t0f"}'`
+  - `{"ok":true,"claim":{"claimId":"411292e0d16e8019",...}}`
+
+Changes made:
+- Updated `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with a new `## Execution findings (2026-04-15, Family 2 exploratory sweep)` section documenting exact fail-fast outputs and next-step strategy.
+- Updated `projects/dymad_dev/TASKS.md` to remove the temporary `[in-progress]` marker and add a note pointing to the new fail-fast evidence.
+- Restored exploratory test-file edits in `modules/dymad_dev/tests/test_slow_ker_*.py` and `tests/test_slow_kp_*.py`; no runtime thresholds, baselines, or regression utilities were modified.
+
+Verification:
+- `cd modules/dymad_dev && pytest -q --reruns 0 -o log_cli=false tests/test_slow_ker_lti_cli.py`
+  - `FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`
+  - `FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[dkm_ln]`
+- `cd modules/dymad_dev && pytest -q -o log_cli=false -x tests/test_slow_ker_lti_cli.py tests/test_slow_ker_lco_cli.py tests/test_slow_ker_s1_cli.py tests/test_slow_ker_s1u_cli.py tests/test_slow_kp_train_cli.py tests/test_slow_kp_sweep_dt_cli.py tests/test_slow_kp_sweep_ct_cli.py tests/test_slow_kp_sa_cli.py > /tmp/dymad_family2_failfast.log 2>&1`
+  - `/tmp/dymad_family2_failfast.log`: `FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`
+  - assertion excerpt: `assert 0.017551757928779117 <= 0.00233733233805354`
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 78
+Task-selected: Stabilize kernel and Koopman slow regressions by seed-only edits
+Task-completed: partial
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-15 (Completed slow-regression seed-entry inventory task)
 
 Ran `/orient dymad_dev`, selected the highest-leverage zero-resource unblocker in this project (`Inventory seed-controlled slow and extra_slow regression tests`), and completed it by making the seed controls explicit in the stabilization plan.
@@ -119,3 +155,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
+- For `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`, is a seed-only fix sufficient under fail-fast/no-rerun checks, or is there residual nondeterminism that requires explicit deterministic-runtime controls?

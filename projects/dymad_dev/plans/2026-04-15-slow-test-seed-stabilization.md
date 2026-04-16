@@ -100,3 +100,25 @@ Final compliance check should explicitly confirm no edits to:
 - `modules/dymad_dev/tests/slow_regression_utils.py`
 - `modules/dymad_dev/tests/*baselines.json`
 - metric tolerance constants or comparison logic
+
+## Execution findings (2026-04-15, Family 2 exploratory sweep)
+
+The first execution pass focused on Family 2 (`kernel` / `koopman`) with a strict fail-fast gate to avoid claiming stability from rerun masking.
+
+Observed behavior:
+- `tests/test_slow_ker_lti_cli.py` failed immediately under `--reruns 0` at `test_ker_lti_cli[km_ln]` and `test_ker_lti_cli[dkm_ln]` with the baseline seed (`12345`).
+- Candidate-seed sweeps over representative values (`20260415`, `424242`, `8675309`, `271828`, `314159`, `20251234`, `777`, `98765`, `11111`, `54321`) still failed fail-fast at `km_ln`.
+- The full Family 2 fail-fast run with temporary exploratory seeds also stopped at `km_ln`, so no verified seed-only patch was retained in this session.
+
+Verification evidence captured:
+- `cd modules/dymad_dev && pytest -q --reruns 0 -o log_cli=false tests/test_slow_ker_lti_cli.py`
+  - `FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`
+  - `FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[dkm_ln]`
+- `cd modules/dymad_dev && pytest -q -o log_cli=false -x tests/test_slow_ker_lti_cli.py tests/test_slow_ker_lco_cli.py tests/test_slow_ker_s1_cli.py tests/test_slow_ker_s1u_cli.py tests/test_slow_kp_train_cli.py tests/test_slow_kp_sweep_dt_cli.py tests/test_slow_kp_sweep_ct_cli.py tests/test_slow_kp_sa_cli.py > /tmp/dymad_family2_failfast.log 2>&1`
+  - `/tmp/dymad_family2_failfast.log` summary:
+    - `FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`
+    - Assertion excerpt: `assert 0.017551757928779117 <= 0.00233733233805354`
+    - `stopping after 1 failures`
+
+Implication for next session:
+- Keep the seed-only scope, but continue with a targeted per-file/per-case search strategy starting from `test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` before touching broader Family 2 files.
