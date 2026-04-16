@@ -14,6 +14,59 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Completed deeper `ker_lti` runtime-control probe; recorded seed-only no-go)
+
+Ran `/orient dymad_dev`, selected and claimed `Probe deeper runtime-determinism controls for test_slow_ker_lti_cli.py`, then completed the required 3-control follow-up probe (`5` reruns per control for `km_ln`).
+
+Orient summary:
+- Scoped project status: actionable, clean working tree, no pending approvals.
+- Findings-first gate: enabled (`0/10 = 0%` non-zero findings in recent scheduler work-cycle sessions).
+- Budget gate: `n/a` for this task (`consumes_resources: false`; no LLM API, external API, GPU compute, or detached long-running job).
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false`.
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Probe deeper runtime-determinism controls for `test_slow_ker_lti_cli.py`","project":"dymad_dev","agentId":"work-session-mo14qgp4"}'`
+  - `{"ok":true,"claim":{"claimId":"1b198c03332c78df",...}}`
+
+Changes made:
+- Added diagnosis note:
+  - `projects/dymad_dev/analysis/diagnosis-ker-lti-deeper-runtime-controls-2026-04-16.md`
+- Added probe artifacts:
+  - `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_deeper_probe_2026-04-16.csv`
+  - `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_deeper_probe_2026-04-16.json`
+  - `projects/dymad_dev/analysis/data/ker_lti_controls_deeper_logs_2026-04-16/` (15 raw logs)
+- Updated:
+  - `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with deeper-control findings (`1/15` overall pass rate).
+  - `projects/dymad_dev/TASKS.md` to mark the deeper-control probe complete, carry forward no-go evidence on `ker_lti`, and add a replacement-path diagnosis task.
+  - `projects/dymad_dev/README.md` open question to reflect the unresolved non-seed remediation path.
+
+Verification:
+- `python - <<'PY' ...` (summarize pass counts from CSV)
+  - `S5_shuffle_false_thread_pinned_workers0: 1/5`
+  - `S6_workers0_torch_deterministic: 0/5`
+  - `S7_workers0_deterministic_cache_isolated: 0/5`
+  - `overall: 1 / 15`
+- `python - <<'PY' ...` (summarize failure-ratio stats from CSV)
+  - `S5 ... min=10.898 avg=122.605 max=290.152`
+  - `S6 ... min=1.243 avg=7164.143 max=35805.753`
+  - `S7 ... min=1.065 avg=10.943 max=48.547`
+- `git diff -- modules/dymad_dev/scripts/ker_lti/ker_model.yaml`
+  - no diff (temporary probe edits were restored).
+
+Compound (fast): 1 action — added task `Decide replacement path for test_slow_ker_lti_cli.py after seed-only no-go`.
+
+Session-type: autonomous
+Duration: 47
+Task-selected: Probe deeper runtime-determinism controls for `test_slow_ker_lti_cli.py`
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 22
+Commits: 2
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Completed deterministic-control probe for `ker_lti` seed-stabilization blocker)
 
 Ran `/orient dymad_dev`, selected and claimed `Isolate deterministic-runtime controls for test_slow_ker_lti_cli.py before further seed sweeps`, and completed the required 4-setting control probe for `km_ln`.
