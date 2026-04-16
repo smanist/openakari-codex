@@ -122,3 +122,31 @@ Verification evidence captured:
 
 Implication for next session:
 - Keep the seed-only scope, but continue with a targeted per-file/per-case search strategy starting from `test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` before touching broader Family 2 files.
+
+## Execution findings (2026-04-16, Family 2 `ker_lti` deep seed probe)
+
+Follow-up probing kept the same hard scope constraints (seed-only edits, no threshold/baseline changes) and targeted `tests/test_slow_ker_lti_cli.py` first.
+
+Observed behavior:
+- With current baseline seed (`12345`), repeated fail-fast single-case runs for `km_ln` failed every time (`5/5` failures), but with different failing metrics/magnitudes per run (evidence of residual nondeterminism beyond just one bad seed draw).
+- A direct candidate-seed scan over `19` seeds (`20260415`, `12345`, `424242`, `8675309`, `271828`, `314159`, `20251234`, `777`, `98765`, `11111`, `54321`, plus 8 random seeds from `1..3,000,000`) found no seed that satisfied all `ker_lti` cases (`km_ln`, `dkm_ln`, `dks_ln`) under current thresholds.
+- The same scan shows most failures still originate at `km_ln` metrics (`crit_valid_last`, `crit_train_last`, `best_valid_total`), but some candidate seeds also fail `dkm_ln` (`crit_valid_last`), so changing one shared `TEST_SEED` constant is not sufficient in the tested range.
+
+Verification evidence captured:
+- `cd modules/dymad_dev && for i in 1 2 3 4 5; do echo "RUN $i"; pytest -q --reruns 0 -o log_cli=false 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]' >/tmp/km_ln_$i.log 2>&1; ec=$?; echo "exit=$ec"; rg -n "FAILED|1 passed|AssertionError|short test summary" /tmp/km_ln_$i.log || true; done`
+  - `RUN 1 ... exit=1 ... AssertionError: assert 0.003362957967460712 <= 0.00233733233805354`
+  - `RUN 2 ... exit=1 ... AssertionError: assert 6.39001787569422e-06 <= 3.0152980685024556e-06`
+  - `RUN 3 ... exit=1 ... AssertionError: assert 0.10665102189075057 <= 0.00233733233805354`
+  - `RUN 4 ... exit=1 ... AssertionError: assert 17.0598617123593 <= 8.196865277722416`
+  - `RUN 5 ... exit=1 ... AssertionError: assert 0.2690109135729742 <= 0.00233733233805354`
+- `cd modules/dymad_dev && python -u - <<'PY' ...` (seed scan script evaluating all `ker_lti` cases against baselines)
+  - Output excerpts:
+    - `seed_count=19`
+    - `01 seed=20260415 FAIL km_ln:best_valid_total:1.405`
+    - `14 seed=1496597 FAIL dkm_ln:crit_valid_last:5.329`
+    - `19 seed=2318764 FAIL km_ln:best_valid_total:1.107`
+    - `NO_SEED_FOUND`
+
+Implication for next session:
+- Keep Family 2 task open, but treat `test_slow_ker_lti_cli.py` as a potential non-seed-stabilizable outlier under current criteria.
+- Before broader kernel/koopman edits, decide whether to (a) continue a larger seed search with stricter reproducibility controls, or (b) split out a diagnosis task for nondeterminism sources in `ker_lti` (still preserving the "no threshold/baseline edits" rule for this workstream).

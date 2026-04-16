@@ -45,7 +45,13 @@
   Done when: the targeted kernel and Koopman `test_slow_*` cases pass their existing metric thresholds using only seed changes, and no threshold or baseline JSON edits are included in the diff.
   Priority: high
   Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
-  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; continue from the recorded command/output evidence in the stabilization plan.
+  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) are recorded in the stabilization plan and indicate residual nondeterminism risk in this file.
+
+- [ ] Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints [skill: diagnose] [requires-frontier] [zero-resource]
+  Why: Seed-only candidate sweeps have not found a pass-all `TEST_SEED` for `ker_lti`, so the stabilization task needs evidence on whether non-seed controls (execution order, runtime determinism settings, fixture isolation) are causing metric drift.
+  Done when: a diagnosis note in `projects/dymad_dev/analysis/` reports at least two evidence-backed hypotheses for `ker_lti` drift, includes exact repro commands and observed metric variability, and recommends whether the main Family 2 seed-only task should continue as-is or be decomposed.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
 
 - [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.

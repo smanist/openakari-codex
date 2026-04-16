@@ -14,6 +14,44 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Partial execution on Family 2 seed stabilization; `ker_lti` scan found no pass-all seed)
+
+Ran `/orient dymad_dev`, selected and claimed `Stabilize kernel and Koopman slow regressions by seed-only edits`, and executed a deeper seed-only probe focused on the current Family 2 blocker in `tests/test_slow_ker_lti_cli.py`.
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false` (no LLM API calls, no external API calls, no GPU compute, no long-running detached jobs).
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Stabilize kernel and Koopman slow regressions by seed-only edits","project":"dymad_dev","agentId":"work-session-mo0yayzi"}'`
+  - `{"ok":true,"claim":{"claimId":"eec3f9d1680b6c73",...}}`
+
+Changes made:
+- Updated `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with a new `## Execution findings (2026-04-16, Family 2 ker_lti deep seed probe)` section containing exact repro commands and outputs.
+- Updated `projects/dymad_dev/TASKS.md` note for `Stabilize kernel and Koopman slow regressions by seed-only edits` with `0/19` pass-all seed-scan evidence.
+- Added a follow-up diagnosis task: `Diagnose residual nondeterminism in test_slow_ker_lti_cli.py under seed-only constraints`.
+
+Verification:
+- `cd modules/dymad_dev && for i in 1 2 3 4 5; do echo "RUN $i"; pytest -q --reruns 0 -o log_cli=false 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]' >/tmp/km_ln_$i.log 2>&1; ec=$?; echo "exit=$ec"; rg -n "FAILED|1 passed|AssertionError|short test summary" /tmp/km_ln_$i.log || true; done`
+  - all five runs failed (`5/5`), with varying assertion magnitudes (e.g., `0.003362957967460712 <= 0.00233733233805354`, `17.0598617123593 <= 8.196865277722416`).
+- `cd modules/dymad_dev && python -u - <<'PY' ...` (seed scan script for `ker_lti` cases)
+  - `seed_count=19`
+  - `01 seed=20260415 FAIL km_ln:best_valid_total:1.405`
+  - `14 seed=1496597 FAIL dkm_ln:crit_valid_last:5.329`
+  - `19 seed=2318764 FAIL km_ln:best_valid_total:1.107`
+  - `NO_SEED_FOUND`
+
+Compound (fast): 1 action (task discovery) — added the `ker_lti` nondeterminism diagnosis task; fleet spot-check found no recent `triggerSource:"fleet"` sessions in the last 500 metrics rows.
+
+Session-type: autonomous
+Duration: 76
+Task-selected: Stabilize kernel and Koopman slow regressions by seed-only edits
+Task-completed: partial
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-15 (Partial execution on Family 2 seed stabilization; fail-fast evidence logged)
 
 Ran `/orient dymad_dev`, selected and claimed `Stabilize kernel and Koopman slow regressions by seed-only edits`, then executed a fail-fast verification pass focused on Family 2 (`kernel` / `koopman`) without changing thresholds or baselines.
@@ -155,4 +193,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
-- For `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`, is a seed-only fix sufficient under fail-fast/no-rerun checks, or is there residual nondeterminism that requires explicit deterministic-runtime controls?
+- For `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`, is a seed-only fix sufficient under fail-fast/no-rerun checks, or is there residual nondeterminism that requires explicit deterministic-runtime controls? (2026-04-16 probe: `0/19` pass-all candidate seeds for `ker_lti`.)
