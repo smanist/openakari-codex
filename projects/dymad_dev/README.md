@@ -14,6 +14,54 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Selected and documented post-seed replacement path for `ker_lti`)
+
+Ran `/orient dymad_dev`, selected and claimed `Decide replacement path for test_slow_ker_lti_cli.py after seed-only no-go`, then completed the diagnosis + task-bridge work to move `ker_lti` out of the seed-only stream and into explicit runtime-determinism remediation.
+
+Orient summary:
+- Scoped project status: actionable, clean working tree, no pending approvals.
+- Findings-first gate: enabled (`0/10 = 0%` non-zero findings for latest scheduler `work-cycle` sessions from `.scheduler/metrics/sessions.jsonl`).
+- Budget gate: `n/a` for this task (`consumes_resources: false`; no LLM API, external API, GPU compute, or long-running detached process).
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false`.
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Decide replacement path for \`test_slow_ker_lti_cli.py\` after seed-only no-go","project":"dymad_dev","agentId":"work-session-mo16vmkv"}'`
+  - `{"ok":true,"claim":{"claimId":"0a74b1c5acbb8898",...}}`
+
+Changes made:
+- Added diagnosis note:
+  - `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
+- Updated `projects/dymad_dev/TASKS.md` to:
+  - mark replacement-path diagnosis task complete,
+  - explicitly carve `tests/test_slow_ker_lti_cli.py` out of the Family 2 seed-only done-when scope,
+  - add downstream execution tasks for runtime worker-control wiring and deterministic-profile validation.
+
+Verification:
+- `python - <<'PY' ...` (from existing probe CSV artifacts)
+  - `ker_lti_deterministic_controls_probe_2026-04-16.csv: 3/20`
+  - `ker_lti_deterministic_controls_deeper_probe_2026-04-16.csv: 1/15`
+- `if rg -n 'num_workers|persistent_workers|pin_memory|prefetch_factor' modules/dymad_dev/src/dymad ...; then ...; else echo 'NO_MATCHES'; fi`
+  - `NO_MATCHES`
+- `rg -n 'Decide replacement path for \`test_slow_ker_lti_cli.py\`|Wire dataloader worker controls for deterministic slow-regression experiments|Validate \`ker_lti\` stability under an explicit deterministic runtime profile|excluding \`tests/test_slow_ker_lti_cli.py\`' projects/dymad_dev/TASKS.md`
+  - `45: ... excluding \`tests/test_slow_ker_lti_cli.py\` ...`
+  - `71:- [x] Decide replacement path for \`test_slow_ker_lti_cli.py\` after seed-only no-go ...`
+  - `78:- [ ] Wire dataloader worker controls for deterministic slow-regression experiments ...`
+  - `84:- [ ] Validate \`ker_lti\` stability under an explicit deterministic runtime profile ...`
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 36
+Task-selected: Decide replacement path for `test_slow_ker_lti_cli.py` after seed-only no-go
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Completed deeper `ker_lti` runtime-control probe; recorded seed-only no-go)
 
 Ran `/orient dymad_dev`, selected and claimed `Probe deeper runtime-determinism controls for test_slow_ker_lti_cli.py`, then completed the required 3-control follow-up probe (`5` reruns per control for `km_ln`).
@@ -342,4 +390,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
-- Given deeper runtime-control probing still produced only `1/15` passes for `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` on 2026-04-16, what non-seed remediation path (runtime behavior changes, test redesign, or explicit scope carve-out) should replace further seed-only work for this file?
+- After wiring runtime worker controls (including `dataloader.num_workers`) and re-running deterministic-profile validation, does `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` become stable enough to avoid harness redesign?
