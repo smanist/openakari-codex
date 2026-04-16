@@ -28,7 +28,7 @@
 
 ## Slow-regression seed stabilization
 
-- [ ] Inventory seed-controlled slow and extra_slow regression tests [skill: record] [fleet-eligible] [zero-resource]
+- [x] Inventory seed-controlled slow and extra_slow regression tests [skill: record] [fleet-eligible] [zero-resource]
   Why: The seed-stabilization work should start from an explicit inventory of which regression tests already expose seed knobs and which files/CLI args own them.
   Done when: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` lists the targeted `test_slow_*` and `extra_slow` cases, identifies the current seed entry points, and records that thresholds/baselines are out of scope.
   Priority: high

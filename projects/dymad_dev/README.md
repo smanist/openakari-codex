@@ -14,6 +14,48 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-15 (Completed slow-regression seed-entry inventory task)
+
+Ran `/orient dymad_dev`, selected the highest-leverage zero-resource unblocker in this project (`Inventory seed-controlled slow and extra_slow regression tests`), and completed it by making the seed controls explicit in the stabilization plan.
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false` (no LLM API calls, no external API calls, no GPU compute, no long-running compute).
+
+Changes made:
+- Added a new `## Seed-entry inventory (2026-04-15 verification)` section to `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` documenting:
+  - shared seed control patterns (`TEST_SEED`, CLI `--seed`, NumPy/Torch seeding, `module.set_seed` where present),
+  - family-level target-file coverage,
+  - explicit `extra_slow` marker locations.
+- Marked the inventory task complete in `projects/dymad_dev/TASKS.md`.
+
+Verification:
+- `cd modules/dymad_dev && rg -n --no-heading "@pytest\\.mark\\.extra_slow|def test_lti_cli_training_regression_extra_slow" tests/test_slow_lti_cli.py tests/test_slow_vortex_cli.py`
+  - `tests/test_slow_vortex_cli.py:16:@pytest.mark.extra_slow`
+  - `tests/test_slow_lti_cli.py:344:@pytest.mark.extra_slow`
+  - `tests/test_slow_lti_cli.py:346:def test_lti_cli_training_regression_extra_slow(`
+- `cd modules/dymad_dev && rg -n --no-heading "TEST_SEED|--seed|np\\.random\\.seed|torch\\.manual_seed|module\\.set_seed" tests/test_slow_lti_cli.py tests/test_slow_kp_sa_cli.py tests/test_slow_vortex_cli.py`
+  - `tests/test_slow_lti_cli.py:23:TEST_SEED = 12345`
+  - `tests/test_slow_lti_cli.py:156:    np.random.seed(TEST_SEED)`
+  - `tests/test_slow_lti_cli.py:157:    torch.manual_seed(TEST_SEED)`
+  - `tests/test_slow_lti_cli.py:198:            "--seed",`
+  - `tests/test_slow_kp_sa_cli.py:145:    module.set_seed(TEST_SEED)`
+- `rg -n --no-heading '## Seed-entry inventory|Do not change metric thresholds|Do not change baseline JSON files|Do not change the asserted error criteria|Do not change \`slow_regression_utils.py\`' projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
+  - `22:- Do not change metric thresholds.`
+  - `23:- Do not change \`slow_regression_utils.py\`.`
+  - `24:- Do not change baseline JSON files.`
+  - `25:- Do not change the asserted error criteria.`
+  - `64:## Seed-entry inventory (2026-04-15 verification)`
+
+Session-type: autonomous
+Duration: 23
+Task-selected: Inventory seed-controlled slow and extra_slow regression tests
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-15 (Added seed-only stabilization task series for slow regressions)
 
 Added a second workstream to this project for stabilizing DyMAD's `slow` and `extra_slow` pytest regressions by changing only random seeds. The key finding that shaped the task decomposition is that many `test_slow_*` files already expose deterministic controls through `TEST_SEED`, explicit NumPy / Torch seeding, and CLI `--seed` arguments, so the intended fix surface is local seed values rather than regression thresholds or baseline JSONs.

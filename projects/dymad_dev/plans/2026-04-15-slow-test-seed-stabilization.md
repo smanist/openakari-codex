@@ -61,6 +61,25 @@ Representative files:
 - `modules/dymad_dev/tests/test_slow_vortex_train_cli.py`
 - the `extra_slow` case inside `modules/dymad_dev/tests/test_slow_lti_cli.py`
 
+## Seed-entry inventory (2026-04-15 verification)
+
+This inventory records the currently wired seed controls that the seed-only sweep is allowed to edit.
+
+### Shared seed control patterns
+
+- Module-level `TEST_SEED` constants are present across all currently targeted `test_slow_*` files.
+- CLI test invocations pass explicit `--seed` arguments in all targeted families.
+- Many files also call `np.random.seed(TEST_SEED)` and `torch.manual_seed(TEST_SEED)` before command execution.
+- One targeted Koopman file (`test_slow_kp_sa_cli.py`) additionally uses `module.set_seed(TEST_SEED)`.
+
+### Family-level inventory
+
+| Family | Target files | Verified seed entry points |
+| --- | --- | --- |
+| Family 1: LTI / graph / PIROM | `test_slow_lti_cli.py`, `test_slow_lti_dt_cli.py`, `test_slow_lti_delay_cli.py`, `test_slow_ltg_dt_cli.py`, `test_slow_ltg_dt_tv_cli.py`, `test_slow_linear_graph_cli.py`, `test_slow_linear_graph_auto_cli.py`, `test_slow_pirom_dyn_cli.py`, `test_slow_pirom_res_cli.py`, `test_slow_pirom_res_dt_cli.py` | `TEST_SEED`, CLI `--seed`, plus NumPy/Torch manual seeding in most files |
+| Family 2: Kernel / Koopman | `test_slow_ker_lti_cli.py`, `test_slow_ker_lco_cli.py`, `test_slow_ker_s1_cli.py`, `test_slow_ker_s1u_cli.py`, `test_slow_kp_train_cli.py`, `test_slow_kp_sweep_dt_cli.py`, `test_slow_kp_sweep_ct_cli.py`, `test_slow_kp_sa_cli.py` | `TEST_SEED`, CLI `--seed`, NumPy/Torch manual seeding, and `module.set_seed(TEST_SEED)` in `test_slow_kp_sa_cli.py` |
+| Family 3: Remaining / extra_slow | `test_slow_lorenz63_cli.py`, `test_slow_kuramoto_cli.py`, `test_slow_vortex_cli.py`, `test_slow_vortex_train_cli.py`, `test_slow_lti_cli.py::test_lti_cli_training_regression_extra_slow` | `TEST_SEED`, CLI `--seed`; extra_slow marker locations in `test_slow_vortex_cli.py` and `test_slow_lti_cli.py` |
+
 ## Execution pattern
 
 1. Pick one family at a time.
