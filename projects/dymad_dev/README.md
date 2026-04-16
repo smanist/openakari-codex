@@ -484,4 +484,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
-- Which harness-redesign contract should replace the current single-run `ker_lti` assertion path now that deterministic-profile validation still yields only `2/10` passes for `km_ln`?
+- What fixture refresh policy should govern the deterministic `ker_lti` harness so provenance stays auditable without hiding real runtime regressions?

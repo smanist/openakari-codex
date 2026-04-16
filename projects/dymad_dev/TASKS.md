@@ -89,11 +89,18 @@
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
   Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-profile-validation-2026-04-16.md`; deterministic profile validation yielded `2/10` passes for `km_ln` (`20%`), with failing-metric distribution `crit_valid_last: 4`, `crit_train_last: 3`, `rmse: 1`, and a go recommendation for dedicated harness-redesign planning.
 
-- [ ] Design a harness-redesign path for `test_slow_ker_lti_cli.py` after deterministic-profile instability [skill: design] [requires-frontier] [zero-resource]
+- [x] Design a harness-redesign path for `test_slow_ker_lti_cli.py` after deterministic-profile instability [skill: design] [requires-frontier] [zero-resource]
   Why: Even after worker-control wiring and explicit deterministic runtime controls, `km_ln` passed only `2/10` reruns, so continued seed-only effort is low-yield without a stronger test/harness contract.
   Done when: a design note compares at least two harness-redesign options (for example fixed cached fixture data vs multi-run aggregate assertion), recommends one option with explicit regression-sensitivity safeguards, and defines verification commands/criteria for a follow-on implementation task.
   Priority: high
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-profile-validation-2026-04-16.md`
+  Notes: Completed in `projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md`; selected option is deterministic fixture-backed gating with a companion live-path smoke check and negative-control coverage.
+
+- [ ] Implement the deterministic fixture-backed `ker_lti` harness redesign [skill: execute] [requires-frontier] [zero-resource]
+  Why: The completed harness design selected deterministic fixture-backed baseline gating as the lowest-variance contract that still preserves regression sensitivity via explicit safeguard checks.
+  Done when: `tests/test_slow_ker_lti_cli.py` runs baseline gating from deterministic fixture inputs, preserves existing threshold logic in `slow_regression_utils.py`, adds a live-path smoke check and a negative-control check, and the redesigned `km_ln` gate passes 10/10 repeated invocations with recorded verification commands.
+  Priority: high
+  Evidence: `projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md`
 
 - [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.

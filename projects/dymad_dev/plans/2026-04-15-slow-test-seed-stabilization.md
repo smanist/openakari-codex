@@ -287,3 +287,28 @@ Implication for next session:
 
 - `ker_lti` remains unstable under current deterministic profile (`2/10`), so keep it out of the seed-only stream.
 - Proceed with dedicated harness-redesign design work before additional `ker_lti` seed-only effort.
+
+## Execution findings (2026-04-16, `ker_lti` harness-redesign design selection)
+
+The dedicated harness-design task compared two redesign options for `tests/test_slow_ker_lti_cli.py`:
+
+1. deterministic cached-fixture baseline gate, and
+2. multi-run aggregate assertions on the live stochastic path.
+
+Design outcome:
+
+- Selected option: deterministic fixture-backed baseline gating with explicit safeguards.
+- Rationale: under current deterministic profile, `km_ln` still passes only `2/10`; aggregate stochastic gating would remain high-variance and harder to interpret without risking regression-sensitivity loss.
+- Safeguard bundle:
+  - keep threshold logic unchanged (`slow_regression_utils.py` untouched),
+  - lock fixture provenance and hash,
+  - retain a separate live-path smoke check,
+  - include a negative-control regression-sensitivity check.
+
+Follow-on work created:
+
+- `Implement the deterministic fixture-backed ker_lti harness redesign` in `projects/dymad_dev/TASKS.md`.
+
+Provenance:
+
+- `projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md`
