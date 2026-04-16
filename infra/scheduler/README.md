@@ -3,7 +3,7 @@
 Minimal cron scheduler for autonomous agent sessions. Manages scheduled jobs that invoke local agent runtimes such as `codex exec` to run autonomous work cycles.
 
 Status: active
-Mission: Provide a standalone, zero-dependency (beyond croner) scheduler for akari autonomous execution.
+Mission: Provide a standalone scheduler for akari autonomous execution with a minimal optional Slack DM operator interface.
 Done when: Scheduler reliably triggers autonomous sessions on cron schedule with job state persistence.
 
 ## Architecture
@@ -122,13 +122,41 @@ The runtime route is an implementation detail. `opencode` remains internal for f
 
 Scheduler skill enumeration reads `.agents/skills/`.
 
-## Slack integration (reference only)
+## Slack integration (DM-only MVP)
 
-Openakari ships Slack integration as a **reference implementation**, not as an out-of-the-box supported integration.
+The scheduler now supports a **minimal DM-only Slack interface** for one designated operator. It is intentionally small:
 
-See `infra/scheduler/reference-implementations/slack/`.
+- direct messages only
+- one designated operator (`SLACK_USER_ID`)
+- plain-text threaded replies and notifications
+- no channel support, slash commands, App Home, uploads, or living messages
 
-The scheduler runs without Slack. If you want Slack notifications, copy/adapt the reference implementation into your own environment.
+The richer multi-channel Slack bot remains available as a reference in `infra/scheduler/reference-implementations/slack/`.
+
+### Required environment variables
+
+- `SLACK_BOT_TOKEN`
+- `SLACK_APP_TOKEN`
+- `SLACK_USER_ID`
+
+Optional:
+
+- `SLACK_CHAT_MODEL` — overrides the model used by inbound Slack DM chat sessions
+
+### Required Slack app capabilities
+
+- Socket Mode enabled
+- App-level token with `connections:write`
+- Bot scopes:
+  - `chat:write`
+  - `im:history`
+  - `im:write`
+- Event subscription:
+  - `message.im`
+
+Use the minimal manifest in `infra/scheduler/slack-app-manifest.yaml` as the starting point for the active DM-only integration.
+
+The scheduler still runs without Slack. If the Slack env vars are unset, all Slack functions degrade to no-ops.
 
 ## Control API (no dashboard UI)
 
@@ -180,7 +208,7 @@ Internal monitoring (health-watchdog) only runs when the scheduler is running. I
 
 ## Design decisions
 
-- **No external dependencies beyond croner**: The scheduler uses Node.js built-ins for everything except cron expression parsing.
+- **Minimal optional integrations**: The core scheduler loop stays lightweight. Optional Slack DM support adds `@slack/bolt`, but Slack remains entirely configuration-gated.
 - **Polling, not event-driven**: The daemon polls every 30s. This is simple, reliable, and adequate for jobs that run at most hourly.
 - **Max concurrent sessions limit**: By default, only 1 session runs at a time. This prevents overlapping sessions when a job spans multiple poll intervals. Configure via `maxConcurrentSessions` option (0 = unlimited). The limit applies across all jobs — different job types cannot run simultaneously when the limit is reached.
 - **Serialized pushes under concurrency**: Fleet workers can request pushes via the control API so `git push` is effectively serialized.
@@ -232,6 +260,23 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-04-15 — Add DM-only Slack operator interface
+
+Replaced the openakari Slack stub with a minimal live DM integration in `src/slack.ts`. The active scheduler can now send real Slack DMs to the designated operator and accept inbound plain-text DM requests from that same operator over Socket Mode. The MVP is intentionally narrow: DM-only, designated-user-only, plain-text replies, and no slash commands, channel mode, App Home, uploads, or living messages.
+
+Implementation details:
+- Added `@slack/bolt` as the minimal runtime dependency for the active scheduler package.
+- Kept the existing `slack.ts` export surface intact so `cli.ts`, `executor.ts`, `service.ts`, and `auto-diagnose.ts` continue to call the same functions.
+- Added a DM-only Slack app manifest at `infra/scheduler/slack-app-manifest.yaml`.
+- Updated this README to describe the active DM-only integration while preserving the richer multi-channel Slack bot under `reference-implementations/slack/` as reference code.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/slack.test.ts src/cli-health.test.ts src/executor.test.ts`
+  - `Test Files  3 passed (3)`
+  - `Tests  49 passed (49)`
+- `cd infra/scheduler && npm run build`
+  - `npx tsc` completed successfully
 
 ### 2026-03-25 — Default tier mapping + effective model floor computation
 
