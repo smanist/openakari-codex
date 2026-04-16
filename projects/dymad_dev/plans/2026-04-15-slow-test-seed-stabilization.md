@@ -247,3 +247,43 @@ Implication for next session:
 
 - Record a **no-go** for additional seed-only sweeps on `test_slow_ker_lti_cli.py`.
 - Continue Family 2 seed-only stabilization on other files while isolating `ker_lti` as a separate non-seed remediation stream.
+
+## Execution findings (2026-04-16, `ker_lti` explicit deterministic-profile validation after worker-control wiring)
+
+This follow-up validated the task-level deterministic profile for `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` after wiring `dataloader.num_workers` in runtime.
+
+Profile used for all reruns:
+
+- seed fixed at `12345`
+- `dataloader.shuffle: false`
+- `dataloader.num_workers: 0`
+- thread pinning (`OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`, `NUMEXPR_NUM_THREADS=1`)
+- deterministic torch controls (`torch.use_deterministic_algorithms(True)`, `torch.set_num_threads(1)`, `torch.set_num_interop_threads(1)`, `torch.backends.mkldnn.enabled=False`)
+- `MKL_CBWR=COMPATIBLE`
+
+Observed behavior (`10` same-seed reruns):
+
+- Passes: `2/10 = 20%`
+- Failures: `8/10 = 80%`
+- Failing-metric distribution:
+  - `crit_valid_last`: `4/8 = 50%`
+  - `crit_train_last`: `3/8 = 37.5%`
+  - `rmse`: `1/8 = 12.5%`
+- Failure ratio (`actual/limit`) stats from CSV:
+  - min: `1.2505`
+  - avg: `105.1205`
+  - max: `795.2120`
+
+Verification evidence captured:
+
+- Structured results:
+  - `projects/dymad_dev/analysis/data/ker_lti_runtime_profile_validation_2026-04-16.csv`
+  - `projects/dymad_dev/analysis/data/ker_lti_runtime_profile_validation_2026-04-16.json`
+  - `projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/`
+- Probe command (per run):
+  - `cd modules/dymad_dev && PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 PYTHONHASHSEED=12345 MKL_CBWR=COMPATIBLE python -c "import torch, pytest; torch.use_deterministic_algorithms(True); torch.set_num_threads(1); torch.set_num_interop_threads(1); torch.backends.mkldnn.enabled=False; raise SystemExit(pytest.main(['-q','--reruns','0','-o','log_cli=false','--showlocals','--tb=long','tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]']))"`
+
+Implication for next session:
+
+- `ker_lti` remains unstable under current deterministic profile (`2/10`), so keep it out of the seed-only stream.
+- Proceed with dedicated harness-redesign design work before additional `ker_lti` seed-only effort.

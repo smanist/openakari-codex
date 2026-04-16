@@ -14,6 +14,55 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Validated `ker_lti` deterministic profile after worker-control wiring; queued harness redesign)
+
+Ran `/orient dymad_dev`, selected and claimed `Validate ker_lti stability under an explicit deterministic runtime profile`, and completed the required 10-rerun deterministic-profile validation for `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`.
+
+Orient summary:
+- Scoped project status: actionable, clean working tree, no pending approvals.
+- Findings-first gate: enabled (`0/10 = 0%` non-zero findings in latest scheduler `work-cycle` sessions from `.scheduler/metrics/sessions.jsonl`).
+- Budget gate: `n/a` (`consumes_resources: false`; no LLM API calls, external API calls, GPU compute, or detached long-running job).
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false`.
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Validate \`ker_lti\` stability under an explicit deterministic runtime profile","project":"dymad_dev","agentId":"work-session-mo1b5ygm"}'`
+  - `{"ok":true,"claim":{"claimId":"4cbfa5b26a996d32",...}}`
+
+Changes made:
+- Added diagnosis note:
+  - `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-profile-validation-2026-04-16.md`
+- Added deterministic-profile validation artifacts:
+  - `projects/dymad_dev/analysis/data/ker_lti_runtime_profile_validation_2026-04-16.csv`
+  - `projects/dymad_dev/analysis/data/ker_lti_runtime_profile_validation_2026-04-16.json`
+  - `projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/` (10 raw logs)
+- Updated:
+  - `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with new deterministic-profile findings.
+  - `projects/dymad_dev/TASKS.md` to mark the validation task complete and add a follow-up harness-redesign design task.
+
+Verification:
+- `python - <<'PY' ...` (10-run deterministic-profile probe, with temporary `shuffle: false` injection and post-run restore of `scripts/ker_lti/ker_model.yaml`)
+  - `passes=2/10`
+  - `failure_metric_counts={'crit_valid_last': 4, 'crit_train_last': 3, 'rmse': 1}`
+  - `ratio_min=1.250532`
+  - `ratio_avg=105.120454`
+  - `ratio_max=795.211968`
+- `git status --short`
+  - no remaining edits under `modules/dymad_dev/`; session artifacts are confined to `projects/dymad_dev/`.
+
+Compound: not run in this session (scheduler directive requested the 5-step work cycle through commit+log).
+
+Session-type: autonomous
+Duration: 47
+Task-selected: Validate `ker_lti` stability under an explicit deterministic runtime profile
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 16
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Wired dataloader worker controls for deterministic `ker_lti` follow-up)
 
 Ran `/orient dymad_dev`, selected and claimed `Wire dataloader worker controls for deterministic slow-regression experiments`, then completed runtime wiring + tests.
@@ -435,4 +484,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
-- After wiring runtime worker controls (including `dataloader.num_workers`) and re-running deterministic-profile validation, does `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` become stable enough to avoid harness redesign?
+- Which harness-redesign contract should replace the current single-run `ker_lti` assertion path now that deterministic-profile validation still yields only `2/10` passes for `km_ln`?

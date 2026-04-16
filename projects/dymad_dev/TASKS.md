@@ -82,11 +82,18 @@
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
   Notes: Completed with runtime support for `num_workers` plus `persistent_workers` / `prefetch_factor` guardrails in `modules/dymad_dev/src/dymad/io/trajectory_manager.py`, coverage in `modules/dymad_dev/tests/test_typed_trainer_batches.py`, and explicit `num_workers: 0` in `modules/dymad_dev/scripts/ker_lti/ker_model.yaml`.
 
-- [ ] Validate `ker_lti` stability under an explicit deterministic runtime profile [skill: diagnose] [requires-frontier] [zero-resource]
+- [x] Validate `ker_lti` stability under an explicit deterministic runtime profile [skill: diagnose] [requires-frontier] [zero-resource]
   Why: After wiring runtime controls, the project needs measured evidence on whether `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` becomes stable enough to re-enter the seed-only stream.
   Done when: at least 10 same-seed reruns for `km_ln` are recorded under a deterministic profile (`shuffle: false`, thread pinning, deterministic torch controls, wired worker config), with pass-rate arithmetic and failing-metric distribution reported in a diagnosis note plus a go/no-go recommendation on harness redesign.
   Priority: high
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
+  Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-profile-validation-2026-04-16.md`; deterministic profile validation yielded `2/10` passes for `km_ln` (`20%`), with failing-metric distribution `crit_valid_last: 4`, `crit_train_last: 3`, `rmse: 1`, and a go recommendation for dedicated harness-redesign planning.
+
+- [ ] Design a harness-redesign path for `test_slow_ker_lti_cli.py` after deterministic-profile instability [skill: design] [requires-frontier] [zero-resource]
+  Why: Even after worker-control wiring and explicit deterministic runtime controls, `km_ln` passed only `2/10` reruns, so continued seed-only effort is low-yield without a stronger test/harness contract.
+  Done when: a design note compares at least two harness-redesign options (for example fixed cached fixture data vs multi-run aggregate assertion), recommends one option with explicit regression-sensitivity safeguards, and defines verification commands/criteria for a follow-on implementation task.
+  Priority: high
+  Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-profile-validation-2026-04-16.md`
 
 - [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.

@@ -1,0 +1,130 @@
+{
+  "date": "2026-04-16",
+  "profile": {
+    "seed": 12345,
+    "shuffle": false,
+    "num_workers": 0,
+    "thread_pinning": true,
+    "torch_deterministic_algorithms": true,
+    "torch_num_threads": 1,
+    "torch_num_interop_threads": 1,
+    "torch_mkldnn_enabled": false,
+    "mkl_cbwr": "COMPATIBLE"
+  },
+  "runs": 10,
+  "passes": 2,
+  "failures": 8,
+  "pass_rate": 0.2,
+  "failure_metric_counts": {
+    "crit_valid_last": 4,
+    "crit_train_last": 3,
+    "rmse": 1
+  },
+  "failure_ratio_stats": {
+    "min": 1.2505324523644907,
+    "avg": 105.12045391141274,
+    "max": 795.2119681224638
+  },
+  "rows": [
+    {
+      "run": 1,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_valid_last",
+      "value": 0.04782036234320762,
+      "limit": 0.00233733233805354,
+      "ratio": 20.45937651426625,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_01.log"
+    },
+    {
+      "run": 2,
+      "exit_code": 0,
+      "passed": true,
+      "metric_name": null,
+      "value": null,
+      "limit": null,
+      "ratio": null,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_02.log"
+    },
+    {
+      "run": 3,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_train_last",
+      "value": 5.421037447038879e-06,
+      "limit": 3.0152980685024556e-06,
+      "ratio": 1.7978446322327368,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_03.log"
+    },
+    {
+      "run": 4,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_train_last",
+      "value": 4.22490244563354e-06,
+      "limit": 3.0152980685024556e-06,
+      "ratio": 1.401155822625467,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_04.log"
+    },
+    {
+      "run": 5,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_train_last",
+      "value": 3.7707280882142883e-06,
+      "limit": 3.0152980685024556e-06,
+      "ratio": 1.2505324523644907,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_05.log"
+    },
+    {
+      "run": 6,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "rmse",
+      "value": 1.2660097505769903,
+      "limit": 0.14944818489137485,
+      "ratio": 8.471228683688455,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_06.log"
+    },
+    {
+      "run": 7,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_valid_last",
+      "value": 1.8586746486998353,
+      "limit": 0.00233733233805354,
+      "ratio": 795.2119681224638,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_07.log"
+    },
+    {
+      "run": 8,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_valid_last",
+      "value": 0.005703343601949422,
+      "limit": 0.00233733233805354,
+      "ratio": 2.440108113465368,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_08.log"
+    },
+    {
+      "run": 9,
+      "exit_code": 1,
+      "passed": false,
+      "metric_name": "crit_valid_last",
+      "value": 0.023213022000384786,
+      "limit": 0.00233733233805354,
+      "ratio": 9.931416950195405,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_09.log"
+    },
+    {
+      "run": 10,
+      "exit_code": 0,
+      "passed": true,
+      "metric_name": null,
+      "value": null,
+      "limit": null,
+      "ratio": null,
+      "log_path": "projects/dymad_dev/analysis/data/ker_lti_runtime_profile_logs_2026-04-16/run_10.log"
+    }
+  ]
+}

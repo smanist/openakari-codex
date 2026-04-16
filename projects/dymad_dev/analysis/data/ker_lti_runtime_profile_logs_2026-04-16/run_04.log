@@ -1,0 +1,72 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________________________ test_ker_lti_cli[km_ln] ____________________________
+
+case = Case(idx=0, model_name='km_ln', model_class=PredefinedModel(model_spec=ModelSpec(recipe=RecipeSpec(kind='km', model_cl...pports_control_inputs=True), memory=None, name='KM')), metric_factors={'crit_train_last': 3.0, 'crit_valid_last': 3.0})
+tmp_path = PosixPath('/private/var/folders/q5/n6wq35sd357_lwxlbgdsv4sw0000gn/T/pytest-of-daninghuang/pytest-611/test_ker_lti_cli_km_ln_0')
+request = <FixtureRequest for <Function test_ker_lti_cli[km_ln]>>
+baseline_store = None
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("case", CASES, ids=lambda c: c.model_name)
+    def test_ker_lti_cli(case: Case, tmp_path: Path, request, baseline_store):
+        _run_case(case, tmp_path)
+        checkpoint = tmp_path / case.run_dir_name / f"{case.run_dir_name}.pt"
+        summary_path = tmp_path / case.run_dir_name / f"{case.run_dir_name}_summary.npz"
+        assert checkpoint.exists()
+        assert summary_path.exists()
+        summary = load_summary(summary_path)
+        rmse = _eval_rmse(case, checkpoint)
+        record = extract_record(summary, rmse)
+        if request.config.getoption("--record-baselines"):
+            baseline_store[case.model_name] = record
+            return
+        baseline = load_baselines(BASELINE_PATH)[case.model_name]
+        assert_summary_against_baseline(summary, baseline)
+        for metric_name, baseline_value in baseline["metrics"].items():
+            factor = case.metric_factors.get(metric_name)
+>           assert record["metrics"][metric_name] <= scaled_limit(metric_name, baseline_value, factor)
+E           AssertionError: assert 4.22490244563354e-06 <= 3.0152980685024556e-06
+E            +  where 3.0152980685024556e-06 = scaled_limit('crit_train_last', 1.0050993561674852e-06, 3.0)
+
+baseline   = {'metrics': {'best_valid_total': 5.464576851814945, 'crit_train_last': 1.0050993561674852e-06, 'crit_valid_last': 0.00...total', 'valid_dynamics', 'valid_total'], 'crit_epoch_count': 1, 'crit_name': 'dynamics', 'crit_series_count': 2, ...}}
+baseline_store = None
+baseline_value = 1.0050993561674852e-06
+case       = Case(idx=0, model_name='km_ln', model_class=PredefinedModel(model_spec=ModelSpec(recipe=RecipeSpec(kind='km', model_cl...pports_control_inputs=True), memory=None, name='KM')), metric_factors={'crit_train_last': 3.0, 'crit_valid_last': 3.0})
+checkpoint = PosixPath('/private/var/folders/q5/n6wq35sd357_lwxlbgdsv4sw0000gn/T/pytest-of-daninghuang/pytest-611/test_ker_lti_cli_km_ln_0/ker_km_ln/ker_km_ln.pt')
+factor     = 3.0
+metric_name = 'crit_train_last'
+record     = {'metrics': {'best_valid_total': 0.21197257645086426, 'crit_train_last': 4.22490244563354e-06, 'crit_valid_last': 0.00...total', 'valid_dynamics', 'valid_total'], 'crit_epoch_count': 1, 'crit_name': 'dynamics', 'crit_series_count': 2, ...}}
+request    = <FixtureRequest for <Function test_ker_lti_cli[km_ln]>>
+rmse       = 0.3177937864394524
+summary    = {'avg_epoch_time': array(0.00996804), 'best_valid_loss': array({'epoch': 0, 'train_dynamics': 0.00024219898020400417, ...valid_total': 0.21197257645086426},
+      dtype=object), 'convergence_epoch': array(1), 'crit_epoch': array([0.]), ...}
+summary_path = PosixPath('/private/var/folders/q5/n6wq35sd357_lwxlbgdsv4sw0000gn/T/pytest-of-daninghuang/pytest-611/test_ker_lti_cli_km_ln_0/ker_km_ln/ker_km_ln_summary.npz')
+tmp_path   = PosixPath('/private/var/folders/q5/n6wq35sd357_lwxlbgdsv4sw0000gn/T/pytest-of-daninghuang/pytest-611/test_ker_lti_cli_km_ln_0')
+
+tests/test_slow_ker_lti_cli.py:149: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Generated data: /private/var/folders/q5/n6wq35sd357_lwxlbgdsv4sw0000gn/T/pytest-of-daninghuang/pytest-611/test_ker_lti_cli_km_ln_0/data/ker.npz
+----------------------------- Captured stderr call -----------------------------
+Matplotlib is building the font cache; this may take a moment.
+------------------------------ Captured log call -------------------------------
+INFO     dymad.utils.sampling:sampling.py:467 TrajectorySampler initialized with dims: states=2, inputs=1, observations=2, parameters=0.
+INFO     dymad.utils.sampling:sampling.py:475 Control config: {'kind': 'chirp', 'params': {'t1': 4.0, 'freq_range': (0.5, 2.0), 'amp_range': (0.5, 1.0), 'phase_range': (0.0, 360.0)}}
+INFO     dymad.utils.sampling:sampling.py:476 Init. Cond. config: {'kind': 'uniform', 'params': {'bounds': [-1.0, 1.0]}}
+INFO     dymad.utils.sampling:sampling.py:477 Param. config: None
+INFO     dymad.utils.sampling:sampling.py:478 Solver config: {'method': 'RK45', 'rtol': 1e-06, 'atol': 1e-06}
+INFO     dymad.utils.sampling:sampling.py:479 Postprocess config: None
+INFO     dymad.utils.sampling:sampling.py:598 Generating trajectory 1/1...
+INFO     dymad.models.helpers:helpers.py:213 Built model: CD_KM
+INFO     dymad.models.helpers:helpers.py:214 - Encoder: smpl_auto, Dynamics: direct, Decoder: auto, Features: blin_with_const
+INFO     dymad.models.helpers:helpers.py:218 - Using predictor: predict_continuous, input order: cubic
+INFO     dymad.models.helpers:helpers.py:221 - If graph model: False, continuous-time: True
+=============================== warnings summary ===============================
+../../../../miniconda3/lib/python3.12/site-packages/torch/jit/_script.py:1488
+../../../../miniconda3/lib/python3.12/site-packages/torch/jit/_script.py:1488
+  /Users/daninghuang/miniconda3/lib/python3.12/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln] - AssertionErr...
