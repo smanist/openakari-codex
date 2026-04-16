@@ -150,3 +150,33 @@ Verification evidence captured:
 Implication for next session:
 - Keep Family 2 task open, but treat `test_slow_ker_lti_cli.py` as a potential non-seed-stabilizable outlier under current criteria.
 - Before broader kernel/koopman edits, decide whether to (a) continue a larger seed search with stricter reproducibility controls, or (b) split out a diagnosis task for nondeterminism sources in `ker_lti` (still preserving the "no threshold/baseline edits" rule for this workstream).
+
+## Execution findings (2026-04-16, `ker_lti` nondeterminism diagnosis)
+
+Follow-up diagnosis focused on whether fixed-seed reruns remain stable for `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`.
+
+Observed behavior:
+- Repeating the exact same `km_ln` test command with the same seed still produced different failing values and scales (examples: `18.46x`, `3.33x`, `7.99x` over limit in default mode).
+- Even with thread pinning (`OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, etc.), failures still varied widely (`1.06x` to `44.25x` over limit).
+- `--showlocals` runs showed the failing metric can flip between `crit_valid_last` and `crit_train_last`.
+- `dkm_ln` also fails in this file under the same harness (`crit_train_last`, `5.87x` over limit).
+
+Verification evidence captured:
+- `cd modules/dymad_dev && for mode in default serial; do ... pytest -q --reruns 0 -o log_cli=false 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]' ...; done`
+  - default examples: `5.565582586220919e-05 <= 3.0152980685024556e-06`, `0.498131653991013 <= 0.14944818489137485`, `0.01867423212532156 <= 0.00233733233805354`
+  - serial examples: `4.844859347597597e-06 <= 3.0152980685024556e-06`, `0.10342498899581704 <= 0.00233733233805354`, `8.728553968644036 <= 8.196865277722416`
+- `cd modules/dymad_dev && for i in 1 2 3 4; do pytest -q --reruns 0 -o log_cli=false --showlocals --tb=long 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]' ...; done`
+  - run excerpts:
+    - `metric_name = 'crit_valid_last'`, `0.010308897274475396 <= 0.00233733233805354`
+    - `metric_name = 'crit_train_last'`, `0.00012279360711213943 <= 3.0152980685024556e-06`
+- `cd modules/dymad_dev && pytest -q --reruns 0 -o log_cli=false --showlocals --tb=long 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[dkm_ln]'`
+  - `metric_name = 'crit_train_last'`, `5.019007493601319e-07 <= 8.55738987656145e-08`
+
+Code-path findings:
+- `scripts/ker_lti/ker_model.yaml` sets `dataloader.batch_size: 30` without `shuffle`.
+- `src/dymad/io/trajectory_manager.py` defaults `shuffle=True` when not configured.
+- No deterministic-runtime toggles were found in `src/`, `scripts/`, or `tests/` (`rg ... deterministic ...` had no matches).
+
+Resulting recommendation:
+- Decompose Family 2 work: treat `test_slow_ker_lti_cli.py` as a dedicated deterministic-runtime diagnosis stream before additional seed sweeps; keep threshold and baseline files untouched.
+- Full diagnosis note: `projects/dymad_dev/analysis/diagnosis-ker-lti-nondeterminism-2026-04-16.md`.

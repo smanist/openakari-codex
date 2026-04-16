@@ -14,6 +14,54 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Completed `ker_lti` nondeterminism diagnosis and decomposed Family 2 follow-up)
+
+Ran `/orient dymad_dev`, selected and claimed `Diagnose residual nondeterminism in test_slow_ker_lti_cli.py under seed-only constraints`, and completed the diagnosis artifact requested by the task.
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false` (no LLM API calls, no external API calls, no GPU compute, no long-running detached jobs).
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints","project":"dymad_dev","agentId":"work-session-mo10g4vg"}'`
+  - `{"ok":true,"claim":{"claimId":"be062f3d135875ce",...}}`
+
+Changes made:
+- Added diagnosis note `projects/dymad_dev/analysis/diagnosis-ker-lti-nondeterminism-2026-04-16.md` with:
+  - exact repro commands,
+  - observed metric variability under fixed seed,
+  - evidence-backed hypotheses,
+  - recommendation to decompose Family 2 work for `ker_lti`.
+- Updated `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with a new diagnosis findings section and command/output excerpts.
+- Updated `projects/dymad_dev/TASKS.md`:
+  - marked the diagnosis task complete,
+  - annotated the Family 2 stabilization task with diagnosis findings,
+  - added decomposed follow-up task `Isolate deterministic-runtime controls for test_slow_ker_lti_cli.py before further seed sweeps`.
+
+Verification:
+- `cd modules/dymad_dev && for mode in default serial; do ... pytest -q --reruns 0 -o log_cli=false 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]' ...; done`
+  - default-mode failures (same seed): `5.565582586220919e-05 <= 3.0152980685024556e-06`, `0.498131653991013 <= 0.14944818489137485`, `0.01867423212532156 <= 0.00233733233805354`
+  - serial-mode failures (same seed): `4.844859347597597e-06 <= 3.0152980685024556e-06`, `0.10342498899581704 <= 0.00233733233805354`, `8.728553968644036 <= 8.196865277722416`
+- `cd modules/dymad_dev && for i in 1 2 3 4; do pytest -q --reruns 0 -o log_cli=false --showlocals --tb=long 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]' ...; done`
+  - run excerpts:
+    - `metric_name = 'crit_valid_last'`, `0.010308897274475396 <= 0.00233733233805354`
+    - `metric_name = 'crit_train_last'`, `0.00012279360711213943 <= 3.0152980685024556e-06`
+- `cd modules/dymad_dev && pytest -q --reruns 0 -o log_cli=false --showlocals --tb=long 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[dkm_ln]'`
+  - `metric_name = 'crit_train_last'`, `5.019007493601319e-07 <= 8.55738987656145e-08`
+- `rg -n "use_deterministic_algorithms|cudnn\\.deterministic|cudnn\\.benchmark|torch\\.set_num_threads|deterministic" modules/dymad_dev/src modules/dymad_dev/scripts modules/dymad_dev/tests -g '!**/*.ipynb'`
+  - no matches
+
+Compound (fast): no additional actions (task discovery and decomposition already recorded during execution).
+
+Session-type: autonomous
+Duration: 53
+Task-selected: Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Partial execution on Family 2 seed stabilization; `ker_lti` scan found no pass-all seed)
 
 Ran `/orient dymad_dev`, selected and claimed `Stabilize kernel and Koopman slow regressions by seed-only edits`, and executed a deeper seed-only probe focused on the current Family 2 blocker in `tests/test_slow_ker_lti_cli.py`.
@@ -193,4 +241,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
-- For `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`, is a seed-only fix sufficient under fail-fast/no-rerun checks, or is there residual nondeterminism that requires explicit deterministic-runtime controls? (2026-04-16 probe: `0/19` pass-all candidate seeds for `ker_lti`.)
+- Which deterministic-runtime controls (e.g., `dataloader.shuffle`, thread pinning, Torch deterministic toggles) are necessary to make `tests/test_slow_ker_lti_cli.py` reproducible enough for any seed-only stabilization attempt? (2026-04-16 diagnosis found fixed-seed metric drift and metric-name flips.)

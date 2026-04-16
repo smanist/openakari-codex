@@ -45,13 +45,20 @@
   Done when: the targeted kernel and Koopman `test_slow_*` cases pass their existing metric thresholds using only seed changes, and no threshold or baseline JSON edits are included in the diff.
   Priority: high
   Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
-  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) are recorded in the stabilization plan and indicate residual nondeterminism risk in this file.
+  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) and diagnosis runs showed fixed-seed metric drift (`crit_train_last` / `crit_valid_last`) and support decomposing `ker_lti` into a deterministic-runtime diagnosis stream before further broad Family 2 seed sweeps.
 
-- [ ] Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints [skill: diagnose] [requires-frontier] [zero-resource]
+- [x] Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints [skill: diagnose] [requires-frontier] [zero-resource]
   Why: Seed-only candidate sweeps have not found a pass-all `TEST_SEED` for `ker_lti`, so the stabilization task needs evidence on whether non-seed controls (execution order, runtime determinism settings, fixture isolation) are causing metric drift.
   Done when: a diagnosis note in `projects/dymad_dev/analysis/` reports at least two evidence-backed hypotheses for `ker_lti` drift, includes exact repro commands and observed metric variability, and recommends whether the main Family 2 seed-only task should continue as-is or be decomposed.
   Priority: high
   Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
+  Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-nondeterminism-2026-04-16.md`; recommendation is to decompose Family 2 and isolate deterministic-runtime controls for `ker_lti` before additional seed-only sweeps.
+
+- [ ] Isolate deterministic-runtime controls for `test_slow_ker_lti_cli.py` before further seed sweeps [skill: diagnose] [requires-frontier] [zero-resource]
+  Why: The completed `ker_lti` diagnosis found run-to-run metric drift under the same seed (including metric-name flips), so the stabilization stream needs controlled evidence about runtime/dataloader determinism before more seed search effort.
+  Done when: a follow-up analysis note evaluates at least four control settings (including `shuffle` on/off and thread-pinning), runs at least 5 reruns per setting for `km_ln`, reports variability and threshold ratios per setting, and recommends the minimal viable deterministic controls (or concludes `ker_lti` is not seed-only stabilizable).
+  Priority: high
+  Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-nondeterminism-2026-04-16.md`
 
 - [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.
