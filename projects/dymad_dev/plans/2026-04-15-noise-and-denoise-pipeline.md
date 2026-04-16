@@ -12,6 +12,7 @@ This work is not only a feature addition. It is an experiment on DyMAD's trainin
 - `modules/dymad_dev/src/dymad/training/phases.py` already supports explicit `type: data` phase entries via `DataPhaseSpec`, but `build_phase(...)` currently routes all of them to `ContextDataPhase`, which only records dataset sizes.
 - `modules/dymad_dev/src/dymad/training/driver.py` constructs a `PhaseContext` with materialized datasets, dataloaders, and metadata. A real denoising phase therefore needs to update all three consistently, not just mutate one tensor in place.
 - `modules/dymad_dev/src/dymad/training/phases.py` auto-appends analysis and export phases, so denoised datasets should flow through the same reporting path as unmodified datasets once the context is rebuilt correctly.
+- The updated agent-facing docs in `modules/dymad_dev/AGENTS.md`, `docs/architecture.md`, and `docs/feature-placement.md` now make the boundary explicit: runtime behavior belongs in implementation packages, while any user-facing exposure must be kept accurate in `src/dymad/agent/registry/*`, compiler surfaces, and their associated tests.
 
 ## Recommended v1 scope
 
@@ -44,6 +45,17 @@ This keeps the first slice aligned with the existing regular trajectory and type
    - downstream optimizer / analysis phases see the transformed context
    - unsupported dataset kinds fail clearly rather than silently skipping work
 
+## Workstream 3: Boundary exposure decision
+
+1. Decide whether denoising is only a runtime feature or part of the stable user-mode training surface.
+2. If runtime-only:
+   - keep implementation in `src/dymad/training/*` / related runtime packages
+   - record the limitation in project docs so the boundary is explicit
+3. If user-facing:
+   - confirm the existing `type: data` phase schema is sufficient or extend the relevant registry/compiler metadata
+   - add or update tests named by the architecture docs, especially `tests/test_agent_registry.py`, `tests/test_training_compiler.py`, and `tests/test_mcp_user_tools.py` as needed
+4. Only update `docs/architecture.md` / `docs/feature-placement.md` if this work changes the documented ownership or user-facing boundary, not merely because the runtime gained a new internal operation
+
 ## Test case design
 
 Use one existing regular trajectory workflow as the initial benchmark, preferably the LTI test/config path already exercised in `modules/dymad_dev/tests/`. Generate one clean dataset, one noisy dataset using the new sampler, and one denoised dataset produced from the same noisy trajectories by the new `data` phase.
@@ -65,5 +77,6 @@ Interpret the filter as useful if it improves direct observation error at modera
 
 1. Land the noise sampler and its unit tests.
 2. Land the denoising phase and its phase-runtime tests.
-3. Run the benchmark from `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/`.
-4. Use the benchmark findings to decide whether the denoising phase should remain generic or stay scoped to SG filtering for regular trajectories.
+3. Resolve the boundary exposure decision for `operation: denoise`.
+4. Run the benchmark from `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/`.
+5. Use the benchmark findings to decide whether the denoising phase should remain generic or stay scoped to SG filtering for regular trajectories.

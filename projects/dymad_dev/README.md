@@ -14,6 +14,22 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-15 (Reviewed updated DyMAD agent-facing docs)
+
+Reviewed the updated DyMAD development docs in `modules/dymad_dev/AGENTS.md`, `modules/dymad_dev/docs/architecture.md`, `modules/dymad_dev/docs/feature-placement.md`, and `modules/dymad_dev/skills/dymad-train-eval-workflow/SKILL.md` against this project's task list. The main new constraint is architectural rather than algorithmic: the docs now make an explicit boundary between runtime changes in `src/dymad/training/*` / related implementation packages and user-facing exposure in `src/dymad/agent/*`.
+
+The existing runtime tasks still fit, but the project had been missing one explicit decision task: whether the new denoising phase should remain runtime-only or also be surfaced through the user-mode registry/compiler path. Updated `projects/dymad_dev/TASKS.md` and the project plan to capture that boundary decision, plus notes pointing future implementation work at the documented test surfaces for training-phase and user-facing changes.
+
+Verification:
+- `sed -n '1,260p' modules/dymad_dev/AGENTS.md`
+  - confirms the new "read architecture + feature-placement first" rule and the `make lint` / `make typecheck` closeout requirement for Python edits
+- `sed -n '1,260p' modules/dymad_dev/docs/architecture.md`
+  - documents the package map and the split between runtime packages and `src/dymad/agent/*`
+- `sed -n '1,260p' modules/dymad_dev/docs/feature-placement.md`
+  - explicitly routes training phase kinds to `src/dymad/training/*`, with compiler/registry updates only when the user-facing boundary changes
+
+Sources: `modules/dymad_dev/AGENTS.md`, `modules/dymad_dev/docs/architecture.md`, `modules/dymad_dev/docs/feature-placement.md`, `modules/dymad_dev/skills/dymad-train-eval-workflow/SKILL.md`
+
 ### 2026-04-15 (Scaffolded noise and denoising workstream)
 
 Created the durable project scaffold around the existing `modules/dymad_dev/` module and recorded the initial implementation seams for the requested work. `modules/dymad_dev/src/dymad/utils/sampling.py` already supports config-driven `control`, `x0`, and `p` sampling, so a parallel `noise` config can follow an established pattern. `modules/dymad_dev/src/dymad/training/phases.py` already normalizes explicit `type: data` phases, but its current `ContextDataPhase` only reports dataset sizes and does not transform data before later phases consume it.
@@ -34,4 +50,5 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 
 - Should v1 noise injection target observations only, or should the config support independent noise on state, control, and observation channels?
 - Should the denoising phase run before or after existing normalization / transform steps in the regular trajectory pipeline?
+- Should `operation: denoise` remain runtime-only at first, or be exposed through the user-mode compiler / registry path once semantics stabilize?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
