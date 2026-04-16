@@ -14,6 +14,22 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-15 (Added seed-only stabilization task series for slow regressions)
+
+Added a second workstream to this project for stabilizing DyMAD's `slow` and `extra_slow` pytest regressions by changing only random seeds. The key finding that shaped the task decomposition is that many `test_slow_*` files already expose deterministic controls through `TEST_SEED`, explicit NumPy / Torch seeding, and CLI `--seed` arguments, so the intended fix surface is local seed values rather than regression thresholds or baseline JSONs.
+
+Recorded a dedicated plan and decomposed the work into family-level execution tasks plus a final scope-audit task. The new plan explicitly keeps `modules/dymad_dev/tests/slow_regression_utils.py`, baseline JSON stores, and all existing error criteria out of scope.
+
+Verification:
+- `sed -n '1,260p' modules/dymad_dev/tests/slow_regression_utils.py`
+  - shows threshold logic lives in `SAFETY_FACTOR`, `ABS_TOLERANCES`, and `compare_record_metrics(...)`
+- `sed -n '1,140p' modules/dymad_dev/pyproject.toml`
+  - shows both `slow` and `extra_slow` pytest markers are registered
+- `rg -n "seed|random|rng|default_rng|manual_seed" modules/dymad_dev/tests/test_slow_* modules/dymad_dev/scripts -g '!*.ipynb'`
+  - confirms many slow tests already seed NumPy/Torch and pass CLI `--seed` args
+
+Sources: `modules/dymad_dev/tests/slow_regression_utils.py`, `modules/dymad_dev/pyproject.toml`, `modules/dymad_dev/tests/test_slow_*.py`
+
 ### 2026-04-15 (Committed to user-facing denoising phase exposure)
 
 Resolved the remaining boundary question for this project: denoising should be a user-requestable training phase rather than an internal runtime-only hook. That means the project now explicitly includes the user-facing contract work needed to let denoising be requested in staged training flows alongside linear-solve and optimizer phases.
@@ -60,3 +76,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should the denoising phase run before or after existing normalization / transform steps in the regular trajectory pipeline?
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
+- Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?

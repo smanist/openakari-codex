@@ -25,3 +25,35 @@
   Done when: `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/EXPERIMENT.md` reports clean-vs-noisy-vs-denoised metrics with exact commands, including a direct observation error metric and a downstream training metric.
   Priority: high
   Evidence: `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/EXPERIMENT.md`
+
+## Slow-regression seed stabilization
+
+- [ ] Inventory seed-controlled slow and extra_slow regression tests [skill: record] [fleet-eligible] [zero-resource]
+  Why: The seed-stabilization work should start from an explicit inventory of which regression tests already expose seed knobs and which files/CLI args own them.
+  Done when: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` lists the targeted `test_slow_*` and `extra_slow` cases, identifies the current seed entry points, and records that thresholds/baselines are out of scope.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
+
+- [ ] Stabilize LTI, graph, and PIROM slow regressions by seed-only edits [skill: execute] [fleet-eligible]
+  Why: These families already use explicit `TEST_SEED` or `--seed` paths, so they are the most direct place to reduce flaky regression failures without changing acceptance criteria.
+  Done when: the targeted LTI, graph, delay, and PIROM `test_slow_*` cases pass their existing metric thresholds using only random-seed changes, and no threshold or baseline JSON edits are included in the diff.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
+
+- [ ] Stabilize kernel and Koopman slow regressions by seed-only edits [skill: execute] [fleet-eligible]
+  Why: Kernel and Koopman CLI regressions have their own seed-controlled data generation and initialization paths, and they fail for the same nondeterministic reason.
+  Done when: the targeted kernel and Koopman `test_slow_*` cases pass their existing metric thresholds using only seed changes, and no threshold or baseline JSON edits are included in the diff.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
+
+- [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
+  Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.
+  Done when: the currently marked `extra_slow` cases and any remaining uncovered long-running regression tests pass their existing checks using only seed changes, and no threshold or baseline JSON edits are included in the diff.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
+
+- [ ] Audit the slow-regression seed sweep for scope compliance [skill: govern] [fleet-eligible] [zero-resource]
+  Why: The user requirement is explicit: change and only change random seeds, while preserving the existing error criteria.
+  Done when: a verification note records the exact `git diff` / pytest evidence showing that touched files changed only seed literals or seed arguments, with no edits to `slow_regression_utils.py`, baseline JSON files, or metric thresholds.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
