@@ -2,7 +2,7 @@
 
 Status: active
 Mission: Extend DyMAD's data pipeline so trajectories can include config-driven synthetic noise, training can optionally denoise datasets before optimization, and the resulting filter can be evaluated against a clean reference.
-Done when: `modules/dymad_dev` supports a config-driven noise sampler and a denoising data phase that passes transformed datasets to later training phases, and `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/EXPERIMENT.md` is completed with direct and downstream effectiveness metrics.
+Done when: `modules/dymad_dev` supports a config-driven noise sampler, a denoising data phase that passes transformed datasets to later training phases, and user-facing training workflows can request that denoising phase; `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/EXPERIMENT.md` is then completed with direct and downstream effectiveness metrics.
 
 ## Context
 
@@ -13,6 +13,14 @@ The immediate scope is two linked workstreams. First, extend trajectory generati
 This project is framed as both implementation and measurement work. The code changes matter because they enable controlled noise injection and denoising; the knowledge output is whether denoising measurably improves signal fidelity and downstream training quality on regular trajectory datasets.
 
 ## Log
+
+### 2026-04-15 (Committed to user-facing denoising phase exposure)
+
+Resolved the remaining boundary question for this project: denoising should be a user-requestable training phase rather than an internal runtime-only hook. That means the project now explicitly includes the user-facing contract work needed to let denoising be requested in staged training flows alongside linear-solve and optimizer phases.
+
+Updated the project task inventory and plan accordingly. The old "decide whether to expose denoising" task was replaced with an execution task to wire denoising through the appropriate registry/compiler/user-facing path, while keeping the runtime implementation in `src/dymad/training/*` aligned with the supported boundary.
+
+Sources: `projects/dymad_dev/TASKS.md`, `projects/dymad_dev/plans/2026-04-15-noise-and-denoise-pipeline.md`
 
 ### 2026-04-15 (Reviewed updated DyMAD agent-facing docs)
 
@@ -50,5 +58,5 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 
 - Should v1 noise injection target observations only, or should the config support independent noise on state, control, and observation channels?
 - Should the denoising phase run before or after existing normalization / transform steps in the regular trajectory pipeline?
-- Should `operation: denoise` remain runtime-only at first, or be exposed through the user-mode compiler / registry path once semantics stabilize?
+- Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?

@@ -45,16 +45,13 @@ This keeps the first slice aligned with the existing regular trajectory and type
    - downstream optimizer / analysis phases see the transformed context
    - unsupported dataset kinds fail clearly rather than silently skipping work
 
-## Workstream 3: Boundary exposure decision
+## Workstream 3: User-facing phase exposure
 
-1. Decide whether denoising is only a runtime feature or part of the stable user-mode training surface.
-2. If runtime-only:
-   - keep implementation in `src/dymad/training/*` / related runtime packages
-   - record the limitation in project docs so the boundary is explicit
-3. If user-facing:
-   - confirm the existing `type: data` phase schema is sufficient or extend the relevant registry/compiler metadata
-   - add or update tests named by the architecture docs, especially `tests/test_agent_registry.py`, `tests/test_training_compiler.py`, and `tests/test_mcp_user_tools.py` as needed
-4. Only update `docs/architecture.md` / `docs/feature-placement.md` if this work changes the documented ownership or user-facing boundary, not merely because the runtime gained a new internal operation
+1. Treat denoising as part of the stable user-mode training surface, not only a runtime implementation detail.
+2. Confirm whether the existing `type: data` phase schema is already sufficient for user requests or whether registry/compiler examples and validation need to be extended to make denoising discoverable and explicit.
+3. Add or update the user-facing tests named by the architecture docs, especially `tests/test_agent_registry.py`, `tests/test_training_compiler.py`, and `tests/test_mcp_user_tools.py`, so the supported contract is mechanically checked.
+4. Keep the runtime implementation in `src/dymad/training/*` / related implementation packages, but make sure the user-facing boundary accurately reflects that denoising is requestable.
+5. Only update `docs/architecture.md` / `docs/feature-placement.md` if this work changes the documented ownership or stable user-facing contract, not merely because the runtime gained a new internal operation.
 
 ## Test case design
 
@@ -77,6 +74,6 @@ Interpret the filter as useful if it improves direct observation error at modera
 
 1. Land the noise sampler and its unit tests.
 2. Land the denoising phase and its phase-runtime tests.
-3. Resolve the boundary exposure decision for `operation: denoise`.
+3. Expose `operation: denoise` through the intended user-facing training workflow.
 4. Run the benchmark from `projects/dymad_dev/experiments/noise-denoise-benchmark-v1/`.
 5. Use the benchmark findings to decide whether the denoising phase should remain generic or stay scoped to SG filtering for regular trajectories.
