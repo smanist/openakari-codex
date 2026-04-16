@@ -42,10 +42,10 @@
 
 - [ ] Stabilize kernel and Koopman slow regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: Kernel and Koopman CLI regressions have their own seed-controlled data generation and initialization paths, and they fail for the same nondeterministic reason.
-  Done when: the targeted kernel and Koopman `test_slow_*` cases pass their existing metric thresholds using only seed changes, and no threshold or baseline JSON edits are included in the diff.
+  Done when: the targeted kernel and Koopman `test_slow_*` cases (excluding `tests/test_slow_ker_lti_cli.py`) pass their existing metric thresholds using only seed changes, and no threshold or baseline JSON edits are included in the diff.
   Priority: high
   Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
-  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) and diagnosis runs showed fixed-seed metric drift (`crit_train_last` / `crit_valid_last`) and support decomposing `ker_lti` into a deterministic-runtime diagnosis stream before further broad Family 2 seed sweeps. A 2026-04-16 deterministic-control probe (`shuffle` and thread-pinning combinations) produced only `3/20` passes (`S4` best setting `1/5`), and the deeper 2026-04-16 probe (`num_workers=0`, deterministic Torch controls, cache/run-order isolation) produced only `1/15` passes (`S5` best setting `1/5`). Treat `ker_lti` as no-go for further seed-only attempts and continue this task on the other Family 2 files.
+  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) and diagnosis runs showed fixed-seed metric drift (`crit_train_last` / `crit_valid_last`) and support decomposing `ker_lti` into a deterministic-runtime diagnosis stream before further broad Family 2 seed sweeps. A 2026-04-16 deterministic-control probe (`shuffle` and thread-pinning combinations) produced only `3/20` passes (`S4` best setting `1/5`), and the deeper 2026-04-16 probe produced only `1/15` passes. Replacement-path diagnosis on 2026-04-16 recorded `ker_lti` as out-of-scope for seed-only stabilization and identified missing runtime worker-control wiring (`dataloader.num_workers`) as a concrete follow-up.
 
 - [x] Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints [skill: diagnose] [requires-frontier] [zero-resource]
   Why: Seed-only candidate sweeps have not found a pass-all `TEST_SEED` for `ker_lti`, so the stabilization task needs evidence on whether non-seed controls (execution order, runtime determinism settings, fixture isolation) are causing metric drift.
@@ -68,11 +68,24 @@
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-controls-2026-04-16.md`
   Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-deeper-runtime-controls-2026-04-16.md`; evaluated 3 additional controls × 5 reruns, observed `1/15` passes overall, and recorded a no-go recommendation for further `ker_lti` seed-only sweeps.
 
-- [ ] Decide replacement path for `test_slow_ker_lti_cli.py` after seed-only no-go [skill: diagnose] [requires-frontier] [zero-resource]
+- [x] Decide replacement path for `test_slow_ker_lti_cli.py` after seed-only no-go [skill: diagnose] [requires-frontier] [zero-resource]
   Why: The deeper runtime-control probe still produced only `1/15` passes for `km_ln`, so continuing seed-only attempts on `ker_lti` is low-yield without an explicit alternative strategy.
   Done when: a follow-up analysis note compares at least two non-seed options (runtime deterministic changes, test/harness redesign, or explicit scope carve-out), recommends one path, and adds the concrete downstream execution task(s).
   Priority: high
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-deeper-runtime-controls-2026-04-16.md`
+  Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`; selected path is explicit `ker_lti` carve-out from seed-only stabilization plus dedicated runtime-determinism remediation tasks.
+
+- [ ] Wire dataloader worker controls for deterministic slow-regression experiments [skill: execute] [requires-frontier]
+  Why: The replacement-path diagnosis found that trajectory-manager dataloader creation currently ignores worker-control keys (for example `num_workers`), so previously attempted deterministic settings were not fully applied in runtime.
+  Done when: `TrajectoryManager.create_dataloaders` and `TrajectoryManagerGraph.create_dataloaders` support `dataloader.num_workers` (and any required guardrails), tests verify the value is honored, and `scripts/ker_lti/ker_model.yaml` can set the knob explicitly.
+  Priority: high
+  Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
+
+- [ ] Validate `ker_lti` stability under an explicit deterministic runtime profile [skill: diagnose] [requires-frontier] [zero-resource]
+  Why: After wiring runtime controls, the project needs measured evidence on whether `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` becomes stable enough to re-enter the seed-only stream.
+  Done when: at least 10 same-seed reruns for `km_ln` are recorded under a deterministic profile (`shuffle: false`, thread pinning, deterministic torch controls, wired worker config), with pass-rate arithmetic and failing-metric distribution reported in a diagnosis note plus a go/no-go recommendation on harness redesign.
+  Priority: high
+  Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
 
 - [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.
