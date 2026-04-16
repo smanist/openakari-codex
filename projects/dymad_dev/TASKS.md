@@ -75,11 +75,12 @@
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-deeper-runtime-controls-2026-04-16.md`
   Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`; selected path is explicit `ker_lti` carve-out from seed-only stabilization plus dedicated runtime-determinism remediation tasks.
 
-- [ ] Wire dataloader worker controls for deterministic slow-regression experiments [skill: execute] [requires-frontier]
+- [x] Wire dataloader worker controls for deterministic slow-regression experiments [skill: execute] [requires-frontier]
   Why: The replacement-path diagnosis found that trajectory-manager dataloader creation currently ignores worker-control keys (for example `num_workers`), so previously attempted deterministic settings were not fully applied in runtime.
   Done when: `TrajectoryManager.create_dataloaders` and `TrajectoryManagerGraph.create_dataloaders` support `dataloader.num_workers` (and any required guardrails), tests verify the value is honored, and `scripts/ker_lti/ker_model.yaml` can set the knob explicitly.
   Priority: high
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-replacement-path-2026-04-16.md`
+  Notes: Completed with runtime support for `num_workers` plus `persistent_workers` / `prefetch_factor` guardrails in `modules/dymad_dev/src/dymad/io/trajectory_manager.py`, coverage in `modules/dymad_dev/tests/test_typed_trainer_batches.py`, and explicit `num_workers: 0` in `modules/dymad_dev/scripts/ker_lti/ker_model.yaml`.
 
 - [ ] Validate `ker_lti` stability under an explicit deterministic runtime profile [skill: diagnose] [requires-frontier] [zero-resource]
   Why: After wiring runtime controls, the project needs measured evidence on whether `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]` becomes stable enough to re-enter the seed-only stream.
