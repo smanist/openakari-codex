@@ -14,6 +14,51 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Wired dataloader worker controls for deterministic `ker_lti` follow-up)
+
+Ran `/orient dymad_dev`, selected and claimed `Wire dataloader worker controls for deterministic slow-regression experiments`, then completed runtime wiring + tests.
+
+Orient summary:
+- Scoped project status: actionable, clean working tree, no pending approvals.
+- Findings-first gate: enabled (`0/10 = 0%` across latest scheduler `work-cycle` sessions from `.scheduler/metrics/sessions.jsonl`).
+- Budget gate: `n/a` (`consumes_resources: false`; no LLM API, external API, GPU compute, or detached long-running process).
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false`.
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Wire dataloader worker controls for deterministic slow-regression experiments","project":"dymad_dev","agentId":"work-session-mo190sk5"}'`
+  - `{"ok":true,"claim":{"claimId":"bd12d067ef82fbe1",...}}`
+
+Changes made:
+- Updated `modules/dymad_dev/src/dymad/io/trajectory_manager.py`:
+  - added `dataloader.num_workers` runtime wiring for both `TrajectoryManager` and `TrajectoryManagerGraph`,
+  - added guardrails for `dataloader.persistent_workers` and `dataloader.prefetch_factor` when `num_workers == 0`.
+- Updated `modules/dymad_dev/tests/test_typed_trainer_batches.py`:
+  - added tests that assert configured `num_workers` is honored for regular and graph typed loaders,
+  - added guardrail tests for invalid worker/prefetch combinations.
+- Updated `modules/dymad_dev/scripts/ker_lti/ker_model.yaml` with explicit `dataloader.num_workers: 0`.
+- Updated `projects/dymad_dev/TASKS.md` to mark the worker-control task complete.
+
+Verification:
+- `PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src pytest -q tests/test_typed_trainer_batches.py` (run in `modules/dymad_dev`)
+  - `7 passed, 2 warnings in 0.44s`
+- `python - <<'PY' ... import dymad.io.trajectory_manager as tm; print(tm.__file__) ... PY`
+  - default environment resolves `dymad` to `/Users/daninghuang/Repos/dymad-dev/src/dymad/io/trajectory_manager.py`.
+  - non-obvious verification constraint: set `PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src` when validating this repo copy.
+
+Compound (fast): no actions.
+
+Session-type: autonomous
+Duration: 52
+Task-selected: Wire dataloader worker controls for deterministic slow-regression experiments
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Selected and documented post-seed replacement path for `ker_lti`)
 
 Ran `/orient dymad_dev`, selected and claimed `Decide replacement path for test_slow_ker_lti_cli.py after seed-only no-go`, then completed the diagnosis + task-bridge work to move `ker_lti` out of the seed-only stream and into explicit runtime-determinism remediation.
