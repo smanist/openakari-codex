@@ -14,6 +14,54 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Completed deterministic-control probe for `ker_lti` seed-stabilization blocker)
+
+Ran `/orient dymad_dev`, selected and claimed `Isolate deterministic-runtime controls for test_slow_ker_lti_cli.py before further seed sweeps`, and completed the required 4-setting control probe for `km_ln`.
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false` (no LLM API calls, no external API calls, no GPU compute, no long-running detached jobs).
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Isolate deterministic-runtime controls for `test_slow_ker_lti_cli.py` before further seed sweeps","project":"dymad_dev","agentId":"work-session-mo12lasr"}'`
+  - `{"ok":true,"claim":{"claimId":"2dece3bad638af5e",...}}`
+
+Changes made:
+- Added `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-controls-2026-04-16.md` with:
+  - 4 deterministic-runtime settings (including `shuffle` on/off and thread pinning),
+  - 5 reruns per setting (`20` runs total),
+  - pass-rate and threshold-ratio variability by setting,
+  - recommendation that `ker_lti` is not yet seed-only stabilizable under tested controls.
+- Added probe artifacts:
+  - `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_probe_2026-04-16.csv`
+  - `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_probe_2026-04-16.json`
+  - `projects/dymad_dev/analysis/data/ker_lti_controls_logs_2026-04-16/` (20 raw run logs)
+- Updated `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with a new deterministic-control findings section.
+- Updated `projects/dymad_dev/TASKS.md`:
+  - marked the deterministic-control isolation task complete,
+  - annotated the Family 2 seed-only stabilization task with `3/20` control-probe evidence,
+  - added follow-up diagnosis task for deeper runtime-determinism controls.
+
+Verification:
+- Probe runner emitted per-run outcomes for all 20 runs; summary excerpts:
+  - `S1_default_shuffle_default_threads: passes=0/5 ratios=min=1.148 avg=2.000 max=3.119`
+  - `S2_default_shuffle_thread_pinned: passes=1/5 ratios=min=1.083 avg=2.910 max=7.692`
+  - `S3_shuffle_false_default_threads: passes=1/5 ratios=min=2.672 avg=9.142 max=26.900`
+  - `S4_shuffle_false_thread_pinned: passes=1/5 ratios=min=1.095 avg=1.737 max=2.267`
+- `du -sh projects/dymad_dev/analysis/data/ker_lti_controls_logs_2026-04-16`
+  - `148K`
+- `git status --short` (after probe completion, before task-close edits)
+  - showed only project-owned task/analysis artifacts changed; no module runtime files remained modified.
+
+Session-type: autonomous
+Duration: 88
+Task-selected: Isolate deterministic-runtime controls for `test_slow_ker_lti_cli.py` before further seed sweeps
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 26
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Completed `ker_lti` nondeterminism diagnosis and decomposed Family 2 follow-up)
 
 Ran `/orient dymad_dev`, selected and claimed `Diagnose residual nondeterminism in test_slow_ker_lti_cli.py under seed-only constraints`, and completed the diagnosis artifact requested by the task.
@@ -241,4 +289,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/src/dymad/utils/sampling.py
 - Should user-facing denoising reuse the existing `type: data` phase shape directly, or does it need additional registry/compiler metadata beyond the current phase schema examples?
 - Is regular-dataset support sufficient for the first benchmark, or is graph / ragged-series support also required in scope?
 - Are there any slow-regression cases whose flakiness is not actually seed-fixable, and would therefore need to be excluded from the seed-only task stream rather than silently broaden scope?
-- Which deterministic-runtime controls (e.g., `dataloader.shuffle`, thread pinning, Torch deterministic toggles) are necessary to make `tests/test_slow_ker_lti_cli.py` reproducible enough for any seed-only stabilization attempt? (2026-04-16 diagnosis found fixed-seed metric drift and metric-name flips.)
+- Which additional deterministic-runtime controls (beyond `dataloader.shuffle: false` plus thread pinning, which still yielded only `1/5` pass in the best tested setting on 2026-04-16) are necessary to make `tests/test_slow_ker_lti_cli.py` reproducible enough for any seed-only stabilization attempt?

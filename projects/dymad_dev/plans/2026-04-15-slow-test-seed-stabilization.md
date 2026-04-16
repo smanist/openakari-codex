@@ -180,3 +180,28 @@ Code-path findings:
 Resulting recommendation:
 - Decompose Family 2 work: treat `test_slow_ker_lti_cli.py` as a dedicated deterministic-runtime diagnosis stream before additional seed sweeps; keep threshold and baseline files untouched.
 - Full diagnosis note: `projects/dymad_dev/analysis/diagnosis-ker-lti-nondeterminism-2026-04-16.md`.
+
+## Execution findings (2026-04-16, `ker_lti` deterministic-control probe)
+
+Follow-up diagnosis tested four deterministic-runtime settings for `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`, with 5 reruns each (`20` runs total):
+
+1. default shuffle + default threads,
+2. default shuffle + pinned threads,
+3. `shuffle: false` + default threads,
+4. `shuffle: false` + pinned threads.
+
+Observed behavior:
+- No setting achieved stable pass behavior (`5/5`): pass counts were `0/5`, `1/5`, `1/5`, `1/5` respectively (`3/20` overall).
+- The best severity profile was `shuffle: false` + pinned threads (failure-ratio min/avg/max `1.095 / 1.737 / 2.267`), but it still failed in `4/5` reruns.
+- Failing metric names remained variable across settings (`crit_train_last`, `crit_valid_last`, `best_valid_total`, `rmse`), which indicates residual nondeterminism beyond seed-only controls.
+
+Verification evidence captured:
+- Probe command per run:
+  - `cd modules/dymad_dev && pytest -q --reruns 0 -o log_cli=false --showlocals --tb=long 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]'`
+- Structured results:
+  - `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_probe_2026-04-16.csv`
+  - `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_probe_2026-04-16.json`
+  - `projects/dymad_dev/analysis/data/ker_lti_controls_logs_2026-04-16/`
+
+Implication for next session:
+- Treat `test_slow_ker_lti_cli.py` as not yet seed-only stabilizable under currently tested controls; do not spend additional broad seed-sweep budget on this case until deeper runtime-determinism hypotheses are tested.
