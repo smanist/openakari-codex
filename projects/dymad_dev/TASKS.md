@@ -45,7 +45,7 @@
   Done when: the targeted kernel and Koopman `test_slow_*` cases pass their existing metric thresholds using only seed changes, and no threshold or baseline JSON edits are included in the diff.
   Priority: high
   Evidence: `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md`
-  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) and diagnosis runs showed fixed-seed metric drift (`crit_train_last` / `crit_valid_last`) and support decomposing `ker_lti` into a deterministic-runtime diagnosis stream before further broad Family 2 seed sweeps. A 2026-04-16 deterministic-control probe (`shuffle` and thread-pinning combinations) still produced only `3/20` passes (`S4` best setting `1/5`), so this task should treat `ker_lti` as not-yet seed-only-fixable and continue on other Family 2 files unless deeper runtime controls succeed.
+  Notes: 2026-04-15 exploratory seed sweeps found immediate fail-fast instability in `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`; 2026-04-16 follow-up seed scans (`19` candidates, `0/19` pass-all for `ker_lti`) and diagnosis runs showed fixed-seed metric drift (`crit_train_last` / `crit_valid_last`) and support decomposing `ker_lti` into a deterministic-runtime diagnosis stream before further broad Family 2 seed sweeps. A 2026-04-16 deterministic-control probe (`shuffle` and thread-pinning combinations) produced only `3/20` passes (`S4` best setting `1/5`), and the deeper 2026-04-16 probe (`num_workers=0`, deterministic Torch controls, cache/run-order isolation) produced only `1/15` passes (`S5` best setting `1/5`). Treat `ker_lti` as no-go for further seed-only attempts and continue this task on the other Family 2 files.
 
 - [x] Diagnose residual nondeterminism in `test_slow_ker_lti_cli.py` under seed-only constraints [skill: diagnose] [requires-frontier] [zero-resource]
   Why: Seed-only candidate sweeps have not found a pass-all `TEST_SEED` for `ker_lti`, so the stabilization task needs evidence on whether non-seed controls (execution order, runtime determinism settings, fixture isolation) are causing metric drift.
@@ -61,11 +61,12 @@
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-nondeterminism-2026-04-16.md`
   Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-controls-2026-04-16.md`; tested 4 settings × 5 reruns, best profile was `shuffle: false` + thread pinning (`1/5` pass), conclusion: not yet seed-only stabilizable.
 
-- [ ] Probe deeper runtime-determinism controls for `test_slow_ker_lti_cli.py` [skill: diagnose] [requires-frontier] [zero-resource]
+- [x] Probe deeper runtime-determinism controls for `test_slow_ker_lti_cli.py` [skill: diagnose] [requires-frontier] [zero-resource]
   Why: The completed deterministic-control probe showed `shuffle` and thread-pinning alone are insufficient (`3/20` passes overall), so the next diagnosis step should test additional runtime controls before any more seed sweeps on `ker_lti`.
   Done when: a follow-up analysis note evaluates at least three additional controls layered on top of the best tested setting (e.g., deterministic algorithms, worker/thread settings, explicit run-order isolation), runs at least 5 reruns per control for `km_ln`, and records a go/no-go recommendation for further seed-only stabilization attempts on `ker_lti`.
   Priority: high
   Evidence: `projects/dymad_dev/analysis/diagnosis-ker-lti-deterministic-controls-2026-04-16.md`
+  Notes: Completed in `projects/dymad_dev/analysis/diagnosis-ker-lti-deeper-runtime-controls-2026-04-16.md`; evaluated 3 additional controls × 5 reruns, observed `1/15` passes overall, and recorded a no-go recommendation for further `ker_lti` seed-only sweeps.
 
 - [ ] Stabilize extra_slow and remaining long-running regressions by seed-only edits [skill: execute] [fleet-eligible]
   Why: The `extra_slow` path should be stabilized under the same seed-only rule so long-running regressions stop failing intermittently for avoidable randomness.

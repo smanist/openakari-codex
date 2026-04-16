@@ -205,3 +205,45 @@ Verification evidence captured:
 
 Implication for next session:
 - Treat `test_slow_ker_lti_cli.py` as not yet seed-only stabilizable under currently tested controls; do not spend additional broad seed-sweep budget on this case until deeper runtime-determinism hypotheses are tested.
+
+## Execution findings (2026-04-16, `ker_lti` deeper runtime-determinism controls)
+
+This follow-up targeted the explicit next-step controls layered on top of the prior best setting (`shuffle: false` + thread pinning), with five reruns per setting for `km_ln`.
+
+Test target (all runs):
+
+- `cd modules/dymad_dev && pytest -q --reruns 0 -o log_cli=false --showlocals --tb=long 'tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]'`
+
+Controls evaluated:
+
+1. `S5_shuffle_false_thread_pinned_workers0`:
+   - Adds explicit `dataloader.num_workers: 0`
+2. `S6_workers0_torch_deterministic`:
+   - S5 + `torch.use_deterministic_algorithms(True)`, `torch.set_num_threads(1)`, `torch.set_num_interop_threads(1)`, `torch.backends.mkldnn.enabled=False`
+3. `S7_workers0_deterministic_cache_isolated`:
+   - S6 + `pytest --cache-clear`, per-run `--basetemp`, `MKL_CBWR=COMPATIBLE`
+
+Structured artifacts:
+
+- `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_deeper_probe_2026-04-16.csv`
+- `projects/dymad_dev/analysis/data/ker_lti_deterministic_controls_deeper_probe_2026-04-16.json`
+- `projects/dymad_dev/analysis/data/ker_lti_controls_deeper_logs_2026-04-16/`
+
+Observed behavior:
+
+- `S5`: `1/5` passes (ratio min/avg/max on failures: `10.898 / 122.605 / 290.152`)
+- `S6`: `0/5` passes (ratio min/avg/max: `1.243 / 7164.143 / 35805.753`)
+- `S7`: `0/5` passes (ratio min/avg/max: `1.065 / 10.943 / 48.547`)
+- Overall: `1/15` passes
+
+Arithmetic provenance from CSV:
+
+- `S5`: `1/5 = 20%`
+- `S6`: `0/5 = 0%`
+- `S7`: `0/5 = 0%`
+- Overall: `1/15 = 6.7%`
+
+Implication for next session:
+
+- Record a **no-go** for additional seed-only sweeps on `test_slow_ker_lti_cli.py`.
+- Continue Family 2 seed-only stabilization on other files while isolating `ker_lti` as a separate non-seed remediation stream.
