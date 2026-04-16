@@ -312,3 +312,27 @@ Follow-on work created:
 Provenance:
 
 - `projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md`
+
+## Execution findings (2026-04-16, deterministic fixture-backed `ker_lti` harness implementation)
+
+Implementation of the selected harness redesign contract was validated in two stages:
+
+1. Initial implementation check (fixture data + live training gate) was still unstable for `km_ln`.
+   - Verification loop result: `6/10` passes.
+
+2. Final implementation switched the `km_ln` baseline gate to committed fixture artifacts (checkpoint + summary + record) with provenance hash checks, while retaining:
+   - live-path smoke coverage (`test_ker_lti_live_smoke`), and
+   - explicit negative control (`test_ker_lti_fixture_negative_control`).
+
+Verification evidence:
+- `cd modules/dymad_dev && PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src python -u - <<'PY' ... pytest -q --reruns 0 -o log_cli=false tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln] ... (10 runs) ... PY`
+  - `summary 10 / 10`
+- `cd modules/dymad_dev && PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src pytest -q --reruns 0 -o log_cli=false tests/test_slow_ker_lti_cli.py::test_ker_lti_live_smoke`
+  - `.` (pass)
+- `cd modules/dymad_dev && PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src pytest -q --reruns 0 -o log_cli=false tests/test_slow_ker_lti_cli.py::test_ker_lti_fixture_negative_control`
+  - `.` (pass)
+- `cd modules/dymad_dev && git diff -- tests/slow_regression_utils.py tests/slow_ker_lti_cli_baselines.json`
+  - empty diff (threshold logic and baselines untouched)
+
+Implication:
+- `ker_lti` no longer blocks this task stream on run-to-run stochastic training drift for the `km_ln` gate; fixture-refresh governance remains tracked in the project README open questions.
