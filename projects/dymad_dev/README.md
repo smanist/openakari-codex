@@ -14,6 +14,52 @@ This project is framed as both implementation and measurement work. The code cha
 
 ## Log
 
+### 2026-04-16 (Designed deterministic fixture-backed harness path for unstable `ker_lti` regression)
+
+Ran `/orient dymad_dev`, selected and claimed `Design a harness-redesign path for test_slow_ker_lti_cli.py after deterministic-profile instability`, and completed the design artifact plus follow-on task bridge.
+
+Orient summary:
+- Scoped project status: actionable; working tree clean; no pending approvals.
+- Findings-first gate: enabled (`0/10 = 0%`) from latest scheduler `work-cycle` sessions in `.scheduler/metrics/sessions.jsonl`.
+- Efficiency snapshot (last 10 sessions): findings sum `6`, cost sum `0` (findings/$ `n/a`), genuine waste `0/10`, average turns `1`.
+- Budget gate: `n/a` (`consumes_resources: false`; no LLM API calls, external API calls, GPU compute, or long-running detached job).
+
+Scope classification (Step 3): `ROUTINE` / `consumes_resources: false`.
+
+Task claim:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Design a harness-redesign path for `test_slow_ker_lti_cli.py` after deterministic-profile instability","project":"dymad_dev","agentId":"work-session-mo1db4fr"}'`
+  - `{"ok":true,"claim":{"claimId":"34f5dc17ceab2539",...}}`
+
+Changes made:
+- Added design note:
+  - `projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md`
+- Updated `projects/dymad_dev/TASKS.md`:
+  - marked the harness-design task complete,
+  - added follow-on execution task `Implement the deterministic fixture-backed ker_lti harness redesign`.
+- Updated `projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md` with the selected redesign contract and safeguards.
+- Updated `projects/dymad_dev/README.md` open question from contract selection to fixture-refresh governance.
+
+Verification:
+- `git diff --check -- projects/dymad_dev/TASKS.md projects/dymad_dev/plans/2026-04-15-slow-test-seed-stabilization.md projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md projects/dymad_dev/README.md`
+  - no output
+- `rg -n "Option A|Option B|Recommended contract|Follow-on implementation task definition|Verification commands/criteria" projects/dymad_dev/analysis/design-ker-lti-harness-redesign-2026-04-16.md`
+  - confirms required option-comparison and follow-on verification sections
+- `rg -n "\\[x\\] Design a harness-redesign path|\\[ \\] Implement the deterministic fixture-backed" projects/dymad_dev/TASKS.md`
+  - confirms task completion + new follow-on implementation task
+
+Compound (fast): no actions. (Fleet spot-check: no recent `"triggerSource":"fleet"` sessions in `.scheduler/metrics/sessions.jsonl`.)
+
+Session-type: autonomous
+Duration: 44
+Task-selected: Design a harness-redesign path for `test_slow_ker_lti_cli.py` after deterministic-profile instability
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-16 (Validated `ker_lti` deterministic profile after worker-control wiring; queued harness redesign)
 
 Ran `/orient dymad_dev`, selected and claimed `Validate ker_lti stability under an explicit deterministic runtime profile`, and completed the required 10-rerun deterministic-profile validation for `tests/test_slow_ker_lti_cli.py::test_ker_lti_cli[km_ln]`.
