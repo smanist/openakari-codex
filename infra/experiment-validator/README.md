@@ -6,13 +6,13 @@ Validates experiment directories for completeness and integrity per the EXPERIME
 
 ```bash
 # Validate all experiments in the repo
-cd infra/experiment-validator && pixi run validate
+python infra/experiment-validator/validate.py
 
 # Validate a specific project
-pixi run validate ../../projects/sample-project
+python infra/experiment-validator/validate.py projects/sample-project
 
 # Validate a single experiment
-pixi run validate ../../projects/sample-project/experiments/strategic-100
+python infra/experiment-validator/validate.py projects/sample-project/experiments/strategic-100
 ```
 
 ## What it checks

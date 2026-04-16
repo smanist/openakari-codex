@@ -16,14 +16,13 @@ Quick visibility into resource consumption across all budgeted projects.
 
 ```bash
 # All budgeted projects
-pixi run budget-status
-# or: python infra/budget-verify/budget-status.py
+python infra/budget-verify/budget-status.py
 
 # Single project
-pixi run budget-status -- projects/sample-project/
+python infra/budget-verify/budget-status.py projects/sample-project/
 
 # JSON output
-pixi run budget-status -- --json
+python infra/budget-verify/budget-status.py --json
 ```
 
 Shows for each resource: limit, ledger total, CSV-derived total (for ledgered experiments only), discrepancy between ledger and CSV, pre-budget consumption (experiments without ledger entries), remaining budget, and overspend %. Exits with code 1 if any project is over budget or past deadline.

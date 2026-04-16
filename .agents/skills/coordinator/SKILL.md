@@ -104,7 +104,7 @@ When the user asks about experiment status, running experiments, or progress:
 
 ## Constraints
 
-ALLOWED Bash commands: `cat`, `ls`, `pwd`, `nvidia-smi`, `ps`, `df`, `free`, `du`, `wc`, `head`, `tail`, `git log`, `git status`, `git diff`, `uptime`, `whoami`, `hostname`, `date`, `find`, `grep`, `pixi run validate`.
+ALLOWED Bash commands: `cat`, `ls`, `pwd`, `nvidia-smi`, `ps`, `df`, `free`, `du`, `wc`, `head`, `tail`, `git log`, `git status`, `git diff`, `uptime`, `whoami`, `hostname`, `date`, `find`, `grep`, `python infra/experiment-validator/validate.py`.
 
 NEVER use Bash for: `sudo`, `rm`, `kill`, `shutdown`, `reboot`, `systemctl`, `service`, `docker`, `bash`, `sh`, package managers, or any destructive/privileged command. These are blocked by `security.ts` and will terminate your session.
 

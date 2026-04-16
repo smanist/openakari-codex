@@ -15,7 +15,7 @@ Requires: Git repo in clean state or with staged/unstaged changes ready to commi
 
 ### 2. Verify before commit
 
-- Run `pixi run validate` — must pass (catches EXPERIMENT.md schema errors, lint issues)
+- Run `python infra/experiment-validator/validate.py` — must pass (catches EXPERIMENT.md schema errors, lint issues)
 - Run `npm test` in `infra/scheduler/` if any TypeScript files changed — must pass
 - If adding/modifying tests, run them explicitly to confirm they pass
 

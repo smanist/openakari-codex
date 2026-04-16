@@ -14,6 +14,16 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-15 (Switched live validation docs from pixi to direct Python commands)
+
+Updated the active operator-facing references for experiment validation and budget utilities to use direct `python ...` entrypoints instead of `pixi run ...`. This covered the commit SOP, the validator and budget README examples, agent skill guidance, akari pattern docs, and the experiment runner's ledger-repair hints.
+
+Verification: `rg -n "pixi run validate|pixi run budget-status|pixi run auto-ledger|pixi run ledger-update" docs/sops/commit-workflow.md infra/experiment-validator/README.md infra/budget-verify/README.md infra/experiment-runner/run.py .agents/skills/self-audit/SKILL.md .agents/skills/feedback/SKILL.md .agents/skills/coordinator/SKILL.md projects/akari/patterns/autonomous-execution.md projects/akari/patterns/structured-work-records.md projects/akari/patterns/layered-budget-enforcement.md`
+Output: no matches
+
+Verification: `python -m py_compile infra/experiment-runner/run.py`
+Output: command completed successfully with no output
+
 ### 2026-04-15 (Scaffolded the DyMAD development project)
 
 Created the durable project scaffold for `projects/dymad_dev/` around the already-registered `modules/dymad_dev/` module. The new project records two linked workstreams requested by the user: config-driven noise injection during trajectory sampling, and a real denoising `data` phase in the typed training pipeline.

@@ -15,7 +15,7 @@ Audit recent session work for compliance with AGENTS.md conventions. The argumen
 ## When to use this vs alternatives
 
 - **Use `/self-audit`** when you want to check whether recent sessions followed AGENTS.md conventions (log entries, commit discipline, experiment structure, task tags). Works on committed history.
-- **Use `pixi run validate`** when you want to check experiment YAML frontmatter and structural validity. Validate checks schema; self-audit checks behavioral conventions.
+- **Use `python infra/experiment-validator/validate.py`** when you want to check experiment YAML frontmatter and structural validity. Validate checks schema; self-audit checks behavioral conventions.
 - **Use `/review`** when you want to check whether specific findings are valid or metric computations are meaningful. `/review` checks claim quality and methodology; `/self-audit` checks process compliance and workflow adherence.
 
 ## Scope
@@ -24,7 +24,7 @@ This skill checks conventions that are NOT already enforced by code:
 
 | Convention | Enforced by code? | Self-audit checks? |
 |---|---|---|
-| EXPERIMENT.md frontmatter schema | Yes (`pixi run validate`) | No — defer to validator |
+| EXPERIMENT.md frontmatter schema | Yes (`python infra/experiment-validator/validate.py`) | No — defer to validator |
 | Session footer presence | Yes (`verify.ts`) | No — defer to verifier |
 | Orphaned files | Yes (`verify.ts`, `auto-commit.ts`) | No — defer to verifier |
 | Log entry per session | Partially (`verify.ts` checks modified READMEs) | Yes — deeper check |

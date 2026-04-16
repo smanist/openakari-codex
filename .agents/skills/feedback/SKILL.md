@@ -3,7 +3,7 @@ name: feedback
 description: "Use when the PI or a human provides feedback, corrections, or direction on agent work"
 complexity: high
 model-minimum: strong
-allowed-tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash(cd infra/scheduler && npm test)", "Bash(cd infra/scheduler && npx tsc --noEmit)", "Bash(cd infra/scheduler && npm run build)", "Bash(cd infra/scheduler && npm install *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)", "Bash(git push)", "Bash(curl *)", "Bash(pixi run validate *)"]
+allowed-tools: ["Read", "Grep", "Glob", "Edit", "Write", "Bash(cd infra/scheduler && npm test)", "Bash(cd infra/scheduler && npx tsc --noEmit)", "Bash(cd infra/scheduler && npm run build)", "Bash(cd infra/scheduler && npm install *)", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)", "Bash(git push)", "Bash(curl *)", "Bash(python infra/experiment-validator/validate.py *)"]
 argument-hint: "<human feedback message describing what went wrong or should change>"
 ---
 
@@ -228,7 +228,7 @@ The PI controls when and how often agents run:
 ### Documentation only
 
 1. Write the log entry, README update, or experiment record
-2. Validate: `pixi run validate` if touching experiment records
+2. Validate: `python infra/experiment-validator/validate.py` if touching experiment records
 3. Commit
 
 ## Step 5: Record the learning

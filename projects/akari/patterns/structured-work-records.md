@@ -88,7 +88,7 @@ The experiment validator (`infra/experiment-validator/validate.py`) enforces:
 - Cross-reference integrity (markdown links resolve)
 - Literature citation verification (only verified sources cited in publications)
 
-The validator runs at commit time via `pixi run validate` and catches schema violations before they're committed.
+The validator runs at commit time via `python infra/experiment-validator/validate.py` and catches schema violations before they're committed.
 
 ## Forces and trade-offs
 

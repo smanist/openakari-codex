@@ -76,7 +76,7 @@ Projects may declare resource budgets (`budget.yaml`) and track consumption (`le
 
 **Fresh-start accounting:** historical consumption (pre-budget experiments) does not count. The ledger starts empty when `budget.yaml` is created. This lets humans set budgets that reflect remaining work, not total project history.
 
-**Layered enforcement:** convention (agents read budget before planning), validation script (`pixi run validate`), SOP steps (orient reports status, classify catches overages), and scheduler notifications (Slack alerts at >90% consumption or <24h to deadline). No hard runtime enforcement — agents follow convention, validation catches mistakes at commit time.
+**Layered enforcement:** convention (agents read budget before planning), validation script (`python infra/experiment-validator/validate.py`), SOP steps (orient reports status, classify catches overages), and scheduler notifications (Slack alerts at >90% consumption or <24h to deadline). No hard runtime enforcement — agents follow convention, validation catches mistakes at commit time.
 
 ### Session metrics
 

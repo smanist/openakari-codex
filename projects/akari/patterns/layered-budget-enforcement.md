@@ -30,7 +30,7 @@ The lesson: budget enforcement must operate at multiple layers so that when one 
 | Layer | Mechanism | When it acts | What it catches |
 |---|---|---|---|
 | **L2: Convention** | Agents read `budget.yaml` before planning | During task classification | Prevents most overspends through awareness |
-| **L0: Validation** | `pixi run validate` checks ledger consistency | At commit time | Catches ledger errors, budget exceedances after the fact |
+| **L0: Validation** | `python infra/experiment-validator/validate.py` checks ledger consistency | At commit time | Catches ledger errors, budget exceedances after the fact |
 | **L0: Pre-execution gate** | Experiment runner `--project-dir` flag | Before experiment starts | Blocks experiments when budget is exhausted |
 | **L0: Scheduler gate** | `budget-gate.ts` in scheduler | Before session starts | Blocks entire sessions for budget-exhausted projects |
 

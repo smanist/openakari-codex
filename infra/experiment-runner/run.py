@@ -370,7 +370,7 @@ def consumption_audit(
             f"No ledger entry for {experiment_dir.name}: "
             f"CSV-derived consumption is {csv_derived_calls} {resource} "
             f"({total_rows} rows × {n_runs} n_runs). "
-            f"Run `pixi run ledger-update {experiment_dir}` to generate."
+            f"Run `python infra/budget-verify/auto-ledger.py --yaml {experiment_dir}` to generate."
         )
     elif csv_derived_calls != ledger_amount:
         diff = csv_derived_calls - ledger_amount
@@ -380,7 +380,7 @@ def consumption_audit(
         audit["message"] = (
             f"Ledger {direction} by {abs(diff)} {resource}: "
             f"CSV-derived={csv_derived_calls}, ledger={ledger_amount}. "
-            f"Run `pixi run auto-ledger {project_dir} --audit` for details."
+            f"Run `python infra/budget-verify/auto-ledger.py {project_dir} --audit` for details."
         )
     else:
         audit["status"] = "ok"
@@ -1335,7 +1335,7 @@ def main() -> int:
             "Command to run as a canary before the full experiment. "
             "If the canary exits non-zero, the full experiment is aborted (exit 2). "
             "Use with your experiment script's --validate flag to test config + API. "
-            "Example: --canary-cmd 'pixi run eval config.json --provider cloudflare --model openai/gpt-5.2 --validate'"
+            "Example: --canary-cmd 'python eval.py config.json --provider cloudflare --model openai/gpt-5.2 --validate'"
         ),
     )
     parser.add_argument(
