@@ -35,7 +35,7 @@ Task-selected: Add shared-style scheduler log emission to isolated workflow runs
 Task-completed: yes
 Approvals-created: 0
 Files-changed: 4
-Commits: 0
+Commits: 2
 Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
