@@ -14,6 +14,20 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-20 (Updated DyMAD development project after module sync)
+
+Refreshed the `projects/dymad_dev/` scaffold after the user confirmed the `dymad_dev` repo is now up to date. The project no longer carries the stale “module checkout is behind” caveat; it now records that `modules/dymad_dev/` already contains the current `noise` surface and narrows the remaining tasks to implementing new `noise.kind` variants plus test coverage.
+
+Sources: `projects/dymad_dev/README.md`, `projects/dymad_dev/TASKS.md`, `projects/dymad_dev/plans/2026-04-20-noise-sampler-extensions.md`
+
+### 2026-04-20 (Re-scaffolded the DyMAD development project for noise sampler extensions)
+
+Recreated `projects/dymad_dev/` as a fresh scaffold for the user's requested DyMAD feature-development slice after the previous `projects/dymad_dev/` tree had been removed from the current worktree. The new project is narrowly scoped to extending the existing config-driven observation-noise sampler with additional `noise.kind` variants while preserving the current `{kind, params}` contract.
+
+Recorded one important execution-planning finding in the new project: the active DyMAD repo at `/Users/daninghuang/Repos/dymad-dev` already has a real `NOISE_MAP` with `gaussian` and `uniform` plus reproducibility tests, while `modules/dymad_dev/` in this repo is behind that baseline and does not yet contain the current noise-sampler surface.
+
+Sources: `projects/dymad_dev/README.md`, `projects/dymad_dev/TASKS.md`, `projects/dymad_dev/plans/2026-04-20-noise-sampler-extensions.md`
+
 ### 2026-04-20 (Fixed isolated-workflow claim ordering and integration queue races)
 
 Applied a correctness follow-up to the isolated module workflow after review. The integration queue now returns a per-request promise and drains queued integrations in order instead of letting concurrent callers fall through as `manual_intervention_required`. The selector pass also now stops before claiming, so non-module tasks can still fall back to the shared executor without leaving an early claim behind; isolated execution claims only after routing has succeeded.
