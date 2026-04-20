@@ -14,6 +14,26 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-20 (Stopped executor tests from leaving scheduler log artifacts)
+
+Patched `infra/scheduler/src/executor.test.ts` so each test run removes any `test-job-*.log` files written under `.scheduler/logs/`. The underlying issue was that `executeJob()` intentionally writes session logs to the real scheduler log directory, and the Vitest fixture in `executor.test.ts` uses `name: "test-job"`, so repeated local test runs accumulated fake scheduler logs that looked like real daemon output.
+
+This change is scoped to the test suite rather than production code. The test now performs best-effort cleanup after each case, which keeps the real scheduler log directory usable for diagnostics while preserving the existing `executeJob()` behavior under test.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/executor.test.ts` → expected: executor suite passes and leaves no new `.scheduler/logs/test-job-*.log` files
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Prevent `infra/scheduler` executor tests from polluting `.scheduler/logs/` with `test-job` artifacts
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 2
+Commits: 0
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-20 (Updated DyMAD development project after module sync)
 
 Refreshed the `projects/dymad_dev/` scaffold after the user confirmed the `dymad_dev` repo is now up to date. The project no longer carries the stale “module checkout is behind” caveat; it now records that `modules/dymad_dev/` already contains the current `noise` surface and narrows the remaining tasks to implementing new `noise.kind` variants plus test coverage.

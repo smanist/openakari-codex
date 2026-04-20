@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { readdir, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { executeJob, formatExecutionSummary } from "./executor.js";
 import type { Job, JobPayload } from "./types.js";
 import type { SpawnAgentOpts, AgentResult } from "./agent.js";
@@ -113,6 +115,21 @@ function createJob(overrides?: Partial<JobPayload>): Job {
   };
 }
 
+const LOGS_DIR = new URL("../../../.scheduler/logs", import.meta.url).pathname;
+
+async function cleanupTestLogs(): Promise<void> {
+  try {
+    const entries = await readdir(LOGS_DIR);
+    await Promise.all(
+      entries
+        .filter((entry) => entry.startsWith("test-job-") && entry.endsWith(".log"))
+        .map((entry) => rm(join(LOGS_DIR, entry), { force: true })),
+    );
+  } catch {
+    // Best-effort cleanup for test artifacts.
+  }
+}
+
 describe("executeJob", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -124,6 +141,10 @@ describe("executeJob", () => {
       durationMs: 1000,
       timedOut: false,
     };
+  });
+
+  afterEach(async () => {
+    await cleanupTestLogs();
   });
 
   describe("session launch parameters", () => {
