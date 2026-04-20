@@ -37,17 +37,21 @@ export function buildSelectorPrompt(basePrompt: string): string {
   return [
     basePrompt,
     "",
-    "SCHEDULER DIRECTIVE: Do NOT edit files, do NOT commit, and do NOT push.",
-    "Run /orient, select exactly one task, claim it, and then stop.",
-    `Return the result between markers ${SELECTED_TASK_START} and ${SELECTED_TASK_END} as JSON: {"project":"<project>","taskText":"<task>","claimId":"<claim-id or omit>"}.`,
+    "SCHEDULER DIRECTIVE: Do NOT edit files, do NOT claim a task, do NOT commit, and do NOT push.",
+    "Run /orient, select exactly one task, and then stop before claiming it.",
+    `Return the result between markers ${SELECTED_TASK_START} and ${SELECTED_TASK_END} as JSON: {"project":"<project>","taskText":"<task>"}.`,
   ].join("\n");
 }
 
 export function buildAuthorPrompt(task: SelectedTaskResult): string {
   return [
     `You are executing a pre-selected task for project ${task.project}.`,
-    "Do NOT run /orient and do NOT claim a task.",
-    "This task is already selected and claimed. Begin with scope classification, then execute, compound, and close.",
+    task.claimId
+      ? "Do NOT run /orient and do NOT claim a task."
+      : "Do NOT run /orient.",
+    task.claimId
+      ? "This task is already selected and claimed. Begin with scope classification, then execute, compound, and close."
+      : "This task is already selected. Claim it first if the claim API is available, then begin scope classification, execute, compound, and close.",
     `Selected task: ${task.taskText}`,
     task.claimId ? `Claim ID: ${task.claimId}` : "",
   ].filter(Boolean).join("\n");

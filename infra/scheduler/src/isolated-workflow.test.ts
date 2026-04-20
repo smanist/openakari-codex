@@ -64,6 +64,7 @@ SELECTED_TASK_JSON_END
   it("builds selector prompt that forbids file edits and requires structured output", () => {
     const prompt = buildSelectorPrompt("base autonomous work-cycle prompt");
     expect(prompt).toContain("Do NOT edit files");
+    expect(prompt).toContain("do NOT claim a task");
     expect(prompt).toContain("SELECTED_TASK_JSON_START");
   });
 
@@ -76,6 +77,15 @@ SELECTED_TASK_JSON_END
     expect(prompt).toContain("Do NOT run /orient");
     expect(prompt).toContain("This task is already selected and claimed");
     expect(prompt).toContain("Implement isolated execution");
+  });
+
+  it("builds author prompt that claims only after isolated routing succeeds", () => {
+    const prompt = buildAuthorPrompt({
+      project: "dymad_dev",
+      taskText: "Implement isolated execution",
+    });
+    expect(prompt).toContain("Do NOT run /orient");
+    expect(prompt).toContain("Claim it first if the claim API is available");
   });
 
   it("builds reviewer prompt that requests findings-first JSON output", () => {

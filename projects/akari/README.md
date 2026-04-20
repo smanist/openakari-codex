@@ -14,6 +14,30 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-20 (Fixed isolated-workflow claim ordering and integration queue races)
+
+Applied a correctness follow-up to the isolated module workflow after review. The integration queue now returns a per-request promise and drains queued integrations in order instead of letting concurrent callers fall through as `manual_intervention_required`. The selector pass also now stops before claiming, so non-module tasks can still fall back to the shared executor without leaving an early claim behind; isolated execution claims only after routing has succeeded.
+
+This was intentionally scoped to the two P1 issues from review. I did not change the `modules/` verification classification yet because that was the remaining P2 finding and the request was to fix the urgent problems first.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/integration-queue.test.ts src/isolated-workflow.test.ts src/isolated-executor.test.ts src/executor.test.ts`
+  - `Test Files 4 passed (4)`
+  - `Tests 44 passed (44)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - command completed successfully with no output
+
+Session-type: directed
+Duration: 18
+Task-selected: Fix P1 review findings in isolated module task workflow
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 0
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-19 (Implemented module-aware isolated task execution with local review loop)
 
 Implemented the first scheduler path for module-backed isolated task execution. The new flow keeps `projects/*/TASKS.md` as intake, runs a selector-only session in the canonical checkout, resolves `project -> module` via `modules/registry.yaml`, creates a per-task worktree under `modules/.worktrees/`, and executes author/reviewer/fix sessions in that isolated checkout.

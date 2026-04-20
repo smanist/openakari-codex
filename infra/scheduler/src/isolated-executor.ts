@@ -167,21 +167,23 @@ export async function runIsolatedTaskWorkflow(
     return null;
   }
 
+  const routedTask: SelectedTaskResult = { ...selected, claimId: undefined };
+
   const parentBaseBranch = module.type === "submodule" ? await currentBranch(repoRoot) : null;
   const worktree = await createWorktree({
     repoRoot,
     executionRepoRoot: module.absolutePath,
     moduleName: module.module,
     moduleType: module.type,
-    taskId: selected.taskText.replace(/\W+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "task",
+    taskId: routedTask.taskText.replace(/\W+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "task",
     taskRunId,
   });
 
   const manifest: TaskRunManifest = {
     taskRunId,
-    taskId: selected.taskText.replace(/\W+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "task",
-    taskText: selected.taskText,
-    project: selected.project,
+    taskId: routedTask.taskText.replace(/\W+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "task",
+    taskText: routedTask.taskText,
+    project: routedTask.project,
     module,
     repoRoot,
     executionRepoRoot: module.absolutePath,
@@ -201,7 +203,7 @@ export async function runIsolatedTaskWorkflow(
 
   const author = await runAgent(spawn, {
     profile: pickAuthorProfile(context.job),
-    prompt: buildAuthorPrompt(selected),
+    prompt: buildAuthorPrompt(routedTask),
     cwd: worktree.worktreePath,
   });
   latestSessionId = author.sessionId;
@@ -223,7 +225,7 @@ export async function runIsolatedTaskWorkflow(
       profile: pickReviewerProfile(context.job),
       prompt: buildReviewerPrompt({
         project: selected.project,
-        taskText: selected.taskText,
+        taskText: routedTask.taskText,
         branch: worktree.taskBranch,
         baseBranch: worktree.baseBranch,
       }),
@@ -286,56 +288,28 @@ export async function runIsolatedTaskWorkflow(
     });
 
     if (!hasBlockingFindings(artifact)) {
-      let integration: IntegrationResult | null = null;
-      integrationQueue.enqueue({ taskRunId, repoRoot });
       await updateManifestEntry(repoRoot, taskRunId, {
         status: "review_passed",
         integrationStatus: "queued",
         reviewRounds,
       });
-      await integrationQueue.processQueue(async (req) => {
-        if (req.taskRunId !== taskRunId) return;
-        integration = await integrate({
+      const integration = await integrationQueue.enqueue({ taskRunId, repoRoot }, async () =>
+        integrate({
           repoRoot,
-          project: selected.project,
+          project: routedTask.project,
           moduleName: module.module,
           moduleType: module.type,
           executionRepoRoot: module.absolutePath,
           baseBranch: worktree.baseBranch,
           parentBaseBranch,
           taskBranch: worktree.taskBranch,
-          taskText: selected.taskText,
+          taskText: routedTask.taskText,
           reviewRounds,
           totalDurationMs,
-        });
-      });
+        }),
+      );
 
-      if (!integration) {
-        await updateManifestEntry(repoRoot, taskRunId, {
-          status: "manual_intervention_required",
-          integrationStatus: "manual",
-          reviewRounds,
-        });
-        return {
-          ok: false,
-          stdout: summarizeText(outputs),
-          error: "Integration request did not run",
-          costUsd: totalCostUsd,
-          numTurns: totalTurns,
-          durationMs: totalDurationMs,
-          sessionId: latestSessionId,
-          runtime: context.runtime,
-          triggerSource: context.triggerSource,
-          timedOut: false,
-          executionMode: "isolated-module",
-          taskRunId,
-          reviewRounds,
-          integrationStatus: "manual",
-        };
-      }
-
-      const completedIntegration = integration as IntegrationResult;
-      if (completedIntegration.status === "conflict") {
+      if (integration.status === "conflict") {
         await updateManifestEntry(repoRoot, taskRunId, {
           status: "integration_conflict",
           integrationStatus: "conflict",
@@ -344,7 +318,7 @@ export async function runIsolatedTaskWorkflow(
         return {
           ok: false,
           stdout: summarizeText(outputs),
-          error: completedIntegration.error,
+          error: integration.error,
           costUsd: totalCostUsd,
           numTurns: totalTurns,
           durationMs: totalDurationMs,
@@ -414,7 +388,7 @@ export async function runIsolatedTaskWorkflow(
     fixRounds += 1;
     const fix = await runAgent(spawn, {
       profile: pickAuthorProfile(context.job),
-      prompt: buildFixPrompt(selected, artifact),
+      prompt: buildFixPrompt(routedTask, artifact),
       cwd: worktree.worktreePath,
     });
     latestSessionId = fix.sessionId;

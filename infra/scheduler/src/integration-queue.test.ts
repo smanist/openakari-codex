@@ -7,14 +7,20 @@ describe("integration-queue", () => {
     const queue = new IntegrationQueue();
     const seen: string[] = [];
 
-    queue.enqueue({ taskRunId: "run-1", repoRoot: "/repo" });
-    queue.enqueue({ taskRunId: "run-2", repoRoot: "/repo" });
-
-    await queue.processQueue(async (req) => {
+    const first = queue.enqueue({ taskRunId: "run-1", repoRoot: "/repo" }, async (req) => {
       seen.push(`${req.taskRunId}:start`);
       await Promise.resolve();
       seen.push(`${req.taskRunId}:end`);
+      return req.taskRunId;
     });
+    const second = queue.enqueue({ taskRunId: "run-2", repoRoot: "/repo" }, async (req) => {
+      seen.push(`${req.taskRunId}:start`);
+      await Promise.resolve();
+      seen.push(`${req.taskRunId}:end`);
+      return req.taskRunId;
+    });
+
+    await Promise.all([first, second]);
 
     expect(seen).toEqual([
       "run-1:start",
@@ -24,21 +30,35 @@ describe("integration-queue", () => {
     ]);
   });
 
-  it("does not re-enter processing when already active", async () => {
+  it("waits for requests enqueued while processing is active", async () => {
     const queue = new IntegrationQueue();
     const seen: string[] = [];
+    let releaseFirst!: () => void;
+    const firstPause = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
 
-    queue.enqueue({ taskRunId: "run-1", repoRoot: "/repo" });
-
-    const first = queue.processQueue(async (req) => {
-      seen.push(req.taskRunId);
+    const first = queue.enqueue({ taskRunId: "run-1", repoRoot: "/repo" }, async (req) => {
+      seen.push(`${req.taskRunId}:start`);
+      await firstPause;
+      seen.push(`${req.taskRunId}:end`);
+      return req.taskRunId;
+    });
+    const second = queue.enqueue({ taskRunId: "run-2", repoRoot: "/repo" }, async (req) => {
+      seen.push(`${req.taskRunId}:start`);
       await Promise.resolve();
-    });
-    const second = queue.processQueue(async () => {
-      seen.push("unexpected");
+      seen.push(`${req.taskRunId}:end`);
+      return req.taskRunId;
     });
 
+    releaseFirst();
     await Promise.all([first, second]);
-    expect(seen).toEqual(["run-1"]);
+
+    expect(seen).toEqual([
+      "run-1:start",
+      "run-1:end",
+      "run-2:start",
+      "run-2:end",
+    ]);
   });
 });
