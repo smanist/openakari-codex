@@ -14,7 +14,8 @@
   Evidence: `projects/dymad_dev/plans/2026-04-20-noise-sampler-extensions.md`
   Notes: Start from `modules/dymad_dev/tests/test_workflow_sample.py`, which already covers the current `gaussian` and `uniform` noise contract.
 
-- [ ] Design the single-split Nelder-Mead-like CV interface and selection rules [skill: multi] [requires-frontier]
+- [x] Design the single-split Nelder-Mead-like CV interface and selection rules [skill: multi] [requires-frontier]
+  Completed: 2026-04-20. Integrated after 1 review round(s).
   Why: The current CV surface only supports exhaustive `param_grid` sweeps, so the optimizer feature needs an explicit contract for parameter encoding, initialization, termination, and result selection before runtime changes are safe.
   Done when: `projects/dymad_dev/plans/2026-04-20-cv-optimizer-nelder-mead.md` records the chosen optimizer-facing config shape, confirms that the workflow remains single-split rather than k-fold, and names the artifact and compatibility requirements the implementation must satisfy.
   Priority: high

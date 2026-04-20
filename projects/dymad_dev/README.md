@@ -16,6 +16,20 @@ The current CV baseline is narrow and explicit. `SingleSplitDriver` in `modules/
 
 ## Log
 
+### 2026-04-20 (Integrated isolated task `Design the single-split Nelder-Mead-like CV interface and selection rules [skill: multi] [requires-frontier]`)
+
+Integrated isolated task `Design the single-split Nelder-Mead-like CV interface and selection rules [skill: multi] [requires-frontier]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 7
+Task-selected: Design the single-split Nelder-Mead-like CV interface and selection rules [skill: multi] [requires-frontier]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 1
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
 ### 2026-04-20 — Reframed `dymad_dev` around sequential DyMAD feature slices
 
 Per user instruction, rewrote the project records so `dymad_dev` continues past the completed noise-sampler work and now tracks the second requested DyMAD feature: a Nelder-Mead-like optimizer for CV. Recorded the present CV baseline before implementation planning: `DriverBase.train(...)` currently evaluates either a single default combo or the full Cartesian product from `cv.param_grid`, `SingleSplitDriver` remains the active one-fold runtime, and `KFoldDriver` still exists only as an unimplemented stub.
