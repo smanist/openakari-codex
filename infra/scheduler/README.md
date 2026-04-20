@@ -261,6 +261,23 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-04-20 — Reuse or reattach isolated task worktrees when the branch already exists
+
+Fixed an isolated workflow failure where a prior run had already created the task branch, so a later run crashed on `git worktree add -b ...` with `fatal: a branch named '<branch>' already exists`. This happened when the earlier run left partial state behind without completing cleanup.
+
+Implementation details:
+- Updated `src/worktree-manager.ts` to treat branch-name collisions as resumable state instead of a hard failure.
+- When the task branch already exists, the scheduler now checks `git worktree list --porcelain` and reuses the existing worktree path if that branch is already attached.
+- If the branch exists but is not attached to any worktree, the scheduler now creates a fresh worktree from the existing branch without `-b`.
+- Added regressions in `src/worktree-manager.test.ts` for both reuse and reattach flows.
+
+Verification:
+- `cd infra/scheduler && npm test -- worktree-manager.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  5 passed (5)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - completed successfully with no output
+
 ### 2026-04-20 — Harden isolated review artifacts against missing reviewer metadata
 
 Fixed an isolated-mode crash where the reviewer session emitted JSON without `taskRunId`/`round`, causing `writeReviewArtifact()` to call `path.join()` with `undefined` and abort the workflow after review. The root cause was twofold: the reviewer prompt never required the scheduler-managed metadata, and the executor trusted model-emitted artifact metadata instead of stamping the values it already knew.
