@@ -60,6 +60,8 @@ describe("isolated-executor", () => {
   let writeReviewArtifact: ReturnType<typeof vi.fn>;
   let cleanupTaskWorktree: ReturnType<typeof vi.fn>;
   let integrateTaskBranch: ReturnType<typeof vi.fn>;
+  let getWorktreeStatus: ReturnType<typeof vi.fn>;
+  let commitTaskBranch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     spawnAgent = vi.fn();
@@ -68,6 +70,8 @@ describe("isolated-executor", () => {
     writeReviewArtifact = vi.fn().mockResolvedValue(undefined);
     cleanupTaskWorktree = vi.fn().mockResolvedValue(undefined);
     integrateTaskBranch = vi.fn().mockResolvedValue({ status: "integrated" });
+    getWorktreeStatus = vi.fn().mockResolvedValue("");
+    commitTaskBranch = vi.fn().mockResolvedValue(undefined);
   });
 
   it("runs selector, author, review, and integration for advisory-only review", async () => {
@@ -114,6 +118,8 @@ REVIEW_ARTIFACT_JSON_END
       updateTaskRunManifest: updateManifest,
       writeReviewArtifact,
       getHeadCommit: vi.fn().mockResolvedValue("abc123"),
+      getWorktreeStatus,
+      commitTaskBranch,
       isWorktreeClean: vi.fn().mockResolvedValue(true),
       integrateTaskBranch,
       cleanupTaskWorktree,
@@ -168,6 +174,8 @@ REVIEW_ARTIFACT_JSON_END
       updateTaskRunManifest: updateManifest,
       writeReviewArtifact,
       getHeadCommit: vi.fn().mockResolvedValue("abc123"),
+      getWorktreeStatus,
+      commitTaskBranch,
       isWorktreeClean: vi.fn().mockResolvedValue(true),
       integrateTaskBranch,
       cleanupTaskWorktree,
@@ -215,6 +223,8 @@ SELECTED_TASK_JSON_END
       updateTaskRunManifest: updateManifest,
       writeReviewArtifact,
       getHeadCommit: vi.fn().mockResolvedValue(null),
+      getWorktreeStatus,
+      commitTaskBranch,
       isWorktreeClean: vi.fn().mockResolvedValue(true),
       integrateTaskBranch,
       cleanupTaskWorktree,
@@ -285,6 +295,8 @@ REVIEW_ARTIFACT_JSON_END
       updateTaskRunManifest: updateManifest,
       writeReviewArtifact,
       getHeadCommit: vi.fn().mockResolvedValue("abc123"),
+      getWorktreeStatus,
+      commitTaskBranch,
       isWorktreeClean: vi.fn().mockResolvedValue(true),
       integrateTaskBranch,
       cleanupTaskWorktree,
@@ -353,6 +365,8 @@ REVIEW_ARTIFACT_JSON_END
       updateTaskRunManifest: updateManifest,
       writeReviewArtifact,
       getHeadCommit: vi.fn().mockResolvedValue("abc123"),
+      getWorktreeStatus,
+      commitTaskBranch,
       isWorktreeClean: vi.fn().mockResolvedValue(true),
       integrateTaskBranch,
       cleanupTaskWorktree,
@@ -364,5 +378,128 @@ REVIEW_ARTIFACT_JSON_END
     expect(result.reviewRounds).toBe(3);
     expect(integrateTaskBranch).not.toHaveBeenCalled();
     expect(cleanupTaskWorktree).not.toHaveBeenCalled();
+  });
+
+  it("checkpoints dirty author changes before starting review", async () => {
+    const review: ReviewArtifact = {
+      taskRunId: "run-1",
+      round: 1,
+      branch: "codex/dymad_dev/task-abc",
+      baseBranch: "feat_dev",
+      headCommit: "after-author-commit",
+      status: "approved",
+      blockingPolicy: "p0-p1",
+      findings: [],
+    };
+
+    getWorktreeStatus
+      .mockResolvedValueOnce(" M a.ts\n")
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("");
+
+    spawnAgent
+      .mockReturnValueOnce(makeResult(`
+SELECTED_TASK_JSON_START
+{"project":"dymad_dev","taskText":"Implement isolated execution","claimId":"claim-123"}
+SELECTED_TASK_JSON_END
+`, "selector-1"))
+      .mockReturnValueOnce(makeResult("author complete", "author-1"))
+      .mockReturnValueOnce(makeResult(`
+REVIEW_ARTIFACT_JSON_START
+${JSON.stringify(review)}
+REVIEW_ARTIFACT_JSON_END
+`, "reviewer-1"));
+
+    const getHeadCommit = vi.fn()
+      .mockResolvedValueOnce("after-author-commit");
+
+    const result = await runIsolatedTaskWorkflow({
+      job: createJob(),
+      runtime: "codex_cli",
+      triggerSource: "scheduler",
+    }, {
+      resolveRegisteredModule: vi.fn().mockResolvedValue(moduleEntry),
+      createTaskWorktree: vi.fn().mockResolvedValue({
+        baseBranch: "feat_dev",
+        taskBranch: "codex/dymad_dev/task-abc",
+        worktreePath: "/repo/modules/.worktrees/dymad_dev/task-abc-run-1",
+      }),
+      getCurrentBranch: vi.fn().mockResolvedValue("main"),
+      spawnAgent,
+      writeTaskRunManifest: writeManifest,
+      updateTaskRunManifest: updateManifest,
+      writeReviewArtifact,
+      getHeadCommit,
+      getWorktreeStatus,
+      commitTaskBranch,
+      integrateTaskBranch,
+      cleanupTaskWorktree,
+      taskRunIdFactory: () => "run-1",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(commitTaskBranch).toHaveBeenCalledWith(
+      "/repo/modules/.worktrees/dymad_dev/task-abc-run-1",
+      "Checkpoint isolated task Implement isolated execution",
+    );
+  });
+
+  it("fails only when reviewer changes the worktree status relative to its baseline", async () => {
+    const review: ReviewArtifact = {
+      taskRunId: "run-1",
+      round: 1,
+      branch: "codex/dymad_dev/task-abc",
+      baseBranch: "feat_dev",
+      headCommit: "abc123",
+      status: "approved",
+      blockingPolicy: "p0-p1",
+      findings: [],
+    };
+
+    getWorktreeStatus
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce(" M reviewer-change.ts\n")
+      .mockResolvedValueOnce("");
+
+    spawnAgent
+      .mockReturnValueOnce(makeResult(`
+SELECTED_TASK_JSON_START
+{"project":"dymad_dev","taskText":"Implement isolated execution","claimId":"claim-123"}
+SELECTED_TASK_JSON_END
+`, "selector-1"))
+      .mockReturnValueOnce(makeResult("author complete", "author-1"))
+      .mockReturnValueOnce(makeResult(`
+REVIEW_ARTIFACT_JSON_START
+${JSON.stringify(review)}
+REVIEW_ARTIFACT_JSON_END
+`, "reviewer-1"));
+
+    const result = await runIsolatedTaskWorkflow({
+      job: createJob(),
+      runtime: "codex_cli",
+      triggerSource: "scheduler",
+    }, {
+      resolveRegisteredModule: vi.fn().mockResolvedValue(moduleEntry),
+      createTaskWorktree: vi.fn().mockResolvedValue({
+        baseBranch: "feat_dev",
+        taskBranch: "codex/dymad_dev/task-abc",
+        worktreePath: "/repo/modules/.worktrees/dymad_dev/task-abc-run-1",
+      }),
+      getCurrentBranch: vi.fn().mockResolvedValue("main"),
+      spawnAgent,
+      writeTaskRunManifest: writeManifest,
+      updateTaskRunManifest: updateManifest,
+      writeReviewArtifact,
+      getHeadCommit: vi.fn().mockResolvedValue("abc123"),
+      getWorktreeStatus,
+      commitTaskBranch,
+      integrateTaskBranch,
+      cleanupTaskWorktree,
+      taskRunIdFactory: () => "run-1",
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Reviewer changed worktree state");
   });
 });

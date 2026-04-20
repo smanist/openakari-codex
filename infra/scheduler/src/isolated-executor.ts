@@ -46,7 +46,9 @@ export interface IsolatedExecutorDeps {
   updateTaskRunManifest?: typeof updateTaskRunManifest;
   writeReviewArtifact?: typeof writeReviewArtifact;
   getHeadCommit?: typeof getHeadCommit;
+  getWorktreeStatus?: (cwd: string) => Promise<string>;
   isWorktreeClean?: (cwd: string) => Promise<boolean>;
+  commitTaskBranch?: (cwd: string, message: string) => Promise<void>;
   integrateTaskBranch?: typeof integrateTaskBranch;
   cleanupTaskWorktree?: typeof cleanupTaskWorktree;
   taskRunIdFactory?: () => string;
@@ -89,17 +91,35 @@ function buildFixPrompt(task: SelectedTaskResult, artifact: ReviewArtifact): str
   ].join("\n");
 }
 
-async function defaultIsWorktreeClean(cwd: string): Promise<boolean> {
+async function defaultGetWorktreeStatus(cwd: string): Promise<string> {
   try {
     const { stdout } = await exec("git", ["status", "--porcelain"], { cwd });
-    return stdout.trim() === "";
+    return stdout;
   } catch {
-    return false;
+    return "__WORKTREE_STATUS_ERROR__";
   }
 }
 
 function summarizeText(parts: string[]): string {
   return parts.filter(Boolean).join("\n\n");
+}
+
+async function defaultCommitTaskBranch(cwd: string, message: string): Promise<void> {
+  await exec("git", ["add", "-A"], { cwd });
+  await exec("git", ["commit", "-m", message], { cwd });
+}
+
+async function checkpointTaskBranchIfDirty(
+  cwd: string,
+  message: string,
+  getWorktreeStatus: (cwd: string) => Promise<string>,
+  commitTaskBranch: (cwd: string, message: string) => Promise<void>,
+): Promise<"clean" | "checkpointed" | "still-dirty"> {
+  const status = await getWorktreeStatus(cwd);
+  if (!status.trim()) return "clean";
+  await commitTaskBranch(cwd, message);
+  const after = await getWorktreeStatus(cwd);
+  return after.trim() ? "still-dirty" : "checkpointed";
 }
 
 export async function runIsolatedTaskWorkflow(
@@ -119,7 +139,11 @@ export async function runIsolatedTaskWorkflow(
   const updateManifestEntry = deps.updateTaskRunManifest ?? updateTaskRunManifest;
   const writeReview = deps.writeReviewArtifact ?? writeReviewArtifact;
   const getHead = deps.getHeadCommit ?? getHeadCommit;
-  const isWorktreeClean = deps.isWorktreeClean ?? defaultIsWorktreeClean;
+  const getWorktreeStatus = deps.getWorktreeStatus
+    ?? (deps.isWorktreeClean
+      ? async (cwd: string) => ((await deps.isWorktreeClean!(cwd)) ? "" : "__DIRTY_WORKTREE__")
+      : defaultGetWorktreeStatus);
+  const commitTaskBranch = deps.commitTaskBranch ?? defaultCommitTaskBranch;
   const integrate = deps.integrateTaskBranch ?? integrateTaskBranch;
   const cleanupWorktree = deps.cleanupTaskWorktree ?? cleanupTaskWorktree;
   const taskRunId = deps.taskRunIdFactory ? deps.taskRunIdFactory() : `task-run-${Date.now().toString(36)}`;
@@ -211,6 +235,31 @@ export async function runIsolatedTaskWorkflow(
   totalTurns += author.result.numTurns;
   totalDurationMs += author.result.durationMs;
   outputs.push(author.result.text);
+  const authorCheckpoint = await checkpointTaskBranchIfDirty(
+    worktree.worktreePath,
+    `Checkpoint isolated task ${routedTask.taskText}`,
+    getWorktreeStatus,
+    commitTaskBranch,
+  );
+  if (authorCheckpoint === "still-dirty") {
+    await updateManifestEntry(repoRoot, taskRunId, { status: "review_failed" });
+    return {
+      ok: false,
+      stdout: summarizeText(outputs),
+      error: "Author checkpoint left worktree dirty",
+      costUsd: totalCostUsd,
+      numTurns: totalTurns,
+      durationMs: totalDurationMs,
+      sessionId: latestSessionId,
+      runtime: context.runtime,
+      triggerSource: context.triggerSource,
+      timedOut: false,
+      executionMode: "isolated-module",
+      taskRunId,
+      reviewRounds: 0,
+      integrationStatus: "review_failed",
+    };
+  }
   await updateManifestEntry(repoRoot, taskRunId, { authorSessionId: author.sessionId, status: "author_done" });
 
   let reviewRounds = 0;
@@ -242,6 +291,7 @@ export async function runIsolatedTaskWorkflow(
       };
     }
 
+    const reviewBaselineStatus = await getWorktreeStatus(worktree.worktreePath);
     const reviewer = await runAgent(spawn, {
       profile: pickReviewerProfile(context.job),
       prompt: buildReviewerPrompt({
@@ -293,13 +343,13 @@ export async function runIsolatedTaskWorkflow(
     };
 
     await writeReview(repoRoot, artifact);
-    const clean = await isWorktreeClean(worktree.worktreePath);
-    if (!clean) {
+    const reviewFinalStatus = await getWorktreeStatus(worktree.worktreePath);
+    if (reviewFinalStatus !== reviewBaselineStatus) {
       await updateManifestEntry(repoRoot, taskRunId, { status: "review_failed", reviewRounds });
       return {
         ok: false,
         stdout: summarizeText(outputs),
-        error: "Reviewer left worktree dirty",
+        error: "Reviewer changed worktree state",
         costUsd: totalCostUsd,
         numTurns: totalTurns,
         durationMs: totalDurationMs,
@@ -430,6 +480,35 @@ export async function runIsolatedTaskWorkflow(
     totalDurationMs += fix.result.durationMs;
     outputs.push(fix.result.text);
     fixSessionIds.push(fix.sessionId);
+    const fixCheckpoint = await checkpointTaskBranchIfDirty(
+      worktree.worktreePath,
+      `Checkpoint isolated task ${routedTask.taskText}`,
+      getWorktreeStatus,
+      commitTaskBranch,
+    );
+    if (fixCheckpoint === "still-dirty") {
+      await updateManifestEntry(repoRoot, taskRunId, {
+        status: "review_failed",
+        reviewRounds,
+        fixSessionIds,
+      });
+      return {
+        ok: false,
+        stdout: summarizeText(outputs),
+        error: "Fix checkpoint left worktree dirty",
+        costUsd: totalCostUsd,
+        numTurns: totalTurns,
+        durationMs: totalDurationMs,
+        sessionId: latestSessionId,
+        runtime: context.runtime,
+        triggerSource: context.triggerSource,
+        timedOut: false,
+        executionMode: "isolated-module",
+        taskRunId,
+        reviewRounds,
+        integrationStatus: "review_failed",
+      };
+    }
     await updateManifestEntry(repoRoot, taskRunId, {
       fixSessionIds,
       reviewRounds,

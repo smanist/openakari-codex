@@ -261,6 +261,25 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-04-20 — Checkpoint isolated author/fix edits before review
+
+Fixed an isolated workflow failure where resumed worktrees could reach review with uncommitted author edits. In the failing run, `.scheduler/task-runs/task-run-mo7p995r.json` reused the older worktree from `task-run-mo7n6pfh`, `git status --short` in that worktree showed 16 modified files, and the task branch still pointed at the same commit as `main` (`55595d7`). That meant `author_done` was recording dirty working tree state rather than committed task-branch progress, so review failed with a false "reviewer left worktree dirty" error and integration would have had nothing to merge.
+
+Implementation details:
+- Updated `src/isolated-executor.ts` to checkpoint dirty author or fix work into task-branch commits before entering review.
+- Replaced the absolute clean-worktree reviewer check with a pre/post reviewer status comparison, so resumed worktrees are allowed as long as the reviewer does not change their state.
+- Added executor regressions for author checkpointing and reviewer baseline comparison in `src/isolated-executor.test.ts`.
+
+Verification:
+- `cd infra/scheduler && npm test -- isolated-executor.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  7 passed (7)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - `> @akari/scheduler@0.1.0 build`
+  - `> npx tsc`
+
 ### 2026-04-20 — Reuse or reattach isolated task worktrees when the branch already exists
 
 Fixed an isolated workflow failure where a prior run had already created the task branch, so a later run crashed on `git worktree add -b ...` with `fatal: a branch named '<branch>' already exists`. This happened when the earlier run left partial state behind without completing cleanup.
