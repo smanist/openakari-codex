@@ -38,6 +38,16 @@ describe("isolated-workflow", () => {
     expect(shouldUseIsolatedModuleWorkflow(job)).toBe(true);
   });
 
+  it("recognizes explicit isolated-mode directives as isolated-flow candidates", () => {
+    const job = createJob("Run /orient dymad_dev. Use isolated mode for module-backed execution.");
+    expect(shouldUseIsolatedModuleWorkflow(job)).toBe(true);
+  });
+
+  it("recognizes explicit code-review directives as isolated-flow candidates", () => {
+    const job = createJob("Use code review for this task and execute it in the scheduler workflow.");
+    expect(shouldUseIsolatedModuleWorkflow(job)).toBe(true);
+  });
+
   it("does not use isolated flow for non-work-cycle prompts", () => {
     const job = createJob("Do NOT run /orient. This is a deep work task.");
     expect(shouldUseIsolatedModuleWorkflow(job)).toBe(false);

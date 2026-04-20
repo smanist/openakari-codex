@@ -14,6 +14,35 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-20 (Expanded isolated-workflow trigger phrases)
+
+Extended the scheduler's isolated-module routing gate so jobs can opt in with explicit phrases in addition to the standard autonomous work-cycle prompt. `shouldUseIsolatedModuleWorkflow()` now preserves the existing `"autonomous work cycle SOP" + "Step 2: Select a task"` trigger and also recognizes direct opt-ins such as `use isolated mode`, `use isolated workflow`, `use code review`, `with code review`, and `use local review loop`.
+
+This keeps the current project-work-cycle jobs working unchanged while making ad hoc or custom scheduler jobs able to request the task-run/review-artifact path without reproducing the full stock prompt text.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/isolated-workflow.test.ts`
+  - `Test Files 1 passed (1)`
+  - `Tests 11 passed (11)`
+- `cd infra/scheduler && npm test -- src/isolated-workflow.test.ts src/executor.test.ts`
+  - `Test Files 2 passed (2)`
+  - `Tests 41 passed (41)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - command completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - command completed successfully with no output
+
+Session-type: directed
+Duration: 8
+Task-selected: Expand isolated-workflow trigger phrases for explicit isolated-mode/code-review opt-in
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 0
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-20 (Stopped executor tests from leaving scheduler log artifacts)
 
 Patched `infra/scheduler/src/executor.test.ts` so each test run removes any `test-job-*.log` files written under `.scheduler/logs/`. The underlying issue was that `executeJob()` intentionally writes session logs to the real scheduler log directory, and the Vitest fixture in `executor.test.ts` uses `name: "test-job"`, so repeated local test runs accumulated fake scheduler logs that looked like real daemon output.

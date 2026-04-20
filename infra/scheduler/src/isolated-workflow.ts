@@ -9,6 +9,13 @@ export interface SelectedTaskResult {
 
 const SELECTED_TASK_START = "SELECTED_TASK_JSON_START";
 const SELECTED_TASK_END = "SELECTED_TASK_JSON_END";
+const ISOLATED_TRIGGER_PHRASES = [
+  "use isolated mode",
+  "use isolated workflow",
+  "use code review",
+  "with code review",
+  "use local review loop",
+];
 
 function extractJsonBetweenMarkers(text: string, startMarker: string, endMarker: string): string | null {
   const start = text.indexOf(startMarker);
@@ -20,7 +27,11 @@ function extractJsonBetweenMarkers(text: string, startMarker: string, endMarker:
 
 export function shouldUseIsolatedModuleWorkflow(job: Job): boolean {
   const message = job.payload.message;
-  return message.includes("autonomous work cycle SOP") && message.includes("Step 2: Select a task");
+  const normalized = message.toLowerCase();
+  const matchesAutonomousWorkCycle =
+    message.includes("autonomous work cycle SOP") && message.includes("Step 2: Select a task");
+  const matchesExplicitOptIn = ISOLATED_TRIGGER_PHRASES.some((phrase) => normalized.includes(phrase));
+  return matchesAutonomousWorkCycle || matchesExplicitOptIn;
 }
 
 export function parseSelectedTaskResult(text: string): SelectedTaskResult | null {
