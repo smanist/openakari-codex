@@ -14,6 +14,41 @@ The current feature goal is to add more noise-type variations while preserving t
 
 ## Log
 
+### 2026-04-20 — Extended observation-noise sampler with `laplace` and `student_t`
+
+Completed the active noise-extension slice by adding two config-driven additive noise kinds to the runtime sampler map (`laplace`, `student_t`) while preserving the existing `noise: {kind, params}` contract and observation-only corruption path. Extended regression coverage so the reproducibility and latent-state invariants are now verified for all four kinds (`gaussian`, `uniform`, `laplace`, `student_t`).
+
+Execution notes:
+- Task-selected: `Extend NOISE_MAP with additional config-driven noise kinds`
+- Scope classification (SOP Step 3): `STRUCTURAL (verifiable)`, `consumes_resources: false` (no LLM/API/GPU/long-running compute used)
+- Task-claim API attempt failed (service unavailable), so execution proceeded without claim per SOP fallback.
+
+Verification:
+- `cd modules/dymad_dev && PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src pytest -q tests/test_workflow_sample.py -k observation_noise`
+  - `6 passed, 7 deselected, 2 warnings`
+- `cd modules/dymad_dev && PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src pytest -q tests/test_workflow_sample.py`
+  - `13 passed, 2 warnings`
+
+Session-type: autonomous
+Duration: 28 minutes
+Task-selected: Extend `NOISE_MAP` with additional config-driven noise kinds
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+### 2026-04-20 — Recorded local import-path verification for module tests
+
+During noise-sampler implementation, verified that running tests from `modules/dymad_dev` without a `src`-rooted `PYTHONPATH` can resolve `dymad` from an external checkout (`/Users/daninghuang/Repos/dymad-dev`) instead of this workspace module. For local verification commands in this project, use `PYTHONPATH=/Users/daninghuang/Repos/openakari-codex/modules/dymad_dev/src` so test results reflect the code being edited.
+
+Verification:
+- `cd modules/dymad_dev && python - <<'PY' ... import dymad.utils.sampling as s; print(s.__file__); print(list(s.NOISE_MAP)) ... PY`
+  - `sampling file /Users/daninghuang/Repos/dymad-dev/src/dymad/utils/sampling.py`
+  - `map ['gaussian', 'uniform']`
+
 ### 2026-04-20 — Confirmed local DyMAD baseline is current
 
 Updated the project baseline after the user confirmed the `dymad_dev` repo is up to date. Verified that the local `modules/dymad_dev/` checkout now contains the same observation-noise implementation and test surface the project was planning against, so the baseline-confirmation step is resolved and the remaining work can focus directly on adding new `noise.kind` variants.
