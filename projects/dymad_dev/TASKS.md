@@ -22,7 +22,8 @@
   Evidence: `modules/dymad_dev/src/dymad/training/driver.py`, `modules/dymad_dev/src/dymad/training/helper.py`, `modules/dymad_dev/src/dymad/agent/registry/training_schema.py`
   Notes: Preserve existing `cv.param_grid` behavior unless the replacement contract is explicitly documented and migrated.
 
-- [ ] Implement a Nelder-Mead-like optimizer path for single-split CV [skill: execute] [requires-frontier]
+- [x] Implement a Nelder-Mead-like optimizer path for single-split CV [skill: execute] [requires-frontier]
+  Completed: 2026-04-20. Integrated after 2 review round(s).
   Why: DyMAD's current CV runtime materializes a full Cartesian grid via `iter_param_grid(...)`; an optimizer path is needed to search hyperparameters automatically without exhaustive enumeration.
   Done when: the training runtime accepts the new optimizer-based CV configuration, evaluates candidate hyperparameters against the existing single-split validation metric, selects the lowest-metric result, and continues to export the best checkpoint plus CV result artifacts under the run results directory.
   Priority: high
