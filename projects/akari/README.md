@@ -14,6 +14,32 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-20 (Added shared-style `.scheduler/logs` records for isolated workflow runs)
+
+Recorded and fixed a scheduler observability gap in isolated mode. The isolated module workflow already kept structured manifests in `.scheduler/task-runs/` and review findings in `.scheduler/reviews/`, but it did not emit the same top-level `.scheduler/logs/<job>-<timestamp>.log` artifact that shared execution writes. That made isolated sessions harder to inspect from the standard operator log surface even though the run summary already existed in memory.
+
+The scheduler now writes a normal session log for isolated runs too and returns `logFile` in the execution result, while preserving the existing isolated task-run/review artifacts. The new log includes isolated-specific metadata (`executionMode`, `taskRunId`, `reviewRounds`, `integrationStatus`) ahead of the aggregated output so isolated runs remain inspectable from the same log directory used by shared mode.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/executor.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  30 passed (30)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - command completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - command completed successfully with no output
+
+Session-type: directed
+Duration: 12
+Task-selected: Add shared-style scheduler log emission to isolated workflow runs
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 0
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-20 (Expanded isolated-workflow trigger phrases)
 
 Extended the scheduler's isolated-module routing gate so jobs can opt in with explicit phrases in addition to the standard autonomous work-cycle prompt. `shouldUseIsolatedModuleWorkflow()` now preserves the existing `"autonomous work cycle SOP" + "Step 2: Select a task"` trigger and also recognizes direct opt-ins such as `use isolated mode`, `use isolated workflow`, `use code review`, `with code review`, and `use local review loop`.

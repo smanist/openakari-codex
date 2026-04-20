@@ -88,6 +88,58 @@ export function formatExecutionSummary(agentResult: {
   return line;
 }
 
+function buildLogFilePath(jobName: string): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  return join(LOGS_DIR, `${jobName}-${ts}.log`);
+}
+
+async function writeExecutionLog(opts: {
+  jobName: string;
+  runtime: RuntimeRoute;
+  summary: {
+    durationMs: number;
+    costUsd: number;
+    numTurns: number;
+    modelUsage?: Record<string, ModelUsageStats>;
+  };
+  output: string;
+  metadata?: string[];
+}): Promise<string> {
+  const logFile = buildLogFilePath(opts.jobName);
+  try {
+    await mkdir(LOGS_DIR, { recursive: true });
+    const metadataBlock = opts.metadata && opts.metadata.length > 0
+      ? `${opts.metadata.join("\n")}\n`
+      : "";
+    await writeFile(
+      logFile,
+      `# ${opts.jobName} — ${new Date().toISOString()}\n# Runtime: ${opts.runtime}\n${metadataBlock}${formatExecutionSummary(opts.summary)}\n\n## output\n${opts.output}\n`,
+    );
+  } catch {
+    // Best-effort logging.
+  }
+  return logFile;
+}
+
+async function writeErrorLog(opts: {
+  jobName: string;
+  runtime: RuntimeRoute;
+  durationMs: number;
+  error: string;
+}): Promise<string> {
+  const logFile = buildLogFilePath(opts.jobName);
+  try {
+    await mkdir(LOGS_DIR, { recursive: true });
+    await writeFile(
+      logFile,
+      `# ${opts.jobName} — ${new Date().toISOString()}\n# Runtime: ${opts.runtime}\n# Duration: ${Math.round(opts.durationMs / 1000)}s, ERROR\n\n## error\n${opts.error}\n`,
+    );
+  } catch {
+    // Best-effort logging.
+  }
+  return logFile;
+}
+
 export interface ExecutionResult {
   ok: boolean;
   durationMs: number;
@@ -141,11 +193,28 @@ export async function executeJob(
       triggerSource: triggerSource ?? "scheduler",
     });
     if (isolated) {
+      const logFile = await writeExecutionLog({
+        jobName: job.name,
+        runtime,
+        summary: {
+          durationMs: isolated.durationMs,
+          costUsd: isolated.costUsd ?? 0,
+          numTurns: isolated.numTurns ?? 0,
+        },
+        output: isolated.stdout,
+        metadata: [
+          "# Execution mode: isolated-module",
+          `# Task run: ${isolated.taskRunId}`,
+          `# Review rounds: ${isolated.reviewRounds}`,
+          `# Integration status: ${isolated.integrationStatus}`,
+        ],
+      });
       return {
         ok: isolated.ok,
         durationMs: isolated.durationMs,
         exitCode: isolated.ok ? 0 : 1,
         stdout: isolated.stdout,
+        logFile,
         error: isolated.error,
         costUsd: isolated.costUsd,
         numTurns: isolated.numTurns,
@@ -246,15 +315,13 @@ export async function executeJob(
     const agentResult = await result;
 
     // Write log file
-    const ts = new Date().toISOString().replace(/[:.]/g, "-");
-    const logFile = join(LOGS_DIR, `${job.name}-${ts}.log`);
-    try {
-      await mkdir(LOGS_DIR, { recursive: true });
-      await writeFile(
-        logFile,
-        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${runtime}\n${formatExecutionSummary(agentResult)}\n\n## output\n${agentResult.text}\n`,
-      );
-    } catch { /* best-effort logging */ }
+    const logFile = await writeExecutionLog({
+      jobName: job.name,
+      runtime,
+      summary: agentResult,
+      output: agentResult.text,
+      metadata: ["# Execution mode: shared"],
+    });
 
     // Post-session: auto-commit any orphaned files before push.
     // Sessions that timeout or exit without committing leave orphaned files.
@@ -318,16 +385,13 @@ export async function executeJob(
     const durationMs = Date.now() - start;
 
     // Best-effort error log
-    const ts = new Date().toISOString().replace(/[:.]/g, "-");
-    const logFile = join(LOGS_DIR, `${job.name}-${ts}.log`);
     const errMsg = err instanceof Error ? err.message : String(err);
-    try {
-      await mkdir(LOGS_DIR, { recursive: true });
-      await writeFile(
-        logFile,
-        `# ${job.name} — ${new Date().toISOString()}\n# Runtime: ${runtime}\n# Duration: ${Math.round(durationMs / 1000)}s, ERROR\n\n## error\n${errMsg}\n`,
-      );
-    } catch { /* best-effort logging */ }
+    const logFile = await writeErrorLog({
+      jobName: job.name,
+      runtime,
+      durationMs,
+      error: errMsg,
+    });
 
     const execResult: ExecutionResult = {
       ok: false,

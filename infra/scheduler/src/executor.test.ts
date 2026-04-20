@@ -1,4 +1,4 @@
-import { readdir, rm } from "node:fs/promises";
+import { readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { executeJob, formatExecutionSummary } from "./executor.js";
@@ -239,6 +239,13 @@ describe("executeJob", () => {
       expect(result.stdout).toBe("isolated workflow complete");
       expect(result.executionMode).toBe("isolated-module");
       expect(result.taskRunId).toBe("task-run-1");
+      expect(result.logFile).toBeDefined();
+
+      const logText = await readFile(result.logFile!, "utf-8");
+      expect(logText).toContain("# Execution mode: isolated-module");
+      expect(logText).toContain("# Task run: task-run-1");
+      expect(logText).toContain("# Integration status: integrated");
+      expect(logText).toContain("## output\nisolated workflow complete");
     });
 
     it("falls back to shared execution when module path is missing", async () => {

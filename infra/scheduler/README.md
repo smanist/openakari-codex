@@ -261,6 +261,21 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-04-20 — Emit shared-style scheduler logs for isolated task runs
+
+Closed a logging gap in the isolated module workflow. Before this change, isolated execution only persisted structured artifacts under `.scheduler/task-runs/` and `.scheduler/reviews/`, while the shared executor also wrote a top-level `.scheduler/logs/<job>-<timestamp>.log` record and returned `logFile` in `ExecutionResult`.
+
+`executeJob()` now writes the same scheduler log artifact for isolated runs, using the aggregated isolated workflow output plus isolated-specific metadata (`executionMode`, `taskRunId`, `reviewRounds`, `integrationStatus`). The structured manifest/review files remain in place; this adds the missing operator-facing session log rather than replacing the isolated artifacts.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/executor.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  30 passed (30)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - command completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - command completed successfully with no output
+
 ### 2026-04-20 — Checkpoint isolated author/fix edits before review
 
 Fixed an isolated workflow failure where resumed worktrees could reach review with uncommitted author edits. In the failing run, `.scheduler/task-runs/task-run-mo7p995r.json` reused the older worktree from `task-run-mo7n6pfh`, `git status --short` in that worktree showed 16 modified files, and the task branch still pointed at the same commit as `main` (`55595d7`). That meant `author_done` was recording dirty working tree state rather than committed task-branch progress, so review failed with a false "reviewer left worktree dirty" error and integration would have had nothing to merge.
