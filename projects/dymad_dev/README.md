@@ -1,22 +1,32 @@
 # DyMAD Development
 
 Status: active
-Mission: Extend DyMAD's config-driven observation-noise sampler with additional noise kinds and record the design and verification findings needed for the next DyMAD feature slice.
-Done when: the active `dymad-dev` noise sampler supports at least two new `noise.kind` variants beyond `gaussian` and `uniform`, those variants use the existing `{kind, params}` config contract, regression tests cover reproducibility and observation-only application, and this project records the baseline and remaining follow-up questions.
+Mission: Extend DyMAD with bounded, verifiable feature slices and record the design, implementation, and verification findings needed to support the next DyMAD development steps.  Use code review during the development.
+Done when: each user-requested DyMAD feature slice tracked in this project is either implemented with verification artifacts or explicitly deferred with documented findings, and the project records the current baseline, completed work, and remaining open questions.
 
 ## Context
 
-This project re-scaffolds `projects/dymad_dev/` for a new feature-development slice after the prior `projects/dymad_dev/` tree was removed from the current worktree.
+This project now tracks sequential DyMAD feature-development slices under a single `dymad_dev` workspace, per user direction.
 
-The user-requested first feature is not to invent a noise config surface from scratch. The current `modules/dymad_dev/` checkout already exposes `noise: {kind, params}` support in `src/dymad/utils/sampling.py`, with `NOISE_MAP` currently containing `gaussian` and `uniform`.
+Feature 1 is complete: the observation-noise sampler in `modules/dymad_dev/src/dymad/utils/sampling.py` now supports four additive `noise.kind` values (`gaussian`, `uniform`, `laplace`, `student_t`) while preserving the existing `{kind, params}` config contract and the observation-only corruption path.
 
-The current feature goal is to add more noise-type variations while preserving the same config shape used by the existing sampler maps. Existing tests in `modules/dymad_dev/tests/test_workflow_sample.py` already check reproducibility, save-path behavior, and the guarantee that observation noise does not contaminate latent states.
+Feature 2 is the next active slice: extend DyMAD's current single-split CV workflow with a Nelder-Mead-like optimizer so CV can search hyperparameters automatically instead of requiring exhaustive `param_grid` enumeration. The current intent is to keep the present single-split structure rather than implement k-fold CV in this slice.
+
+The current CV baseline is narrow and explicit. `SingleSplitDriver` in `modules/dymad_dev/src/dymad/training/driver.py` yields exactly one fold, the user-mode registry advertises the CV workflow as `"single_split_param_sweep"`, and the compiler/registry currently only expose `cv.param_grid` plus optional `cv.metric`.
 
 ## Log
 
+### 2026-04-20 — Reframed `dymad_dev` around sequential DyMAD feature slices
+
+Per user instruction, rewrote the project records so `dymad_dev` continues past the completed noise-sampler work and now tracks the second requested DyMAD feature: a Nelder-Mead-like optimizer for CV. Recorded the present CV baseline before implementation planning: `DriverBase.train(...)` currently evaluates either a single default combo or the full Cartesian product from `cv.param_grid`, `SingleSplitDriver` remains the active one-fold runtime, and `KFoldDriver` still exists only as an unimplemented stub.
+
+Also recorded the current interface constraint that the agent-facing CV schema only documents `param_grid` and `metric`, with notes stating that the workflow is the existing single-split sweep rather than true k-fold cross-validation. This establishes the baseline the optimizer feature must extend or revise.
+
+Sources: `modules/dymad_dev/src/dymad/training/driver.py`, `modules/dymad_dev/src/dymad/training/helper.py`, `modules/dymad_dev/src/dymad/agent/registry/training_schema.py`, `modules/dymad_dev/tests/test_agent_registry.py`
+
 ### 2026-04-20 — Extended observation-noise sampler with `laplace` and `student_t`
 
-Completed the active noise-extension slice by adding two config-driven additive noise kinds to the runtime sampler map (`laplace`, `student_t`) while preserving the existing `noise: {kind, params}` contract and observation-only corruption path. Extended regression coverage so the reproducibility and latent-state invariants are now verified for all four kinds (`gaussian`, `uniform`, `laplace`, `student_t`).
+Completed the first active feature slice by adding two config-driven additive noise kinds to the runtime sampler map (`laplace`, `student_t`) while preserving the existing `noise: {kind, params}` contract and observation-only corruption path. Extended regression coverage so the reproducibility and latent-state invariants are now verified for all four kinds (`gaussian`, `uniform`, `laplace`, `student_t`).
 
 Execution notes:
 - Task-selected: `Extend NOISE_MAP with additional config-driven noise kinds`
@@ -71,5 +81,7 @@ Sources: `modules/registry.yaml`
 
 ## Open questions
 
-- Should sampler config validation enforce explicit parameter-domain checks for new noise params (for example `scale > 0` and `df > 0`)?
-- Should DyMAD user-facing docs enumerate all currently supported `noise.kind` values (`gaussian`, `uniform`, `laplace`, `student_t`) in one canonical location?
+- What config shape should represent optimizer-driven CV while preserving backward compatibility for existing `cv.param_grid` callers?
+- Should optimizer-based CV preserve the current `.npz` and `cv_results.png` artifact contract, or add explicit optimization-history artifacts for simplex trajectories and restart decisions?
+- Should the optimizer support bounded/log-domain parameter transforms in v1 so positive-only hyperparameters can be searched without invalid proposals?
+- Should the current CV docs enumerate both supported selection modes once optimizer-based CV is added, or should the optimizer remain an internal runtime option until examples and agent schema support are ready?
