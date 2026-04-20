@@ -35,7 +35,7 @@ Task-selected: Extend `NOISE_MAP` with additional config-driven noise kinds
 Task-completed: yes
 Approvals-created: 0
 Files-changed: 5
-Commits: 2
+Commits: 3
 Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
@@ -71,5 +71,5 @@ Sources: `modules/registry.yaml`
 
 ## Open questions
 
-- Which additional additive noise kinds should be the v1 slice after `gaussian` and `uniform`?
-- Which new kinds best preserve the current elementwise `{kind, params}` contract while adding meaningful coverage beyond Gaussian and uniform noise?
+- Should sampler config validation enforce explicit parameter-domain checks for new noise params (for example `scale > 0` and `df > 0`)?
+- Should DyMAD user-facing docs enumerate all currently supported `noise.kind` values (`gaussian`, `uniform`, `laplace`, `student_t`) in one canonical location?
