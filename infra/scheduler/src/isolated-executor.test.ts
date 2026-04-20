@@ -129,6 +129,104 @@ REVIEW_ARTIFACT_JSON_END
     expect(cleanupTaskWorktree).toHaveBeenCalled();
   });
 
+  it("normalizes reviewer metadata before writing artifacts", async () => {
+    const reviewerPayload = {
+      status: "approved",
+      blockingPolicy: "p0-p1",
+      findings: [
+        { id: "f1", priority: 2, title: "note", body: "advisory", file: "a.ts", status: "open" },
+      ],
+    };
+
+    spawnAgent
+      .mockReturnValueOnce(makeResult(`
+SELECTED_TASK_JSON_START
+{"project":"dymad_dev","taskText":"Implement isolated execution","claimId":"claim-123"}
+SELECTED_TASK_JSON_END
+`, "selector-1"))
+      .mockReturnValueOnce(makeResult("author complete", "author-1"))
+      .mockReturnValueOnce(makeResult(`
+REVIEW_ARTIFACT_JSON_START
+${JSON.stringify(reviewerPayload)}
+REVIEW_ARTIFACT_JSON_END
+`, "reviewer-1"));
+
+    const result = await runIsolatedTaskWorkflow({
+      job: createJob(),
+      runtime: "codex_cli",
+      triggerSource: "scheduler",
+    }, {
+      resolveRegisteredModule: vi.fn().mockResolvedValue(moduleEntry),
+      createTaskWorktree: vi.fn().mockResolvedValue({
+        baseBranch: "feat_dev",
+        taskBranch: "codex/dymad_dev/task-abc",
+        worktreePath: "/repo/modules/.worktrees/dymad_dev/task-abc-run-1",
+      }),
+      getCurrentBranch: vi.fn().mockResolvedValue("main"),
+      spawnAgent,
+      writeTaskRunManifest: writeManifest,
+      updateTaskRunManifest: updateManifest,
+      writeReviewArtifact,
+      getHeadCommit: vi.fn().mockResolvedValue("abc123"),
+      isWorktreeClean: vi.fn().mockResolvedValue(true),
+      integrateTaskBranch,
+      cleanupTaskWorktree,
+      taskRunIdFactory: () => "run-1",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(writeReviewArtifact).toHaveBeenCalledWith("/repo", {
+      taskRunId: "run-1",
+      round: 1,
+      branch: "codex/dymad_dev/task-abc",
+      baseBranch: "feat_dev",
+      headCommit: "abc123",
+      status: "approved",
+      blockingPolicy: "p0-p1",
+      findings: [
+        { id: "f1", priority: 2, title: "note", body: "advisory", file: "a.ts", status: "open" },
+      ],
+    });
+  });
+
+  it("fails cleanly when the reviewer round cannot resolve HEAD", async () => {
+    spawnAgent
+      .mockReturnValueOnce(makeResult(`
+SELECTED_TASK_JSON_START
+{"project":"dymad_dev","taskText":"Implement isolated execution","claimId":"claim-123"}
+SELECTED_TASK_JSON_END
+`, "selector-1"))
+      .mockReturnValueOnce(makeResult("author complete", "author-1"));
+
+    const result = await runIsolatedTaskWorkflow({
+      job: createJob(),
+      runtime: "codex_cli",
+      triggerSource: "scheduler",
+    }, {
+      resolveRegisteredModule: vi.fn().mockResolvedValue(moduleEntry),
+      createTaskWorktree: vi.fn().mockResolvedValue({
+        baseBranch: "feat_dev",
+        taskBranch: "codex/dymad_dev/task-abc",
+        worktreePath: "/repo/modules/.worktrees/dymad_dev/task-abc-run-1",
+      }),
+      getCurrentBranch: vi.fn().mockResolvedValue("main"),
+      spawnAgent,
+      writeTaskRunManifest: writeManifest,
+      updateTaskRunManifest: updateManifest,
+      writeReviewArtifact,
+      getHeadCommit: vi.fn().mockResolvedValue(null),
+      isWorktreeClean: vi.fn().mockResolvedValue(true),
+      integrateTaskBranch,
+      cleanupTaskWorktree,
+      taskRunIdFactory: () => "run-1",
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Unable to resolve head commit before review");
+    expect(writeReviewArtifact).not.toHaveBeenCalled();
+    expect(spawnAgent).toHaveBeenCalledTimes(2);
+  });
+
   it("runs one fix round when reviewer returns a blocking P1 finding", async () => {
     const firstReview: ReviewArtifact = {
       taskRunId: "run-1",

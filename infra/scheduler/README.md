@@ -261,6 +261,31 @@ When a conflict is detected, the push is rejected with details. The worker sessi
 
 ## Log
 
+### 2026-04-20 — Harden isolated review artifacts against missing reviewer metadata
+
+Fixed an isolated-mode crash where the reviewer session emitted JSON without `taskRunId`/`round`, causing `writeReviewArtifact()` to call `path.join()` with `undefined` and abort the workflow after review. The root cause was twofold: the reviewer prompt never required the scheduler-managed metadata, and the executor trusted model-emitted artifact metadata instead of stamping the values it already knew.
+
+Implementation details:
+- Tightened `src/isolated-workflow.ts` so the reviewer prompt includes an explicit artifact template with `taskRunId`, `round`, `branch`, `baseBranch`, and `headCommit`.
+- Updated `src/isolated-executor.ts` to resolve `HEAD` before each review round, fail cleanly if it cannot be resolved, and normalize review artifacts with scheduler-owned metadata before writing them.
+- Hardened `src/review-artifacts.ts` parsing so malformed reviewer payloads fail validation instead of flowing into filesystem writes.
+- Added executor regressions for omitted reviewer metadata and missing `HEAD`, plus prompt coverage for the expanded reviewer schema.
+
+Verification:
+- `cd infra/scheduler && npm test -- isolated-executor.test.ts isolated-workflow.test.ts review-artifacts.test.ts`
+  - `Test Files  3 passed (3)`
+  - `Tests  19 passed (19)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - `> @akari/scheduler@0.1.0 build`
+  - `> npx tsc`
+- `cd infra/scheduler && npm test`
+  - unrelated pre-existing failures remain outside this fix:
+  - `src/auto-commit.test.ts` still treats files under active experiment directories as orphaned
+  - `src/evolution.test.ts` fails because `applyEvolution()` inherits the `auto-commit` failures
+  - `src/service.test.ts` still misses `job-c` and reports an `ENOENT` rename on `jobs.json.tmp`
+
 ### 2026-04-15 — Add DM-only Slack operator interface
 
 Replaced the openakari Slack stub with a minimal live DM integration in `src/slack.ts`. The active scheduler can now send real Slack DMs to the designated operator and accept inbound plain-text DM requests from that same operator over Socket Mode. The MVP is intentionally narrow: DM-only, designated-user-only, plain-text replies, and no slash commands, channel mode, App Home, uploads, or living messages.

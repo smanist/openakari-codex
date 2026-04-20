@@ -221,13 +221,37 @@ export async function runIsolatedTaskWorkflow(
 
   while (reviewRounds < 3) {
     reviewRounds += 1;
+    const headCommit = await getHead(worktree.worktreePath);
+    if (!headCommit) {
+      await updateManifestEntry(repoRoot, taskRunId, { status: "review_failed", reviewRounds });
+      return {
+        ok: false,
+        stdout: summarizeText(outputs),
+        error: "Unable to resolve head commit before review",
+        costUsd: totalCostUsd,
+        numTurns: totalTurns,
+        durationMs: totalDurationMs,
+        sessionId: latestSessionId,
+        runtime: context.runtime,
+        triggerSource: context.triggerSource,
+        timedOut: false,
+        executionMode: "isolated-module",
+        taskRunId,
+        reviewRounds,
+        integrationStatus: "review_failed",
+      };
+    }
+
     const reviewer = await runAgent(spawn, {
       profile: pickReviewerProfile(context.job),
       prompt: buildReviewerPrompt({
         project: selected.project,
         taskText: routedTask.taskText,
+        taskRunId,
+        round: reviewRounds,
         branch: worktree.taskBranch,
         baseBranch: worktree.baseBranch,
+        headCommit,
       }),
       cwd: worktree.worktreePath,
       disallowedTools: ["Edit", "Write", "MultiEdit"],
@@ -238,8 +262,8 @@ export async function runIsolatedTaskWorkflow(
     totalDurationMs += reviewer.result.durationMs;
     outputs.push(reviewer.result.text);
 
-    const artifact = parseReviewArtifact(reviewer.result.text);
-    if (!artifact) {
+    const parsedArtifact = parseReviewArtifact(reviewer.result.text);
+    if (!parsedArtifact) {
       await updateManifestEntry(repoRoot, taskRunId, { status: "review_failed", reviewRounds });
       return {
         ok: false,
@@ -258,6 +282,15 @@ export async function runIsolatedTaskWorkflow(
         integrationStatus: "review_failed",
       };
     }
+
+    const artifact: ReviewArtifact = {
+      ...parsedArtifact,
+      taskRunId,
+      round: reviewRounds,
+      branch: worktree.taskBranch,
+      baseBranch: worktree.baseBranch,
+      headCommit,
+    };
 
     await writeReview(repoRoot, artifact);
     const clean = await isWorktreeClean(worktree.worktreePath);
@@ -401,7 +434,6 @@ export async function runIsolatedTaskWorkflow(
       fixSessionIds,
       reviewRounds,
     });
-    await getHead(worktree.worktreePath);
   }
 
   return {

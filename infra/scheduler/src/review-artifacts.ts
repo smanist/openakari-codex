@@ -22,6 +22,9 @@ export interface ReviewArtifact {
   findings: ReviewFinding[];
 }
 
+export type ParsedReviewArtifact = Pick<ReviewArtifact, "status" | "blockingPolicy" | "findings"> &
+  Partial<Pick<ReviewArtifact, "taskRunId" | "round" | "branch" | "baseBranch" | "headCommit">>;
+
 function reviewArtifactPath(repoRoot: string, taskRunId: string, round: number): string {
   return join(repoRoot, ".scheduler", "reviews", taskRunId, `round-${String(round).padStart(2, "0")}.json`);
 }
@@ -33,7 +36,46 @@ async function atomicWrite(path: string, value: unknown): Promise<void> {
   await rename(tmp, path);
 }
 
-export function parseReviewArtifact(text: string): ReviewArtifact | null {
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isFindingStatus(value: unknown): value is ReviewFinding["status"] {
+  return value === "open" || value === "resolved" || value === "accepted-risk";
+}
+
+function isReviewStatus(value: unknown): value is ReviewArtifact["status"] {
+  return value === "approved" || value === "changes_requested" || value === "review_failed";
+}
+
+function isBlockingPolicy(value: unknown): value is ReviewArtifact["blockingPolicy"] {
+  return value === "p0-p1";
+}
+
+function isReviewFinding(value: unknown): value is ReviewFinding {
+  return (
+    isObject(value) &&
+    typeof value.id === "string" &&
+    typeof value.priority === "number" &&
+    typeof value.title === "string" &&
+    typeof value.body === "string" &&
+    typeof value.file === "string" &&
+    (value.line === undefined || typeof value.line === "number") &&
+    isFindingStatus(value.status)
+  );
+}
+
+function isParsedReviewArtifact(value: unknown): value is ParsedReviewArtifact {
+  return (
+    isObject(value) &&
+    isReviewStatus(value.status) &&
+    isBlockingPolicy(value.blockingPolicy) &&
+    Array.isArray(value.findings) &&
+    value.findings.every(isReviewFinding)
+  );
+}
+
+export function parseReviewArtifact(text: string): ParsedReviewArtifact | null {
   const startMarker = "REVIEW_ARTIFACT_JSON_START";
   const endMarker = "REVIEW_ARTIFACT_JSON_END";
   const start = text.indexOf(startMarker);
@@ -44,7 +86,8 @@ export function parseReviewArtifact(text: string): ReviewArtifact | null {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as ReviewArtifact;
+    const parsed = JSON.parse(raw) as unknown;
+    return isParsedReviewArtifact(parsed) ? parsed : null;
   } catch {
     return null;
   }

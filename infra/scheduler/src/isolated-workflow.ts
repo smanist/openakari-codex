@@ -71,15 +71,41 @@ export function buildAuthorPrompt(task: SelectedTaskResult): string {
 export function buildReviewerPrompt(opts: {
   project: string;
   taskText: string;
+  taskRunId: string;
+  round: number;
   branch: string;
   baseBranch: string;
+  headCommit: string;
 }): string {
+  const artifactTemplate = JSON.stringify({
+    taskRunId: opts.taskRunId,
+    round: opts.round,
+    branch: opts.branch,
+    baseBranch: opts.baseBranch,
+    headCommit: opts.headCommit,
+    status: "approved",
+    blockingPolicy: "p0-p1",
+    findings: [
+      {
+        id: "finding-1",
+        priority: 2,
+        title: "Short title",
+        body: "Concrete explanation",
+        file: "path/to/file.ts",
+        line: 1,
+        status: "open",
+      },
+    ],
+  });
+
   return [
     `Review the changes on branch ${opts.branch} against ${opts.baseBranch} for project ${opts.project}.`,
     "This is a reviewer-only session. Do not edit files.",
     "Primary task under review:",
     opts.taskText,
     'Return findings-first JSON between REVIEW_ARTIFACT_JSON_START and REVIEW_ARTIFACT_JSON_END.',
+    `Emit exactly one JSON object matching this schema template: ${artifactTemplate}`,
+    "Preserve taskRunId, round, branch, baseBranch, headCommit, and blockingPolicy exactly as provided.",
     'Use blockingPolicy "p0-p1". Only P0-P1 findings block integration; P2-P3 are advisory.',
   ].join("\n");
 }

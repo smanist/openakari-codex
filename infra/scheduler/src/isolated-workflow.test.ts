@@ -102,12 +102,18 @@ SELECTED_TASK_JSON_END
     const prompt = buildReviewerPrompt({
       project: "dymad_dev",
       taskText: "Implement isolated execution",
+      taskRunId: "run-1",
+      round: 1,
       branch: "codex/dymad_dev/task-abc",
       baseBranch: "feat_dev",
+      headCommit: "abc123",
     });
     expect(prompt).toContain("Review the changes on branch");
     expect(prompt).toContain("REVIEW_ARTIFACT_JSON_START");
     expect(prompt).toContain("P0-P1");
+    expect(prompt).toContain('"taskRunId":"run-1"');
+    expect(prompt).toContain('"round":1');
+    expect(prompt).toContain('"headCommit":"abc123"');
   });
 
   it("treats only P0-P1 findings as blocking", () => {
