@@ -18,7 +18,7 @@ export interface CleanupResult {
   dryRun: boolean;
 }
 
-const SESSION_BRANCH_PATTERN = /^session-.+/;
+const SESSION_BRANCH_PATTERN = /^(?:session-.+|codex\/[^/]+\/.+)$/;
 
 export async function listSessionBranches(cwd: string): Promise<BranchInfo[]> {
   const { stdout: branchList } = await exec("git", ["branch", "-r"], { cwd });

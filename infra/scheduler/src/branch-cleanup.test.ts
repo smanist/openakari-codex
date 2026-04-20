@@ -97,6 +97,30 @@ origin/feature-xyz
       expect(result[1]!.name).toBe("session-deep-work-mmdef456ghi");
     });
 
+    it("returns branches matching codex/<module>/... task branch pattern", async () => {
+      const { listSessionBranches } = await import("./branch-cleanup.js");
+
+      mockExecFile.mockResolvedValueOnce({
+        stdout: `
+  origin/HEAD -> origin/main
+  origin/main
+  origin/codex/dymad_dev/task-abc
+  origin/codex/akari/task-def
+  origin/feature-xyz
+`.trim(),
+      });
+
+      mockExecFile.mockResolvedValueOnce({
+        stdout: `origin/codex/dymad_dev/task-abc`,
+      });
+
+      const result = await listSessionBranches("/repo");
+
+      expect(result).toHaveLength(2);
+      expect(result[0]!.name).toBe("codex/dymad_dev/task-abc");
+      expect(result[1]!.name).toBe("codex/akari/task-def");
+    });
+
     it("returns branches matching session-* pattern (chat)", async () => {
       const { listSessionBranches } = await import("./branch-cleanup.js");
       

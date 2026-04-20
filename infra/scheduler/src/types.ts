@@ -29,6 +29,8 @@ export interface JobPayload {
   message: string;
   /** Model to use (e.g. "opus", "sonnet") */
   model?: string;
+  /** Reviewer model for isolated module review sessions. */
+  reviewerModel?: string;
   /** Working directory for the agent session */
   cwd?: string;
   /** Backend capabilities required when auto-selecting a backend. */

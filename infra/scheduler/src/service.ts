@@ -5,6 +5,7 @@ import { computeNextRunAtMs } from "./schedule.js";
 import { executeJob, type ExecutionResult } from "./executor.js";
 import { setDraining } from "./drain-state.js";
 import { runBranchCleanup } from "./branch-cleanup.js";
+import { cleanupStaleIsolatedTaskRuns } from "./isolated-cleanup.js";
 import { dm } from "./slack.js";
 import { backgroundPushRetry } from "./rebase-push.js";
 import type { Job } from "./types.js";
@@ -224,10 +225,20 @@ export class SchedulerService {
         });
         if (result.deleted.length > 0) {
           log(`Branch cleanup: deleted ${result.deleted.length} branch(es)`);
-          const report = `🗑️ Branch cleanup: deleted ${result.deleted.length} stale branch(es)\n${result.deleted.map((b) => `  - ${b}`).join("\n")}`;
+          const report = `🗑️ Branch cleanup: deleted ${result.deleted.length} stale branch(es)\n${result.deleted.map((b) => `  - ${b.branch}`).join("\n")}`;
           await dm(report).catch((err) => log(`Failed to send cleanup DM: ${err}`));
         } else {
           log("Branch cleanup: no stale branches found");
+        }
+
+        const isolatedCleanup = await cleanupStaleIsolatedTaskRuns(this.opts.repoDir, {
+          keepDays: 3,
+          dryRun: false,
+        });
+        if (isolatedCleanup.deleted.length > 0) {
+          log(`Isolated cleanup: pruned ${isolatedCleanup.deleted.length} stale task run(s)`);
+        } else {
+          log("Isolated cleanup: no stale task runs found");
         }
       } catch (err) {
         log(`Branch cleanup error: ${err}`);

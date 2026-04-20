@@ -14,6 +14,32 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-19 (Implemented module-aware isolated task execution with local review loop)
+
+Implemented the first scheduler path for module-backed isolated task execution. The new flow keeps `projects/*/TASKS.md` as intake, runs a selector-only session in the canonical checkout, resolves `project -> module` via `modules/registry.yaml`, creates a per-task worktree under `modules/.worktrees/`, and executes author/reviewer/fix sessions in that isolated checkout.
+
+The main infrastructure additions are persistent task-run manifests (`.scheduler/task-runs/`), structured review artifacts (`.scheduler/reviews/`), module-aware worktree management, a branch-aware integration step with automatic squash merge, and an isolated-run cleanup path wired into the scheduler's periodic maintenance tick. Legacy shared-checkout execution still handles tasks whose project has no existing module path, so current non-module workflows keep working.
+
+This also closes the earlier foreign-worktree handling gap enough to make isolated worktrees a first-class scheduler artifact instead of an unexpected dirty-tree condition. Verification covers module resolution, worktree creation, review safety, integration, compatibility with executor metrics, verification ignores for `modules/.worktrees/`, and scheduled stale-run cleanup.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/project-modules.test.ts src/task-runs.test.ts src/review-artifacts.test.ts src/worktree-manager.test.ts src/integration-queue.test.ts src/isolated-workflow.test.ts src/isolated-integration.test.ts src/isolated-executor.test.ts src/isolated-cleanup.test.ts src/executor.test.ts src/branch-cleanup.test.ts src/verify-compliance.test.ts src/service.test.ts`
+  - `Test Files 13 passed (13)`
+  - `Tests 244 passed (244)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - command completed successfully with no output
+
+Session-type: directed
+Duration: 42
+Task-selected: Implement module-aware isolated task workflow with local review loop
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 33
+Commits: 0
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-15 (Switched live validation docs from pixi to direct Python commands)
 
 Updated the active operator-facing references for experiment validation and budget utilities to use direct `python ...` entrypoints instead of `pixi run ...`. This covered the commit SOP, the validator and budget README examples, agent skill guidance, akari pattern docs, and the experiment runner's ledger-repair hints.

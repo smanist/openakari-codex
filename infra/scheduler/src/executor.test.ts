@@ -45,6 +45,28 @@ vi.mock("./backend.js", () => ({
   }),
 }));
 
+vi.mock("./project-modules.js", () => ({
+  resolveRegisteredModule: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("./isolated-executor.js", () => ({
+  runIsolatedTaskWorkflow: vi.fn().mockResolvedValue({
+    ok: true,
+    stdout: "isolated workflow complete",
+    costUsd: 0.25,
+    numTurns: 6,
+    durationMs: 3000,
+    sessionId: "isolated-session-1",
+    runtime: "codex_cli",
+    triggerSource: "scheduler",
+    timedOut: false,
+    executionMode: "isolated-module",
+    taskRunId: "task-run-1",
+    reviewRounds: 1,
+    integrationStatus: "integrated",
+  }),
+}));
+
 let spawnCalls: SpawnAgentOpts[] = [];
 let spawnResult: AgentResult = {
   text: "Session completed",
@@ -170,6 +192,45 @@ describe("executeJob", () => {
       const result = await executeJob(job);
 
       expect(result.triggerSource).toBe("scheduler");
+    });
+
+    it("delegates module-backed work-cycle jobs to isolated execution", async () => {
+      const { resolveRegisteredModule } = await import("./project-modules.js");
+      const { runIsolatedTaskWorkflow } = await import("./isolated-executor.js");
+
+      vi.mocked(resolveRegisteredModule).mockResolvedValueOnce({
+        project: "dymad_dev",
+        module: "dymad_dev",
+        path: "modules/dymad_dev",
+        absolutePath: "/repo/modules/dymad_dev",
+        type: "submodule",
+        exists: true,
+      });
+
+      const job = createJob({
+        cwd: "/repo",
+        message: "You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task.",
+      });
+      const result = await executeJob(job);
+
+      expect(runIsolatedTaskWorkflow).toHaveBeenCalled();
+      expect(spawnCalls).toHaveLength(0);
+      expect(result.stdout).toBe("isolated workflow complete");
+      expect(result.executionMode).toBe("isolated-module");
+      expect(result.taskRunId).toBe("task-run-1");
+    });
+
+    it("falls back to shared execution when module path is missing", async () => {
+      const { runIsolatedTaskWorkflow } = await import("./isolated-executor.js");
+      vi.mocked(runIsolatedTaskWorkflow).mockResolvedValueOnce(null as never);
+
+      const job = createJob({
+        cwd: "/repo",
+        message: "You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task.",
+      });
+      await executeJob(job);
+
+      expect(spawnCalls).toHaveLength(1);
     });
   });
 

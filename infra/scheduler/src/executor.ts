@@ -42,6 +42,8 @@ export async function checkUncommittedFileThreshold(cwd: string): Promise<void> 
 import { decideTiers, injectTierDirectives, wasFullOrient } from "./orient-tier.js";
 import { injectConventionModules } from "./convention-modules.js";
 import { enqueuePushAndWait } from "./rebase-push.js";
+import { shouldUseIsolatedModuleWorkflow } from "./isolated-workflow.js";
+import { runIsolatedTaskWorkflow } from "./isolated-executor.js";
 
 const LOGS_DIR = new URL("../../../.scheduler/logs", import.meta.url).pathname;
 
@@ -110,6 +112,10 @@ export interface ExecutionResult {
   sleepViolation?: string;
   stallViolation?: string;
   pushQueueResult?: "queued-success" | "queued-rebase-failed" | "direct-push" | "no-push-needed";
+  executionMode?: "shared" | "isolated-module";
+  taskRunId?: string;
+  reviewRounds?: number;
+  integrationStatus?: "integrated" | "manual" | "conflict" | "review_failed";
 }
 
 export async function executeJob(
@@ -127,6 +133,34 @@ export async function executeJob(
   let threadInfo: { channel: string; threadTs: string } | null = null;
 
   console.log(`[executor] Running job ${job.name} with ${runtime} runtime`);
+
+  if (shouldUseIsolatedModuleWorkflow(job)) {
+    const isolated = await runIsolatedTaskWorkflow({
+      job,
+      runtime,
+      triggerSource: triggerSource ?? "scheduler",
+    });
+    if (isolated) {
+      return {
+        ok: isolated.ok,
+        durationMs: isolated.durationMs,
+        exitCode: isolated.ok ? 0 : 1,
+        stdout: isolated.stdout,
+        error: isolated.error,
+        costUsd: isolated.costUsd,
+        numTurns: isolated.numTurns,
+        runtime: isolated.runtime,
+        timedOut: isolated.timedOut,
+        sessionId: isolated.sessionId,
+        triggerSource: isolated.triggerSource,
+        executionMode: isolated.executionMode,
+        taskRunId: isolated.taskRunId,
+        reviewRounds: isolated.reviewRounds,
+        integrationStatus: isolated.integrationStatus,
+        headAfterAutoCommit: null,
+      };
+    }
+  }
 
   // Pre-session: auto-commit orphaned artifacts so the agent starts with a clean working tree.
   // Best-effort — errors are logged but do not block the session.
@@ -273,6 +307,7 @@ export async function executeJob(
       stallViolation: agentResult.stallViolation,
       triggerSource: triggerSource ?? "scheduler",
       pushQueueResult: pushResult.pushQueueResult,
+      executionMode: "shared",
     };
 
     const approvals = await getPendingApprovals(cwd).catch(() => [] as never[]);

@@ -16,15 +16,21 @@ vi.mock("./branch-cleanup.js", () => ({
   runBranchCleanup: vi.fn(),
 }));
 
+vi.mock("./isolated-cleanup.js", () => ({
+  cleanupStaleIsolatedTaskRuns: vi.fn(),
+}));
+
 vi.mock("./slack.js", () => ({
   dm: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { executeJob } from "./executor.js";
 import { runBranchCleanup } from "./branch-cleanup.js";
+import { cleanupStaleIsolatedTaskRuns } from "./isolated-cleanup.js";
 import { dm } from "./slack.js";
 const mockedExecuteJob = vi.mocked(executeJob);
 const mockedRunBranchCleanup = vi.mocked(runBranchCleanup);
+const mockedCleanupStaleIsolatedTaskRuns = vi.mocked(cleanupStaleIsolatedTaskRuns);
 const mockedDm = vi.mocked(dm);
 
 const TEST_DIR = join(tmpdir(), `scheduler-service-test-${Date.now()}`);
@@ -60,7 +66,10 @@ describe("SchedulerService same-name concurrency guard", () => {
     storePath = join(TEST_DIR, "jobs.json");
     mockedExecuteJob.mockReset();
     mockedRunBranchCleanup.mockReset();
+    mockedCleanupStaleIsolatedTaskRuns.mockReset();
+    mockedCleanupStaleIsolatedTaskRuns.mockResolvedValue({ deleted: [], kept: [], dryRun: false });
     mockedDm.mockReset();
+    mockedDm.mockResolvedValue(undefined);
   });
 
   afterEach(async () => {
@@ -125,7 +134,10 @@ describe("SchedulerService branch cleanup scheduling", () => {
     storePath = join(TEST_DIR, "jobs.json");
     mockedExecuteJob.mockReset();
     mockedRunBranchCleanup.mockReset();
+    mockedCleanupStaleIsolatedTaskRuns.mockReset();
+    mockedCleanupStaleIsolatedTaskRuns.mockResolvedValue({ deleted: [], kept: [], dryRun: false });
     mockedDm.mockReset();
+    mockedDm.mockResolvedValue(undefined);
   });
 
   afterEach(async () => {
@@ -136,8 +148,13 @@ describe("SchedulerService branch cleanup scheduling", () => {
     await writeFile(storePath, JSON.stringify(makeStore([])));
 
     mockedRunBranchCleanup.mockResolvedValue({
-      deleted: ["session-foo-abc", "session-bar-def"],
+      deleted: [
+        { branch: "session-foo-abc", reason: "merged" },
+        { branch: "session-bar-def", reason: "old-unmerged" },
+      ],
       kept: [],
+      localDeleted: 0,
+      dryRun: false,
     });
 
     const service = new SchedulerService({
@@ -152,6 +169,10 @@ describe("SchedulerService branch cleanup scheduling", () => {
       keepDays: 3,
       dryRun: false,
     });
+    expect(mockedCleanupStaleIsolatedTaskRuns).toHaveBeenCalledWith("/test/repo", {
+      keepDays: 3,
+      dryRun: false,
+    });
 
     service.stop();
   });
@@ -160,8 +181,10 @@ describe("SchedulerService branch cleanup scheduling", () => {
     await writeFile(storePath, JSON.stringify(makeStore([])));
 
     mockedRunBranchCleanup.mockResolvedValue({
-      deleted: ["session-foo-abc"],
+      deleted: [{ branch: "session-foo-abc", reason: "merged" }],
       kept: [],
+      localDeleted: 0,
+      dryRun: false,
     });
 
     const service = new SchedulerService({
@@ -186,6 +209,8 @@ describe("SchedulerService branch cleanup scheduling", () => {
     mockedRunBranchCleanup.mockResolvedValue({
       deleted: [],
       kept: [],
+      localDeleted: 0,
+      dryRun: false,
     });
 
     const service = new SchedulerService({
@@ -222,6 +247,8 @@ describe("SchedulerService branch cleanup scheduling", () => {
     mockedRunBranchCleanup.mockResolvedValue({
       deleted: [],
       kept: [],
+      localDeleted: 0,
+      dryRun: false,
     });
 
     const service = new SchedulerService({

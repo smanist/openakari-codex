@@ -156,7 +156,8 @@ const ALWAYS_EXPECTED_PATTERNS = [
   /\.last-startup-ms$/,
   /\/renders\//,
   /^\.scheduler\/jobs\.json$/,
-  /^modules\//,
+  /^modules\/\.worktrees\//,
+  /^modules\/[^/]+\/?$/,
 ];
 
 /**

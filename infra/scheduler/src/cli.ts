@@ -248,6 +248,10 @@ async function recordRunMetrics(opts: {
     injectedCompoundTier: result.injectedCompoundTier ?? null,
     injectedRole: result.injectedRole ?? null,
     pushQueueResult: result.pushQueueResult,
+    executionMode: result.executionMode ?? "shared",
+    taskRunId: result.taskRunId,
+    reviewRounds: result.reviewRounds,
+    integrationStatus: result.integrationStatus,
   };
 
   await recordMetrics(metrics).catch((err) => {

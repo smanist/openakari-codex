@@ -114,6 +114,10 @@ export interface SessionMetrics {
   isIdle?: boolean;
   explorationType?: string;
   pushQueueResult?: "queued-success" | "queued-rebase-failed" | "direct-push" | "no-push-needed";
+  executionMode?: "shared" | "isolated-module";
+  taskRunId?: string;
+  reviewRounds?: number;
+  integrationStatus?: "integrated" | "manual" | "conflict" | "review_failed";
   isRecycled?: boolean;
   recycledFrom?: string;
 }
@@ -155,6 +159,7 @@ export function fleetResultToMetrics(fr: import("./types.js").FleetWorkerResult)
     skillType: fr.skillType ?? null,
     workerRole: fr.workerRole ?? null,
     pushQueueResult: fr.pushQueueResult,
+    executionMode: "shared",
     ...(fr.isIdle ? { isIdle: true, explorationType: fr.explorationType } : {}),
     ...(fr.isRecycled ? { isRecycled: true, recycledFrom: fr.recycledFrom } : {}),
   };

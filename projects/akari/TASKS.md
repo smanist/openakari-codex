@@ -235,7 +235,7 @@
   Priority: medium
   Evidence: `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md`
 
-- [ ] Diagnose how scheduler-run autonomous sessions should handle newly surfaced foreign worktree files without blocking on a user question [requires-frontier] [skill: diagnose] [zero-resource]
+- [x] Diagnose how scheduler-run autonomous sessions should handle newly surfaced foreign worktree files without blocking on a user question [requires-frontier] [skill: diagnose] [zero-resource]
   Why: Follow-up from `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md` — session `x13yb5tx-5b9a104a` asked for guidance after an unrelated `projects/akari/plans/2026-04-04-scheduler-health-diagnosis-followup.md` file appeared in `git status`, which left the run with `hasLogEntry=false`, `hasCompleteFooter=false`, and only a structural preflight footprint.
-  Done when: A diagnosis identifies whether the right behavior is auto-ignore, preflight auto-commit, or machine-readable blocked exit for foreign files in scheduler sessions, with at least one implementation or SOP follow-up created from the result.
+  Done when: A diagnosis identifies whether the right behavior is auto-ignore, preflight auto-commit, or machine-readable blocked exit for foreign files in scheduler sessions, with at least one implementation or SOP follow-up created from the result. (Implemented as module-aware isolated worktrees plus verify/cleanup support in `infra/scheduler/src/isolated-*.ts`, `infra/scheduler/src/worktree-manager.ts`, and `infra/scheduler/src/verify.ts`; plan: `projects/akari/plans/2026-04-19-module-aware-isolated-task-workflow.md`.)
   Priority: high

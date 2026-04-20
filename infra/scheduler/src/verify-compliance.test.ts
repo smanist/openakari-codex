@@ -224,6 +224,16 @@ describe("classifyUncommittedFiles", () => {
     expect(result.orphaned).toEqual([]);
     expect(result.expected).toHaveLength(3);
   });
+
+  it("classifies isolated task worktrees under modules/.worktrees as expected", () => {
+    const lines = [
+      "?? modules/.worktrees/dymad_dev/task-abc-run-123/",
+      "?? modules/.worktrees/dymad_dev/task-abc-run-123/src/file.py",
+    ];
+    const result = classifyUncommittedFiles(lines);
+    expect(result.orphaned).toEqual([]);
+    expect(result.expected).toHaveLength(2);
+  });
 });
 
 describe("checkProjectLayoutViolations", () => {
