@@ -2,7 +2,8 @@
 
 ## Feature: reusable denoising core
 
-- [ ] Design the model-independent denoising interface and placement [skill: multi] [requires-frontier]
+- [x] Design the model-independent denoising interface and placement [skill: multi] [requires-frontier]
+  Completed: 2026-04-23. Integrated after 1 review round(s).
   Why: The current denoising behavior is implemented as a special-case training data phase, but the requested feature needs a reusable numerical core that can be shared by training, preprocessing, and transform workflows without depending on a trained model.
   Done when: `projects/dymad_dev/plans/2026-04-23-reusable-denoising-core.md` records the chosen package boundary, the generic algorithm interface, the expected inputs/outputs, and the explicit non-goals for the first extraction slice.
   Priority: high

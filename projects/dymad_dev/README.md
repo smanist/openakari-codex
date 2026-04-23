@@ -18,6 +18,20 @@ The next queued feature slice depends on that extraction: once the reusable core
 
 ## Log
 
+### 2026-04-23 (Integrated isolated task `Design the model-independent denoising interface and placement [skill: multi] [requires-frontier]`)
+
+Integrated isolated task `Design the model-independent denoising interface and placement [skill: multi] [requires-frontier]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 9
+Task-selected: Design the model-independent denoising interface and placement [skill: multi] [requires-frontier]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 1
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
 ### 2026-04-23 — Added downstream feature workstream for denoising data transform
 
 Added a second feature block that is explicitly gated on `Complete feature reusable denoising core`. This new workstream covers a transform-layer adapter over the future numerical denoising core, with the requested contract recorded up front: forward denoises, inverse is identity, and the transform metadata must report `invertibility="none"` plus `supports_gradients="false"`.
