@@ -14,6 +14,12 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-23 (Re-scaffolded generic DyMAD development project)
+
+Re-created `projects/dymad_dev/` as a generic feature-development scaffold around the already-registered `modules/dymad_dev` module. The new project intentionally resets the previous slice-specific backlog and leaves the first concrete DyMAD feature request as an explicit open question so future work can be added as dependency-aware feature blocks.
+
+Sources: `projects/dymad_dev/README.md`, `projects/dymad_dev/TASKS.md`, `modules/registry.yaml`
+
 ### 2026-04-21 (Added `/project feature` mode for dependency-aware feature planning)
 
 Extended the `project` skill with a dedicated `feature` mode for occasional feature/workstream additions inside an existing project. The new mode is narrower than `augment`: it keeps project mission and done-when fixed, adds human-readable feature headings in `TASKS.md`, requires an explicit gate task such as `Complete feature <name>`, and standardizes blocker-aware downstream tasks that reference those gate names directly.
