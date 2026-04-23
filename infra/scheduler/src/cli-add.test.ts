@@ -9,6 +9,7 @@ import {
   buildProjectWorkCycleMessage,
   resolveAddMessage,
   resolveAddCwd,
+  resolveAddSchedule,
   parseFlags,
 } from "./cli.js";
 
@@ -98,5 +99,43 @@ describe("resolveAddCwd", () => {
 
   it("uses explicit --cwd when provided", () => {
     expect(resolveAddCwd({ cwd: "/tmp/custom" }, "file:///tmp/workspace/infra/scheduler/dist/cli.js")).toBe("/tmp/custom");
+  });
+});
+
+describe("resolveAddSchedule", () => {
+  it("defaults cron jobs to the local timezone when --tz is omitted", () => {
+    expect(resolveAddSchedule({ cron: "0 * * * *" }, () => "America/New_York")).toEqual({
+      kind: "cron",
+      expr: "0 * * * *",
+      tz: "America/New_York",
+    });
+  });
+
+  it("prefers explicit --tz over the detected local timezone", () => {
+    expect(
+      resolveAddSchedule(
+        { cron: "0 * * * *", tz: "America/Los_Angeles" },
+        () => "America/New_York",
+      ),
+    ).toEqual({
+      kind: "cron",
+      expr: "0 * * * *",
+      tz: "America/Los_Angeles",
+    });
+  });
+
+  it("falls back to UTC when local timezone detection fails", () => {
+    expect(resolveAddSchedule({ cron: "0 * * * *" }, () => "")).toEqual({
+      kind: "cron",
+      expr: "0 * * * *",
+      tz: "UTC",
+    });
+  });
+
+  it("creates interval schedules without timezone handling", () => {
+    expect(resolveAddSchedule({ every: "60000" }, () => "America/New_York")).toEqual({
+      kind: "every",
+      everyMs: 60000,
+    });
   });
 });

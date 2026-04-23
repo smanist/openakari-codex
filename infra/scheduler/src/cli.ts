@@ -146,7 +146,7 @@ Add options:
   --name <name>             Job name (required)
   --cron <expr>             Cron expression, e.g. "0 * * * *" (required unless --every)
   --every <ms>              Interval in milliseconds (alternative to --cron)
-  --tz <timezone>           IANA timezone for cron (default: UTC)
+  --tz <timezone>           IANA timezone for cron (default: local timezone, fallback UTC)
   --message <msg>           Prompt message for agent session
   --message-default         Use the default autonomous work-cycle prompt
   --message-project <name>  Use the project-scoped work-cycle prompt for <name>
@@ -336,6 +336,36 @@ export function resolveAddCwd(
   importMetaUrl = import.meta.url,
 ): string {
   return getStringFlag(opts, "cwd") ?? resolveRepoRoot(importMetaUrl);
+}
+
+export function resolveLocalCronTimezone(
+  detectTimezone: () => string | undefined = () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+): string {
+  try {
+    const timezone = detectTimezone()?.trim();
+    return timezone ? timezone : "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+export function resolveAddSchedule(
+  opts: Record<string, string | boolean>,
+  detectTimezone?: () => string | undefined,
+): Schedule {
+  const cronExpr = getStringFlag(opts, "cron");
+  const everyMs = getStringFlag(opts, "every");
+  if (cronExpr) {
+    return {
+      kind: "cron",
+      expr: cronExpr,
+      tz: getStringFlag(opts, "tz") ?? resolveLocalCronTimezone(detectTimezone),
+    };
+  }
+  if (everyMs) {
+    return { kind: "every", everyMs: parseInt(everyMs, 10) };
+  }
+  throw new Error("Error: --cron or --every is required.");
 }
 
 export interface StopSchedulerOpts {
@@ -952,14 +982,10 @@ async function cmdAdd(args: string[]): Promise<void> {
   }
 
   let schedule: Schedule;
-  const cronExpr = getStringFlag(opts, "cron");
-  const everyMs = getStringFlag(opts, "every");
-  if (cronExpr) {
-    schedule = { kind: "cron", expr: cronExpr, tz: getStringFlag(opts, "tz") ?? "UTC" };
-  } else if (everyMs) {
-    schedule = { kind: "every", everyMs: parseInt(everyMs, 10) };
-  } else {
-    return fail("Error: --cron or --every is required.");
+  try {
+    schedule = resolveAddSchedule(opts);
+  } catch (err) {
+    return fail(err instanceof Error ? err.message : String(err));
   }
 
   const input: JobCreate = {

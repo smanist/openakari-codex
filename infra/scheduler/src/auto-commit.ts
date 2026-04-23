@@ -62,6 +62,12 @@ export interface OrphanProvenanceContext {
   cwd: string;
 }
 
+function extractPorcelainPath(line: string): string {
+  const path = line.slice(3).trim();
+  const parts = path.split(" -> ");
+  return parts[parts.length - 1];
+}
+
 export async function collectFileTimestamps(
   files: string[],
   cwd: string,
@@ -126,15 +132,15 @@ export function buildAutoCommitArgs(
   if (nonEmpty.length === 0) return null;
 
   const { orphaned } = classifyUncommittedFiles(nonEmpty, activeExperimentDirs);
-  if (orphaned.length === 0) return null;
-
-  const files = orphaned.map((line) => {
-    const path = line.slice(3).trim();
-    const parts = path.split(" -> ");
-    return parts[parts.length - 1];
+  const commitCandidates = orphaned.filter((line) => {
+    const filePath = extractPorcelainPath(line);
+    return !activeExperimentDirs.some((dir) => filePath.startsWith(`${dir}/`));
   });
+  if (commitCandidates.length === 0) return null;
 
-  let message = `[scheduler] auto-commit ${orphaned.length} orphaned artifact(s) before session`;
+  const files = commitCandidates.map(extractPorcelainPath);
+
+  let message = `[scheduler] auto-commit ${commitCandidates.length} orphaned artifact(s) before session`;
   if (provenance) {
     message += formatProvenanceMessage(provenance);
   }

@@ -37,7 +37,6 @@ cd ../..
 ./akari add \
   --name "akari-work-cycle" \
   --cron "0 * * * *" \
-  --tz "UTC" \
   --message-default \
   --model gpt-5.2
 
@@ -90,6 +89,7 @@ Prompt shortcuts for `add`:
 
 Choose exactly one of `--message`, `--message-default`, or `--message-project`.
 `--cwd` is optional; when omitted, `add` now defaults it to the repo root.
+`--tz` is optional for cron jobs; when omitted, `add` records the machine's local IANA timezone and falls back to `UTC` only if detection fails. Existing jobs with no stored timezone still run as `UTC`.
 
 The `add` command computes `nextRunAtMs` and stamps the schedule fingerprint atomically. Direct JSON editing risks creating jobs with `null` `nextRunAtMs` that will never fire. See [postmortem-scheduled-jobs-never-fired-2026-03-05.md](../../projects/akari/postmortem/postmortem-scheduled-jobs-never-fired-2026-03-05.md) for the incident where three jobs silently failed for 11+ days due to this issue.
 
@@ -260,6 +260,54 @@ See [decisions/0061-push-queuing.md](../../decisions/0061-push-queuing.md) for t
 When a conflict is detected, the push is rejected with details. The worker session ends cleanly; a subsequent session (by the same or different worker) will pull the updated remote and continue work.
 
 ## Log
+
+### 2026-04-23 — Stop pre-session auto-commit from scooping files in active experiment directories
+
+Fixed the two `src/auto-commit.test.ts` failures by narrowing the auto-commit layer rather than weakening the shared uncommitted-file classifier. The bug was that `buildAutoCommitArgs()` trusted `classifyUncommittedFiles()` directly, and that classifier intentionally still treats most untracked files under `projects/<project>/experiments/<id>/...` as orphaned so post-session verification can flag bad commits. For pre-session cleanup, though, that behavior was too aggressive: it tried to auto-commit files created by currently running experiments.
+
+Implementation details:
+- Added a small porcelain-path helper in `src/auto-commit.ts`.
+- Updated `buildAutoCommitArgs()` to drop any candidate whose resolved path lives under one of the active experiment directories, even if the shared classifier marks it orphaned.
+- Kept verification behavior unchanged for the shared `classifyUncommittedFiles()` path, so compliance checks still flag committed runtime artifacts under `projects/.../experiments/...`.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/auto-commit.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  29 passed (29)`
+- `cd infra/scheduler && npm test -- src/verify-compliance.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  150 passed (150)`
+- `cd infra/scheduler && npm test`
+  - `Test Files  76 passed (76)`
+  - `Tests  1748 passed (1748)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - `> @akari/scheduler@0.1.0 build`
+  - `> npx tsc`
+
+### 2026-04-23 — Default `add` cron jobs to the machine timezone
+
+Changed `./akari add` so cron jobs now persist the machine's local IANA timezone when `--tz` is omitted, instead of silently defaulting new jobs to `UTC`. This is limited to job creation in the CLI. Existing jobs that already have no stored `tz` remain `UTC` because runtime scheduling still treats missing timezone data as `UTC`.
+
+Implementation details:
+- Added `resolveLocalCronTimezone()` and `resolveAddSchedule()` in `src/cli.ts` so timezone detection is centralized and testable.
+- Kept explicit `--tz` behavior unchanged.
+- Left interval (`--every`) schedules untouched.
+- Updated CLI help text and usage docs to describe the new default and the `UTC` fallback path.
+
+Verification:
+- `cd infra/scheduler && npm test -- src/cli-add.test.ts`
+  - `Test Files  1 passed (1)`
+  - `Tests  14 passed (14)`
+- `cd infra/scheduler && npm test -- src/cli-add.test.ts src/schedule.test.ts`
+  - `Test Files  2 passed (2)`
+  - `Tests  29 passed (29)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - completed successfully with no output
+- `cd infra/scheduler && npm run build`
+  - `> @akari/scheduler@0.1.0 build`
+  - `> npx tsc`
 
 ### 2026-04-20 — Emit shared-style scheduler logs for isolated task runs
 

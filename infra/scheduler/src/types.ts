@@ -8,7 +8,7 @@ export interface CronSchedule {
   kind: "cron";
   /** 5-field cron expression (minute hour day month weekday) */
   expr: string;
-  /** IANA timezone, defaults to UTC */
+  /** IANA timezone; missing values from older jobs are treated as UTC */
   tz?: string;
 }
 
