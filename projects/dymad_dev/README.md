@@ -14,7 +14,17 @@ The execution module already exists and is registered in `modules/registry.yaml`
 
 The first concrete feature slice is now defined: extract the current denoising functionality from the training-only data phase into a reusable, model-independent numerical core at `modules/dymad_dev/src/dymad/numerics/denoise.py` that can later serve preprocessing, transform, and future denoising workflows. The current baseline is narrow: `ContextDataPhase` in `modules/dymad_dev/src/dymad/training/phases.py` only supports `operation: smooth` with `method: savgol`, and the implementation currently owns both the algorithm execution and the training-phase-specific metadata/metrics orchestration.
 
+The next queued feature slice depends on that extraction: once the reusable core is complete, add a config-driven data transform adapter that wraps the denoising core. This transform has explicit nonstandard semantics requested by the user: forward applies denoising, inverse is the identity map, and both directions must publish disabled gradient support rather than behaving like a differentiable or truly invertible transform.
+
 ## Log
+
+### 2026-04-23 — Added downstream feature workstream for denoising data transform
+
+Added a second feature block that is explicitly gated on `Complete feature reusable denoising core`. This new workstream covers a transform-layer adapter over the future numerical denoising core, with the requested contract recorded up front: forward denoises, inverse is identity, and the transform metadata must report `invertibility="none"` plus `supports_gradients="false"`.
+
+Also added a dedicated plan so the transform-specific boundary is separated from the lower-level denoising-core extraction: algorithm implementation remains in `src/dymad/numerics/denoise.py`, while the new transform will live in the transform layer and be constructed through the existing transform-builder path.
+
+Sources: `projects/dymad_dev/TASKS.md`, `projects/dymad_dev/plans/2026-04-23-denoising-data-transform.md`, `modules/dymad_dev/src/dymad/core/transform_module.py`, `modules/dymad_dev/src/dymad/core/transform_builder.py`
 
 ### 2026-04-23 — Fixed denoising-core placement in `src/dymad/numerics/denoise.py`
 
@@ -43,3 +53,4 @@ Sources: `modules/registry.yaml`, `modules/dymad_dev/AGENTS.md`, `projects/akari
 - Should the first non-training reuse target be a preprocessing helper, a transform wrapper, or both?
 - Which generic interface shape is the better long-term extension point for future algorithms: a functional API keyed by method name, typed config objects, or a small strategy-style class boundary?
 - Should `src/dymad/numerics/denoise.py` operate primarily on raw arrays/tensors, or should it expose a thin adapter layer for typed series objects too?
+- What should the stable config key for the denoising transform be in `build_transform_module(...)`, and how much algorithm-specific configuration should the transform pass through directly to `numerics/denoise.py`?

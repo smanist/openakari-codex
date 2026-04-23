@@ -36,3 +36,40 @@
   Why: Dependency gate for downstream work.
   Done when: all reusable denoising core subtasks required for completion are [x], the Savitzky-Golay path is extracted behind a model-independent generic interface, the training data phase reuses that core, and the resulting API is verified as suitable for future non-training denoising algorithms and non-model call sites.
   Priority: high
+
+## Feature: denoising data transform
+
+- [ ] Design the denoising transform contract on top of the reusable core [skill: multi] [requires-frontier] [blocked-by: Complete feature reusable denoising core]
+  Why: This transform has intentionally unusual semantics: forward applies denoising, inverse is identity, and both directions must disable gradients, so the contract should be explicit before implementation.
+  Done when: `projects/dymad_dev/plans/2026-04-23-denoising-data-transform.md` records the transform type/config shape, confirms it wraps `src/dymad/numerics/denoise.py`, and fixes the metadata contract including `invertibility="none"` and `supports_gradients="false"`.
+  Priority: high
+  Evidence: `projects/dymad_dev/plans/2026-04-23-reusable-denoising-core.md`, `modules/dymad_dev/src/dymad/core/transform_module.py`
+
+- [ ] Implement a denoising data transform class with identity inverse and disabled gradients [skill: execute] [requires-frontier] [blocked-by: Complete feature reusable denoising core]
+  Why: The reusable numerical core needs a transform-layer adapter so denoising can participate in the existing data-transform pipeline without being tied to the training phase.
+  Done when: a new transform class exists in the DyMAD transform layer, its forward path delegates to the reusable denoising core, its inverse path returns the input unchanged, and its transform metadata reports `invertibility="none"` and `supports_gradients="false"`.
+  Priority: high
+  Evidence: `modules/dymad_dev/src/dymad/core/transform_module.py`, `modules/dymad_dev/src/dymad/core/torch_transforms.py`
+
+- [ ] Register the denoising transform in the transform builder and config path [skill: execute] [requires-frontier] [blocked-by: Complete feature reusable denoising core]
+  Why: The new transform is only useful if `build_transform_module(...)` and the existing config-driven transform pipeline can construct it.
+  Done when: the transform builder accepts a stable transform type for denoising, constructs the new transform class from config, and preserves compatibility with the existing data-transform loading path.
+  Priority: high
+  Evidence: `modules/dymad_dev/src/dymad/core/transform_builder.py`, `modules/dymad_dev/src/dymad/io/trajectory_manager.py`
+
+- [ ] Add transform-level regression coverage for denoising semantics [skill: execute] [requires-frontier] [blocked-by: Complete feature reusable denoising core]
+  Why: The transform contract is nonstandard, so tests need to pin the exact forward/inverse and gradient-support behavior.
+  Done when: tests verify that the denoising transform's forward path applies denoising through the reusable core, inverse returns the input unchanged, builder/config construction works, and metadata/jacobian-facing behavior reflects disabled gradients and non-invertibility.
+  Priority: high
+  Evidence: `modules/dymad_dev/tests/test_contract_transform_builder.py`, `modules/dymad_dev/tests/test_contract_torch_transform_modules.py`, `modules/dymad_dev/src/dymad/core/transform_module.py`
+
+- [ ] Update transform placement/docs for the denoising transform [skill: record] [fleet-eligible] [blocked-by: Complete feature reusable denoising core]
+  Why: Once the denoising transform exists, future feature work should know that the numerical algorithm lives in `numerics/denoise.py` while the transform adapter lives in the transform layer.
+  Done when: the relevant docs describe where denoising algorithms and denoising transform adapters belong, including any needed updates to feature-placement or architecture references.
+  Priority: medium
+  Evidence: `modules/dymad_dev/docs/feature-placement.md`, `modules/dymad_dev/docs/architecture.md`
+
+- [ ] Complete feature denoising data transform [skill: govern] [requires-frontier] [blocked-by: Complete feature reusable denoising core]
+  Why: Dependency gate for downstream work.
+  Done when: all `denoising data transform` subtasks required for completion are [x], the transform layer can construct a denoising transform backed by `src/dymad/numerics/denoise.py`, forward performs denoising, inverse is identity, and the published transform metadata disables gradients and declares non-invertibility.
+  Priority: high
