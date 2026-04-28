@@ -14,3 +14,4 @@ This module should hold reproducible code for Lorenz63 denoising benchmarks. Hea
   - `savitzky_golay_denoise(signal, window_length, polyorder)` with SciPy `mode="interp"` semantics
   - `gaussian_kernel_denoise(signal, n_anchors, bandwidth)` using the protocol anchor-basis least-squares estimator
   - `compact_polynomial_kernel_denoise(signal, n_anchors, bandwidth, degree)` using the compact-support polynomial kernel basis
+- `run_denoising_sweep.py` executes the v1 hyperparameter sweep, streams `metrics_raw.csv` for experiment-runner progress tracking, and writes the required summary tables, plots, and dataset snapshot under `modules/smoothing/artifacts/`.

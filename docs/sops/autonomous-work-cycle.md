@@ -88,6 +88,8 @@ Note: git push does **not** require approval or an approval queue entry. Session
      - `--project-dir`: enables budget pre-check and post-completion consumption audit. **Never omit this for resource-consuming experiments.**
      - `--max-retries`: explicit retry limit (forces conscious choice about retry tolerance).
      - `--watch-csv` + `--total`: enables retry progress guard (detects stalled/duplicate-producing retries).
+     - Detached runs execute the child command from `<experiment-dir>`, not the caller's cwd. If the command relies on repo-root-relative imports or paths, use absolute paths and a repo-root-safe entrypoint (for example `python -m ...` or an explicit `sys.path` bootstrap in a standalone script).
+     - Prefer an absolute `--watch-csv` path. Relative watch paths are resolved from `<experiment-dir>` during detach and can silently point at the wrong location.
   3. Register with scheduler: `curl -s -X POST http://localhost:8420/api/experiments/register -H 'Content-Type: application/json' -d '{"dir":"<abs-path>","project":"<project>","id":"<experiment-id>"}'`
   4. Commit the experiment setup and log the submission (PID, estimated duration).
   5. End the session. The scheduler watches `progress.json` with 10s polling and posts Slack notifications on completion.

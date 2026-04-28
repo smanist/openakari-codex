@@ -12,6 +12,63 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]`)
+
+Integrated isolated task `Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 18
+Task-selected: Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 19
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-27 (Ran the first Lorenz63 denoising sweep)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]","agentId":"codex-manual-2026-04-27-lorenz63-sweep"}'`
+  Output: `{"ok":true,"claim":{"claimId":"4af764fc9cd2df0b","taskId":"0b7ba9d6a4db","taskText":"Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-27-lorenz63-sweep","claimedAt":1777345327845,"expiresAt":1777348027845}}` and `200`
+  Interpretation: the scheduler claim API is available and accepted the selected sweep-execution task before project state changed.
+
+Scope classification:
+`RESOURCE` (`consumes_resources: true`) — the selected task includes a CPU hyperparameter sweep that is expected to exceed the 2-minute in-session threshold, so it must be prepared locally and submitted through `infra/experiment-runner/run.py --detach` rather than supervised inline.
+
+Plan:
+- Added [plans/2026-04-27-first-sweep-execution.md](./plans/2026-04-27-first-sweep-execution.md) to record the implementation, smoke-verification, and fire-and-forget submission sequence for the first v1 sweep.
+
+Discovery:
+- The repo already had the adopted protocol, dataset generator, and reusable denoisers, but it did not yet have a sweep runner or aggregation pipeline for `metrics_raw.csv`, cluster-aware summaries, recommendation tables, and plots.
+- `infra/experiment-runner/run.py --detach` executes the child command from the experiment directory, not the repo root. The first launch therefore failed with `ModuleNotFoundError: No module named 'modules'` until `modules/smoothing/run_denoising_sweep.py` bootstrapped the repo root on `sys.path`.
+- Passing `--watch-csv` as a relative path to the detached runner caused it to be re-resolved under the experiment directory; the successful rerun used an absolute `metrics_raw.csv` path.
+- This workspace's scheduler server accepted `/api/tasks/claim` requests but returned `404` for `/api/experiments/register`, so experiment completion evidence for this session comes from `progress.json` plus the written artifact files rather than scheduler-side registration.
+
+Execution result:
+- Added [modules/smoothing/run_denoising_sweep.py](../../modules/smoothing/run_denoising_sweep.py), which builds the protocol dataset, evaluates the `48`-setting v1 grid, streams `metrics_raw.csv` for runner progress tracking, writes `summary_by_setting.csv`, `best_by_noise.csv`, `robust_settings.csv`, `run_manifest.json`, and renders the three required plots.
+- Added [modules/smoothing/test_run_denoising_sweep.py](../../modules/smoothing/test_run_denoising_sweep.py) to verify cluster-aware aggregation and a smoke-sized end-to-end sweep contract.
+- Submitted the full run through `infra/experiment-runner/run.py --detach`, then reran it with repo-root-safe imports and an absolute watch path after the first detached attempt failed. The completed run wrote artifacts under [modules/smoothing/artifacts/lorenz63-denoising-sweep-v1](../../modules/smoothing/artifacts/lorenz63-denoising-sweep-v1).
+- Updated [projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) to `status: completed` and marked the execution task complete in [TASKS.md](./TASKS.md).
+
+Verification:
+- `pytest -q modules/smoothing/test_denoise_baselines.py modules/smoothing/test_generate_lorenz63_dataset.py modules/smoothing/test_run_denoising_sweep.py`
+  Output: `8 passed in 0.74s`
+- `python modules/smoothing/run_denoising_sweep.py --out-dir /tmp/lorenz63-sweep-smoke --trajectory-seeds 0 1 --replicate-ids 0 --noise-levels 0.05 0.10 --burn-in-steps 32 --record-steps 64 --window-lengths 7 --polyorders 2 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-types gaussian compact_polynomial --kernel-degrees 2 --overwrite`
+  Output included `n_rows_written = 12`, `n_summary_rows = 6`, `n_best_rows = 4`, `n_robust_rows = 4`, and the three required plot paths.
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep.py --out-dir /tmp/lorenz63-sweep-smoke-timed --trajectory-seeds 0 1 --replicate-ids 0 --noise-levels 0.05 0.10 --burn-in-steps 32 --record-steps 64 --window-lengths 7 --polyorders 2 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-types gaussian compact_polynomial --kernel-degrees 2 --overwrite >/tmp/lorenz63-sweep-smoke-timed.stdout`
+  Output: `real 0.79`, `user 0.68`, `sys 0.07`
+- `python infra/experiment-runner/run.py --detach --artifacts-dir /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1 --project-dir /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/projects/smoothing --max-retries 1 --watch-csv /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/metrics_raw.csv --total 1920 /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/projects/smoothing/experiments/lorenz63-denoising-sweep-v1 -- python /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/run_denoising_sweep.py --out-dir /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1 --overwrite`
+  Output: `Budget check: No budget.yaml found, skipping budget check` and `{"launched": true, "pid": 43167}`
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/experiments/register -H 'Content-Type: application/json' -d '{"dir":"/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/projects/smoothing/experiments/lorenz63-denoising-sweep-v1","project":"smoothing","id":"lorenz63-denoising-sweep-v1"}'`
+  Output: `{"error":"not found"}` and `404`
+- `sed -n '1,260p' projects/smoothing/experiments/lorenz63-denoising-sweep-v1/progress.json`
+  Output included `status: "completed"`, `current: 1920`, `pct: 100.0`, `exit_code: 0`, and `duration_s: 5`.
+- `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/{metrics_raw.csv,summary_by_setting.csv,best_by_noise.csv,robust_settings.csv}` and reading `run_manifest.json`
+  Output: `metrics_raw.csv 1920`, `summary_by_setting.csv 192`, `best_by_noise.csv 8`, `robust_settings.csv 4`, and `manifest_counts {'n_best_rows': 8, 'n_robust_rows': 4, 'n_rows_expected': 1920, 'n_rows_written': 1920, 'n_samples': 40, 'n_settings': 48, 'n_summary_rows': 192}`
+
+Compound (fast): 1 action — updated [docs/sops/autonomous-work-cycle.md](../../docs/sops/autonomous-work-cycle.md) so the fire-and-forget submission step now warns that detached runs execute from `<experiment-dir>` and that `--watch-csv` should use an absolute path to avoid silent mis-resolution.
+
 ### 2026-04-28 (Integrated isolated task `Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]`)
 
 Integrated isolated task `Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]` after 1 review round(s).

@@ -23,10 +23,11 @@
 
 ## Phase 2: Benchmark execution
 
-- [ ] Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]
+- [x] Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]
   Why: The project needs empirical mean/variance estimates across noise levels and realizations.
   Done when: `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md` is updated from planned to running/completed, the sweep is submitted through the experiment runner if expected to exceed 2 minutes, and artifacts are written under `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/`.
   Priority: high
+  Evidence: `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`; `modules/smoothing/run_denoising_sweep.py`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/run_manifest.json`
   Notes: CPU-only. Maximum intended runtime for the first sweep is 20 minutes.
 
 - [ ] Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]

@@ -1,0 +1,108 @@
+{"rows_written": 40, "setting_id": "savgol|w=7|p=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 80, "setting_id": "savgol|w=7|p=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 120, "setting_id": "savgol|w=7|p=5", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 160, "setting_id": "savgol|w=11|p=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 200, "setting_id": "savgol|w=11|p=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 240, "setting_id": "savgol|w=11|p=5", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 280, "setting_id": "savgol|w=21|p=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 320, "setting_id": "savgol|w=21|p=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 360, "setting_id": "savgol|w=21|p=5", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 400, "setting_id": "savgol|w=41|p=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 440, "setting_id": "savgol|w=41|p=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 480, "setting_id": "savgol|w=41|p=5", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 520, "setting_id": "kernel|type=gaussian|M=32|ch=1", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 560, "setting_id": "kernel|type=compact_polynomial|M=32|ch=1|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 600, "setting_id": "kernel|type=compact_polynomial|M=32|ch=1|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 640, "setting_id": "kernel|type=compact_polynomial|M=32|ch=1|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 680, "setting_id": "kernel|type=gaussian|M=32|ch=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 720, "setting_id": "kernel|type=compact_polynomial|M=32|ch=2|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 760, "setting_id": "kernel|type=compact_polynomial|M=32|ch=2|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 800, "setting_id": "kernel|type=compact_polynomial|M=32|ch=2|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 840, "setting_id": "kernel|type=gaussian|M=32|ch=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 880, "setting_id": "kernel|type=compact_polynomial|M=32|ch=4|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 920, "setting_id": "kernel|type=compact_polynomial|M=32|ch=4|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 960, "setting_id": "kernel|type=compact_polynomial|M=32|ch=4|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1000, "setting_id": "kernel|type=gaussian|M=64|ch=1", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1040, "setting_id": "kernel|type=compact_polynomial|M=64|ch=1|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1080, "setting_id": "kernel|type=compact_polynomial|M=64|ch=1|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1120, "setting_id": "kernel|type=compact_polynomial|M=64|ch=1|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1160, "setting_id": "kernel|type=gaussian|M=64|ch=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1200, "setting_id": "kernel|type=compact_polynomial|M=64|ch=2|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1240, "setting_id": "kernel|type=compact_polynomial|M=64|ch=2|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1280, "setting_id": "kernel|type=compact_polynomial|M=64|ch=2|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1320, "setting_id": "kernel|type=gaussian|M=64|ch=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1360, "setting_id": "kernel|type=compact_polynomial|M=64|ch=4|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1400, "setting_id": "kernel|type=compact_polynomial|M=64|ch=4|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1440, "setting_id": "kernel|type=compact_polynomial|M=64|ch=4|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1480, "setting_id": "kernel|type=gaussian|M=128|ch=1", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1520, "setting_id": "kernel|type=compact_polynomial|M=128|ch=1|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1560, "setting_id": "kernel|type=compact_polynomial|M=128|ch=1|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1600, "setting_id": "kernel|type=compact_polynomial|M=128|ch=1|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1640, "setting_id": "kernel|type=gaussian|M=128|ch=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1680, "setting_id": "kernel|type=compact_polynomial|M=128|ch=2|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1720, "setting_id": "kernel|type=compact_polynomial|M=128|ch=2|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1760, "setting_id": "kernel|type=compact_polynomial|M=128|ch=2|degree=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1800, "setting_id": "kernel|type=gaussian|M=128|ch=4", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1840, "setting_id": "kernel|type=compact_polynomial|M=128|ch=4|degree=2", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1880, "setting_id": "kernel|type=compact_polynomial|M=128|ch=4|degree=3", "status": "setting-complete", "total_rows": 1920}
+{"rows_written": 1920, "setting_id": "kernel|type=compact_polynomial|M=128|ch=4|degree=4", "status": "setting-complete", "total_rows": 1920}
+{
+  "counts": {
+    "n_best_rows": 8,
+    "n_robust_rows": 4,
+    "n_rows_expected": 1920,
+    "n_rows_written": 1920,
+    "n_samples": 40,
+    "n_settings": 48,
+    "n_summary_rows": 192
+  },
+  "dataset": {
+    "clean_path": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/clean_trajectories.npz",
+    "metadata_path": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/metadata.json",
+    "noisy_path": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/noisy_observations.npz"
+  },
+  "paths": {
+    "best_by_noise": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/best_by_noise.csv",
+    "metrics_raw": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/metrics_raw.csv",
+    "plots_dir": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots",
+    "robust_settings": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/robust_settings.csv",
+    "summary_by_setting": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/summary_by_setting.csv"
+  },
+  "plots": [
+    "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/rmse_vs_noise.png",
+    "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/relative_rmse_vs_noise.png",
+    "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/denoising_gain_vs_noise.png"
+  ],
+  "settings": {
+    "bandwidth_multipliers": [
+      1.0,
+      2.0,
+      4.0
+    ],
+    "kernel_anchors": [
+      32,
+      64,
+      128
+    ],
+    "kernel_degrees": [
+      2,
+      3,
+      4
+    ],
+    "kernel_types": [
+      "gaussian",
+      "compact_polynomial"
+    ],
+    "polyorders": [
+      2,
+      3,
+      5
+    ],
+    "window_lengths": [
+      7,
+      11,
+      21,
+      41
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "counts": {
+    "n_best_rows": 8,
+    "n_robust_rows": 4,
+    "n_rows_expected": 1920,
+    "n_rows_written": 1920,
+    "n_samples": 40,
+    "n_settings": 48,
+    "n_summary_rows": 192
+  },
+  "dataset": {
+    "clean_path": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/clean_trajectories.npz",
+    "metadata_path": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/metadata.json",
+    "noisy_path": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/noisy_observations.npz"
+  },
+  "paths": {
+    "best_by_noise": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/best_by_noise.csv",
+    "metrics_raw": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/metrics_raw.csv",
+    "plots_dir": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots",
+    "robust_settings": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/robust_settings.csv",
+    "summary_by_setting": "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/summary_by_setting.csv"
+  },
+  "plots": [
+    "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/rmse_vs_noise.png",
+    "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/relative_rmse_vs_noise.png",
+    "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-first-Lorenz63-denoising-hyperparameter--task-run-moi1g0xv/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/denoising_gain_vs_noise.png"
+  ],
+  "settings": {
+    "bandwidth_multipliers": [
+      1.0,
+      2.0,
+      4.0
+    ],
+    "kernel_anchors": [
+      32,
+      64,
+      128
+    ],
+    "kernel_degrees": [
+      2,
+      3,
+      4
+    ],
+    "kernel_types": [
+      "gaussian",
+      "compact_polynomial"
+    ],
+    "polyorders": [
+      2,
+      3,
+      5
+    ],
+    "window_lengths": [
+      7,
+      11,
+      21,
+      41
+    ]
+  }
+}
