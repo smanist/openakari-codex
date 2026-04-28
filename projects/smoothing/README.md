@@ -10,7 +10,17 @@ This project studies signal denoising on synthetic Lorenz63 trajectories sampled
 
 The v1 kernel smoother swept `M`, bandwidth `h`, and kernel type over Gaussian and compact-polynomial kernels of the form `k(x,x') = (1 - (x - x')^2 / h^2)^p` supported on `|x - x'| <= h`. That family is now treated as a frozen reference baseline. The planned v2 benchmark broadens the comparison to normalized local regression, local-linear regression, and cubic smoothing splines while keeping the workflow CPU-only and staged through a pilot before confirmatory replication.
 
+A human follow-up on 2026-04-28 reframed the kernel branch: the first-round result shows the tested anchor-basis kernel grid is largely not comparable to Savitzky-Golay, but the compactly supported polynomial kernel has not yet received a sufficiently dense hyperparameter search. A targeted retuning workstream should therefore hold one noise level fixed, defaulting to `alpha = 0.20`, choose a reference Savitzky-Golay filter from the v1 results, and tune anchor count, bandwidth, and polynomial degree until the compact-polynomial kernel either beats SG or the search establishes why that target is unrealistic. This compact-polynomial retuning workstream is prioritized ahead of broader v2 smoother-family execution. Final candidate algorithms should include typical denoised-trajectory plots for visual inspection, not only aggregate metrics.
+
 ## Log
+
+### 2026-04-28 (Added compact-polynomial kernel retuning workstream)
+
+Augmented the project with a targeted follow-up requested by the human: retune the compactly supported polynomial anchor-basis kernel at a fixed noise level, defaulting to `alpha = 0.20`, against a v1 Savitzky-Golay reference. This workstream records the open question left by v1: whether the compact-polynomial kernel family was weak because of the family itself or because `M`, bandwidth, and degree were underexplored.
+
+Sources: `projects/smoothing/plans/2026-04-28-compact-kernel-retuning.md`, `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`
+
+Priority update: the compact-polynomial retuning workstream is now Phase 4, ahead of the broader v2 benchmark execution.
 
 ### 2026-04-28 (Integrated isolated task `Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]`)
 
@@ -628,5 +638,6 @@ Sources: none (project creation)
 
 ## Open questions
 
+- Can a dense compact-polynomial kernel retuning at `alpha = 0.20` beat the v1 reference Savitzky-Golay setting, or is the anchor-basis compact kernel intrinsically too biased for this Lorenz63 denoising task?
 - Does `derivative_RMSE` materially change practical family rankings in the planned v2 benchmark, or does RMSE remain sufficient as the main selection metric?
 - If a non-anchor family nearly matches Savitzky-Golay on RMSE but wins on derivative fidelity, should a later v3 benchmark promote a dynamics-aware metric from secondary to primary?

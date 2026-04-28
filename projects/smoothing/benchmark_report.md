@@ -133,3 +133,7 @@ The practical recommendation is therefore method-selective, not symmetric: use S
 ## Optional follow-up
 
 - If a v2 benchmark is needed, expand beyond the current anchor-basis kernel family before spending more sweep budget on fine-grained retuning inside the same family.
+
+## Post-report augmentation
+
+On 2026-04-28, the human requested a targeted exception to the optional follow-up above: retune the compactly supported polynomial kernel more densely before treating that family as noncompetitive. The follow-up is recorded in `projects/smoothing/plans/2026-04-28-compact-kernel-retuning.md` and `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`.

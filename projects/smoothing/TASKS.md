@@ -50,39 +50,66 @@
   Priority: medium
   Evidence: `projects/smoothing/benchmark_report.md`; `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
 
-## Phase 4: Benchmark v2
+## Phase 4: Compact-polynomial kernel retuning
+
+- [x] Design a targeted compact-polynomial kernel retuning study [requires-frontier] [skill: design] [zero-resource]
+  Why: Human follow-up argues the compactly supported polynomial kernel family was not explored sufficiently before concluding it cannot compete with Savitzky-Golay.
+  Done when: `projects/smoothing/plans/2026-04-28-compact-kernel-retuning.md` and `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md` define a fixed-noise retuning protocol, SG reference, success threshold, and visual-check outputs.
+  Priority: high
+  Evidence: `projects/smoothing/plans/2026-04-28-compact-kernel-retuning.md`; `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`
+
+- [ ] Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]
+  Why: The v1 runner only swept a coarse anchor/bandwidth/degree grid and did not emit typical denoised-trajectory visualizations.
+  Done when: `modules/smoothing/` can run a compact-polynomial-only retuning sweep over denser `M`, bandwidth, and degree grids at a selected noise level, and tests cover the added grid construction plus plot-output contract without changing v1 artifacts.
+  Priority: high
+  Evidence: `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`
+
+- [ ] Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]
+  Why: The project needs empirical evidence for whether dense tuning can make the compact polynomial kernel beat the v1 Savitzky-Golay reference at a representative high-noise setting.
+  Done when: artifacts exist under `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/`, the experiment record captures the exact command/submission, and the run includes both aggregate metrics and typical denoised-trajectory plots.
+  Priority: high
+  Notes: CPU-only; use the experiment runner if the sweep is expected to exceed 2 minutes.
+
+- [ ] Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]
+  Why: The retuning sweep must decide whether the compact polynomial kernel can beat SG, and whether any win survives visual inspection of typical trajectories.
+  Done when: the experiment Findings section reports mean/variance metrics against `savgol|w=41|p=5` and `savgol|w=21|p=3`, identifies the best compact-polynomial settings, and links typical denoised-result plots for the chosen algorithms.
+  Priority: high
+  Evidence: `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`
+
+## Phase 5: Benchmark v2
 
 - [x] Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]
-  Why: The v1 report shows the anchor-basis kernel family is a weak baseline, so the next benchmark should test broader classical smoother families rather than spending more sweep budget inside the same family.
+  Why: The v1 report shows the anchor-basis kernel family is a weak baseline, so the next benchmark should test broader classical smoother families if targeted compact-polynomial retuning does not close the gap.
   Done when: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md` specifies the staged v2 benchmark design, and `projects/smoothing/plans/2026-04-28-design-v2-lorenz63-benchmark.md` records the execution plan.
-  Priority: high
+  Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `projects/smoothing/plans/2026-04-28-design-v2-lorenz63-benchmark.md`
+  Notes: Defer execution until the compact-polynomial retuning workstream has confirmed, partially confirmed, or refuted the kernel-rescue hypothesis.
 
-- [ ] Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
-  Why: The v2 design depends on normalized local-regression and smoothing-spline families plus a separate staged runner that preserves v1 reproducibility.
+- [ ] Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute] [blocked-by: compact-polynomial retuning result]
+  Why: The v2 design depends on normalized local-regression and smoothing-spline families plus a separate staged runner that preserves v1 reproducibility, but the human now wants compact-polynomial kernel tuning prioritized first.
   Done when: `modules/smoothing/` includes reusable implementations for the planned v2 families, a v2 sweep runner emits pilot-stage artifacts, and regression tests cover the new family contracts without changing v1 outputs.
-  Priority: high
+  Priority: medium
   Evidence: `modules/smoothing/denoise_families_v2.py`; `modules/smoothing/run_denoising_sweep_v2.py`; `modules/smoothing/test_denoise_families_v2.py`
 
-- [ ] Run the v2 pilot Lorenz63 denoising sweep [skill: execute]
-  Why: The staged design requires a family-level screen before committing more CPU to confirmatory replication.
+- [ ] Run the v2 pilot Lorenz63 denoising sweep [skill: execute] [blocked-by: compact-polynomial retuning result]
+  Why: The staged design requires a family-level screen before committing more CPU to confirmatory replication, but this should wait until the compact-polynomial retuning branch has been evaluated.
   Done when: pilot artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`, and `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md` records the pilot submission and completion state.
-  Priority: high
+  Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`
 
-- [ ] Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]
+- [ ] Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource] [blocked-by: v2 pilot completion]
   Why: The pilot must identify which non-anchor settings justify confirmatory reruns and whether any family already fails the low-noise positive-gain criterion.
   Done when: the v2 experiment record names the finalist settings and records the pilot-stage findings with provenance to pilot artifacts.
-  Priority: high
+  Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`
 
-- [ ] Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]
+- [ ] Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute] [blocked-by: v2 pilot analysis]
   Why: Final recommendations should be based on a larger cluster count than v1 after the pilot has pruned the grid.
   Done when: confirmatory artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/`, and the v2 experiment record captures the confirmatory submission and completion state.
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/`
 
-- [ ] Analyze the confirmatory v2 Lorenz63 denoising benchmark [requires-frontier] [skill: analyze] [zero-resource]
+- [ ] Analyze the confirmatory v2 Lorenz63 denoising benchmark [requires-frontier] [skill: analyze] [zero-resource] [blocked-by: v2 confirmatory completion]
   Why: The project needs a final interpretation of whether any broadened v2 family materially improves on the v1 anchor-basis baseline and approaches Savitzky-Golay.
   Done when: the v2 experiment record reports confirmatory-stage findings with provenance, including both state-space and derivative-aware comparisons.
   Priority: medium
