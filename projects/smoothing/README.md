@@ -14,6 +14,92 @@ A human follow-up on 2026-04-28 reframed the kernel branch: the first-round resu
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]`)
+
+Integrated isolated task `Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]` after 2 review round(s).
+
+Session-type: autonomous
+Duration: 16
+Task-selected: Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Review fix: add missing SG variance comparison to compact-retuning analysis)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]","agentId":"codex-manual-2026-04-28-compact-retuning-variance-review-fix"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-manual-2026-04-28-compact-retuning-analysis","expiresAt":1777418183750}` and `409`
+  Interpretation: the scheduler claim API is live, but the original analysis session still held the task claim, so this pass was limited to an in-place review fix on the existing analysis record.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — documentation-only review repair over committed artifacts; no experiment execution, detached submission, or external model call.
+
+Discovery:
+- The current compact-retuning findings already documented mean-metric comparisons against both SG references, but they omitted the cluster-variance comparisons required by the task's done condition.
+- The best compact setting `kernel|type=compact_polynomial|M=192|ch=3|degree=6` has higher variance than both SG references on all three tracked variance metrics: versus `savgol|w=41|p=5`, RMSE variance `0.0006366521153256111 > 0.0005377398426275626`, relative-RMSE variance `3.278080320878152e-06 > 3.047341726063045e-06`, and denoising-gain variance `0.00013886155131058296 > 0.00013582664156754757`; versus `savgol|w=21|p=3`, the same ordering is `0.0006366521153256111 > 0.0004892621329602286`, `3.278080320878152e-06 > 2.3219506293415143e-06`, and `0.00013886155131058296 > 0.00010658041474358302`.
+- The six compact settings that beat `savgol|w=21|p=3` on mean RMSE, mean relative RMSE, and mean denoising gain are mean-only winners: `0/210` compact settings beat either SG reference on the full mean-plus-variance bundle.
+
+Execution result:
+- Updated [projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md](./experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md) so the Findings section now reports the missing SG variance comparisons against both `savgol|w=41|p=5` and `savgol|w=21|p=3`, and explicitly distinguishes mean-only wins from the stronger robustness criterion.
+
+Verification:
+- `python - <<'PY' ... PY` comparing `best_compact_setting.csv` against `sg_reference_summary.csv`
+  Output:
+  - `REF savgol|w=41|p=5`: mean deltas remain unfavorable for compact, and variance deltas are `9.891227269804843e-05` (RMSE), `2.307385948151068e-07` (relative RMSE), and `3.0349097430353922e-06` (denoising gain), all worse for compact.
+  - `REF savgol|w=21|p=3`: mean deltas favor compact, but variance deltas are `0.00014738998236538245`, `9.561296915366376e-07`, and `3.2281136566999935e-05`, again all worse for compact.
+- `python - <<'PY' ... PY` scanning `summary_by_setting.csv` for compact settings that beat each SG reference on all six mean-and-variance metrics
+  Output: `savgol|w=41|p=5 0` and `savgol|w=21|p=3 0`
+
+Compound (fast): no actions. This review fix clarified a project-local finding but did not reveal a reusable convention change, missing follow-up task, or recent fleet output to audit.
+
+### 2026-04-28 (Analyzed compact-polynomial retuning results against Savitzky-Golay)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]","agentId":"codex-manual-2026-04-28-compact-retuning-analysis"}'`
+  Output: `{"ok":true,"claim":{"claimId":"f0463fabd44da0d4","taskId":"3e86797a0d0a","taskText":"Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-28-compact-retuning-analysis","claimedAt":1777415483750,"expiresAt":1777418183750}}` and `200`
+  Interpretation: the scheduler claim API is live in this worktree and accepted the pre-selected analysis task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — frontier-level analysis over committed artifacts plus task-state updates; no experiment execution, detached submission, or external model call.
+
+Discovery:
+- The best retuned compact setting in `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/best_compact_setting.csv` is `kernel|type=compact_polynomial|M=192|ch=3|degree=6` with `mean_rmse = 0.9094494905623589`.
+- No compact setting in `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/summary_by_setting.csv` beats `savgol|w=41|p=5` on mean RMSE (`0/210` settings), but `6/210` compact settings beat `savgol|w=21|p=3`.
+- The best compact setting loses to `savgol|w=41|p=5` on all `10/10` raw realizations and beats `savgol|w=21|p=3` on all `10/10`, so the partial rescue is consistent sample-by-sample rather than a cluster-mean artifact.
+- The representative plot at `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/typical_denoised_trajectory.png` shows no obvious qualitative failure, so the remaining SG lead is quantitative rather than a visible instability.
+
+Execution result:
+- Updated [projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md](./experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md) with provenance-backed findings against both SG references, including the winning compact regime, samplewise comparison, representative-plot interpretation, and the improvement over the original v1 compact baseline.
+- Marked the selected analysis task complete in [projects/smoothing/TASKS.md](./TASKS.md) and removed the stale `compact-polynomial retuning result` blockers from the Phase 5 implementation and pilot tasks because that gate is now resolved.
+- Replaced the resolved compact-vs-SG open question in [projects/smoothing/README.md](./README.md) with the next unresolved question: whether the broader v2 non-anchor families can close the remaining `0.027066931514427628` RMSE gap to `savgol|w=41|p=5` without visual failure.
+
+Verification:
+- `python -c "import csv; from pathlib import Path; base=Path('modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1'); compact=[r for r in csv.DictReader(open(base/'summary_by_setting.csv')) if r['method']=='kernel_smoothing']; sg={r['setting_id']:r for r in csv.DictReader(open(base/'sg_reference_summary.csv'))}; best=next(csv.DictReader(open(base/'best_compact_setting.csv'))); print('best', best['setting_id'], best['mean_rmse'], best['mean_relative_rmse'], best['mean_denoising_gain']); print('better_than_w41', sum(float(r['mean_rmse']) < float(sg['savgol|w=41|p=5']['mean_rmse']) for r in compact), len(compact)); print('better_than_w21', sum(float(r['mean_rmse']) < float(sg['savgol|w=21|p=3']['mean_rmse']) for r in compact), len(compact))"`
+  Output: `best kernel|type=compact_polynomial|M=192|ch=3|degree=6 0.9094494905623589 0.056643570076884496 0.6892240334413245`, `better_than_w41 0 210`, `better_than_w21 6 210`
+- `python -c "import csv; from pathlib import Path; base=Path('modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1'); rows=list(csv.DictReader(open(base/'metrics_raw.csv'))); target='kernel|type=compact_polynomial|M=192|ch=3|degree=6'; refs=['savgol|w=41|p=5','savgol|w=21|p=3']; by={k:{} for k in refs+[target]}; [by[r['setting_id']].update({int(r['sample_index']): float(r['rmse'])}) for r in rows if r['setting_id'] in by]; for ref in refs: print(ref, sum(by[target][i] < by[ref][i] for i in by[ref]), sum(by[target][i] > by[ref][i] for i in by[ref]), len(by[ref]))"`
+  Output: `savgol|w=41|p=5 0 10 10`, `savgol|w=21|p=3 10 0 10`
+- `python -c "import csv; old=min((r for r in csv.DictReader(open('modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/summary_by_setting.csv')) if r['alpha']=='0.2' and r['setting_id'].startswith('kernel|type=compact_polynomial')), key=lambda r: float(r['mean_rmse'])); new=next(csv.DictReader(open('modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/best_compact_setting.csv'))); sg={r['setting_id']:r for r in csv.DictReader(open('modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/sg_reference_summary.csv'))}; print('old_best', old['setting_id'], old['mean_rmse']); print('new_best', new['setting_id'], new['mean_rmse']); print('improvement', float(old['mean_rmse'])-float(new['mean_rmse']), (float(old['mean_rmse'])-float(new['mean_rmse']))/float(old['mean_rmse'])); print('gap_to_w41', float(new['mean_rmse'])-float(sg['savgol|w=41|p=5']['mean_rmse']), (float(new['mean_rmse'])-float(sg['savgol|w=41|p=5']['mean_rmse']))/float(sg['savgol|w=41|p=5']['mean_rmse']))"`
+  Output: `old_best kernel|type=compact_polynomial|M=128|ch=2|degree=3 1.2011148900386548`, `new_best kernel|type=compact_polynomial|M=192|ch=3|degree=6 0.9094494905623589`, `improvement 0.2916653994762959 0.24282889330171353`, `gap_to_w41 0.027066931514427628 0.030674826056888715`
+- `git diff --stat HEAD~1..HEAD`
+  Output: `projects/smoothing/README.md | 2 +-`, `projects/smoothing/TASKS.md | 6 +++---`, `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md | 10 +++++++++-`
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the intended experiment/README/TASKS updates, the selected task already unblocked the downstream v2 work, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree so there were no recent fleet sessions to audit.
+
+Session-type: manual
+Duration: 23
+Task-selected: Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-28 (Integrated isolated task `Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]`)
 
 Integrated isolated task `Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]` after 2 review round(s).
@@ -824,6 +910,6 @@ Sources: none (project creation)
 
 ## Open questions
 
-- Can a dense compact-polynomial kernel retuning at `alpha = 0.20` beat the v1 reference Savitzky-Golay setting, or is the anchor-basis compact kernel intrinsically too biased for this Lorenz63 denoising task?
+- Can any of the broader v2 non-anchor smoother families close the remaining `0.027066931514427628` mean-RMSE gap between the best retuned compact kernel and `savgol|w=41|p=5` at `alpha = 0.20` without introducing a qualitative failure on representative trajectories?
 - Does `derivative_RMSE` materially change practical family rankings in the planned v2 benchmark, or does RMSE remain sufficient as the main selection metric?
 - If a non-anchor family nearly matches Savitzky-Golay on RMSE but wins on derivative fidelity, should a later v3 benchmark promote a dynamics-aware metric from secondary to primary?

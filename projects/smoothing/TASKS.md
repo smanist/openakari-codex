@@ -70,7 +70,7 @@
   Priority: high
   Notes: CPU-only; use the experiment runner if the sweep is expected to exceed 2 minutes.
 
-- [ ] Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]
   Why: The retuning sweep must decide whether the compact polynomial kernel can beat SG, and whether any win survives visual inspection of typical trajectories.
   Done when: the experiment Findings section reports mean/variance metrics against `savgol|w=41|p=5` and `savgol|w=21|p=3`, identifies the best compact-polynomial settings, and links typical denoised-result plots for the chosen algorithms.
   Priority: high
@@ -85,13 +85,13 @@
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `projects/smoothing/plans/2026-04-28-design-v2-lorenz63-benchmark.md`
   Notes: Defer execution until the compact-polynomial retuning workstream has confirmed, partially confirmed, or refuted the kernel-rescue hypothesis.
 
-- [ ] Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute] [blocked-by: compact-polynomial retuning result]
+- [ ] Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
   Why: The v2 design depends on normalized local-regression and smoothing-spline families plus a separate staged runner that preserves v1 reproducibility, but the human now wants compact-polynomial kernel tuning prioritized first.
   Done when: `modules/smoothing/` includes reusable implementations for the planned v2 families, a v2 sweep runner emits pilot-stage artifacts, and regression tests cover the new family contracts without changing v1 outputs.
   Priority: medium
   Evidence: `modules/smoothing/denoise_families_v2.py`; `modules/smoothing/run_denoising_sweep_v2.py`; `modules/smoothing/test_denoise_families_v2.py`
 
-- [ ] Run the v2 pilot Lorenz63 denoising sweep [skill: execute] [blocked-by: compact-polynomial retuning result]
+- [ ] Run the v2 pilot Lorenz63 denoising sweep [skill: execute]
   Why: The staged design requires a family-level screen before committing more CPU to confirmatory replication, but this should wait until the compact-polynomial retuning branch has been evaluated.
   Done when: pilot artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`, and `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md` records the pilot submission and completion state.
   Priority: medium
