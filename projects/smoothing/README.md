@@ -12,7 +12,161 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
-### 2026-04-28 — Project created
+### 2026-04-28 (Integrated isolated task `Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]`)
+
+Integrated isolated task `Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]` after 2 review round(s).
+
+Session-type: autonomous
+Duration: 12
+Task-selected: Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 6
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-27 (Review fix: cluster-aware variance and Savitzky-Golay edge handling)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Define the Lorenz63 denoising evaluation protocol","agentId":"codex-manual-2026-04-27-review-fixes"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-9524D6CB-A348-404A-8CAD-D974ACEF007A","expiresAt":1777341416770}` and `409`
+  Interpretation: the scheduler claim API is available, but this selected task was already actively claimed, so work proceeded without creating a duplicate claim.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — protocol, plan, and experiment-spec documentation updates only; no model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Execution result:
+- Resolved the blocking variance-review finding in [evaluation_protocol.md](./evaluation_protocol.md) by replacing the false `n_realizations = 10` independence claim with trajectory-seed clustered uncertainty reporting: each `{alpha, method, hyperparameters}` group still contains `10` raw rows, but summary variance and error bars now use the `5` per-seed cluster means and record both `n_realizations = 10` and `n_clusters = 5`.
+- Resolved the blocking Savitzky-Golay reproducibility finding by fixing the exact edge rule to `scipy.signal.savgol_filter(..., mode="interp")` semantics and marking alternative padding modes as non-compliant for v1.
+- Propagated both protocol fixes into [plans/2026-04-27-denoising-benchmark.md](./plans/2026-04-27-denoising-benchmark.md) and [experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) so downstream implementation uses the same aggregation and boundary contract.
+
+Verification:
+- `rg -n "mode=\"interp\"|trajectory-seed cluster|n_clusters|cluster-adjusted|5 trajectory-seed|10 noisy rows" projects/smoothing/{evaluation_protocol.md,experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md,plans/2026-04-27-denoising-benchmark.md}`
+  Output included:
+  - `projects/smoothing/evaluation_protocol.md:18:... scipy.signal.savgol_filter(..., mode="interp") ...`
+  - `projects/smoothing/evaluation_protocol.md:59:... cluster-adjusted sample variance ... n_realizations = 10 ... n_clusters = 5 ...`
+  - `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md:25:... 10 noisy rows per noise level arranged as 5 trajectory-seed clusters ...`
+  - `projects/smoothing/plans/2026-04-27-denoising-benchmark.md:46:- Savitzky-Golay edge handling: scipy.signal.savgol_filter(..., mode="interp")`
+- `git diff --stat HEAD~1..HEAD`
+  Output:
+  - `projects/smoothing/evaluation_protocol.md | 26 ++++++++++++----------`
+  - `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md | 5 +++--`
+  - `projects/smoothing/plans/2026-04-27-denoising-benchmark.md | 7 +++---`
+  - `3 files changed, 21 insertions(+), 17 deletions(-)`
+
+Compound (fast): no actions. This session surfaced no new repo-wide convention or follow-up task, and `.scheduler/metrics/sessions.jsonl` was absent so there were no recent fleet sessions to audit.
+
+### 2026-04-27 (Selected-task closeout verification)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Define the Lorenz63 denoising evaluation protocol","agentId":"codex-manual-2026-04-27-closeout"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-9524D6CB-A348-404A-8CAD-D974ACEF007A","expiresAt":1777341416770}` and `409`
+  Interpretation: the scheduler claim API is available, but this selected task was already actively claimed by the prior protocol-design session, so no duplicate claim was created.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — verification-and-closeout only; no model calls, no GPU work, and no long-running compute.
+
+Execution result:
+- Verified that the selected task is already complete in the current branch state: [evaluation_protocol.md](./evaluation_protocol.md) is present with `Status: adopted`, [TASKS.md](./TASKS.md) marks the task complete, and [experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) reflects the adopted protocol defaults.
+- No protocol edits were required in this session because the design artifact, downstream experiment record, and task state were already aligned.
+
+Verification:
+- `sed -n '1,220p' projects/smoothing/TASKS.md`
+  Output included `- [x] Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]`
+- `sed -n '1,260p' projects/smoothing/evaluation_protocol.md`
+  Output included `# Lorenz63 Denoising Evaluation Protocol`, `Status: adopted`, and `Date: 2026-04-27`
+- `sed -n '1,260p' projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
+  Output included `status: planned` plus the adopted v1 defaults for integration, burn-in, recorded length, noise levels, realizations, estimator definition, and required outputs.
+- `git status --short`
+  Output: empty, confirming the worktree was clean before this closeout entry was recorded.
+
+Compound (fast): no actions. This session surfaced no new reusable convention, failure mode, or follow-up task because the selected design work had already been completed and documented.
+
+### 2026-04-27 (Review fix: align protocol adoption dates with git provenance)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Define the Lorenz63 denoising evaluation protocol","agentId":"codex-manual-2026-04-27"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-9524D6CB-A348-404A-8CAD-D974ACEF007A","expiresAt":1777341416770}` and `409`
+  Interpretation: the selected task was already actively claimed in the scheduler store, so work proceeded under the existing claim rather than creating a duplicate.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — project-local temporal-record correction only; no model calls, GPU work, or long-running compute.
+
+Resolved the blocking review finding that future-dated the protocol adoption relative to the branch's actual git provenance. Updated the adopted date in [evaluation_protocol.md](./evaluation_protocol.md) and [experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) to `2026-04-27`, renamed the benchmark plan to [plans/2026-04-27-denoising-benchmark.md](./plans/2026-04-27-denoising-benchmark.md), and updated task/readme references to the renamed plan path. Also corrected the project creation and protocol-adoption log headings below to `2026-04-27` so the durable record matches the file-local and branch-local commit timestamps.
+
+Verification:
+- `git log --oneline --decorate --date=iso-strict-local --pretty=format:'%h %ad %s' main..HEAD`
+  Output:
+  - `1c4e222 2026-04-27T21:15:01-04:00 record: log smoothing protocol review fixes`
+  - `3bac41c 2026-04-27T21:14:11-04:00 design: tighten Lorenz63 denoising protocol reproducibility`
+  - `d01aac7 2026-04-27T21:07:15-04:00 docs: close smoothing protocol design session`
+  - `dfc3a96 2026-04-27T21:06:29-04:00 design: Lorenz63 denoising evaluation protocol — status: planned`
+- `rg -n "2026-04-27-denoising-benchmark|Date: 2026-04-27|date: 2026-04-27|### 2026-04-27" projects/smoothing/{README.md,evaluation_protocol.md,TASKS.md,experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md} projects/smoothing/plans/2026-04-27-denoising-benchmark.md`
+  Output included the corrected adopted-date lines in `README.md`, `evaluation_protocol.md`, and `EXPERIMENT.md`, plus the updated plan path in `README.md` and `TASKS.md`.
+
+Compound (fast): no actions. This session corrected project-local temporal provenance but did not reveal a reusable repo-wide convention or a missing follow-up task.
+
+### 2026-04-27 (Review revision: protocol reproducibility fixes)
+
+Claimed the selected task through the scheduler control API before editing project state. `POST /api/tasks/claim` returned HTTP `200` with claim ID `10e7dd1d6b25101d` for `Define the Lorenz63 denoising evaluation protocol`.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — project-local protocol and experiment-record clarification only; no LLM/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Addressed the two blocking review findings in [evaluation_protocol.md](./evaluation_protocol.md). Kernel smoothing is now a single reproducible estimator: coordinate-wise anchor-basis least-squares on sample index, with explicit anchor centers, kernel formulas, coefficient solve, and `x_hat` definition. The replication scheme now assigns unique noise seeds `1000 + 2 * trajectory_seed + replicate_id`, records `replicate_id` in raw outputs, and states that the `n_realizations = 10` aggregation assumes those ten `(trajectory_seed, replicate_id)` rows are independent.
+
+Propagated the revised protocol contract into [projects/smoothing/plans/2026-04-27-denoising-benchmark.md](./plans/2026-04-27-denoising-benchmark.md) and [projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) so downstream implementation and sweep execution use the same kernel estimator and seed derivation.
+
+Verification:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Define the Lorenz63 denoising evaluation protocol","agentId":"codex-9524D6CB-A348-404A-8CAD-D974ACEF007A"}'`
+  Output: `{"ok":true,"claim":{"claimId":"10e7dd1d6b25101d","taskId":"115c6923cb81","taskText":"Define the Lorenz63 denoising evaluation protocol","project":"smoothing","agentId":"codex-9524D6CB-A348-404A-8CAD-D974ACEF007A","claimedAt":1777338716770,"expiresAt":1777341416770}}` and `200`
+- `rg -n "1000 \\+ 2 \\*|replicate_id|anchor-basis least-squares|sample index|Moore-Penrose" projects/smoothing/evaluation_protocol.md projects/smoothing/plans/2026-04-27-denoising-benchmark.md projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
+  Output included:
+  - `projects/smoothing/evaluation_protocol.md:18:- Independent: denoising method and hyperparameters. ... Kernel smoothing uses a coordinate-wise anchor-basis least-squares estimator on the sample-index grid ...`
+  - `projects/smoothing/evaluation_protocol.md:35:   noise_seed(s, r) = 1000 + 2 * s + r`
+  - `projects/smoothing/evaluation_protocol.md:53:   If multiple minimizers exist, use the minimum-Euclidean-norm solution from the Moore-Penrose pseudoinverse of B.`
+  - `projects/smoothing/plans/2026-04-27-denoising-benchmark.md:50:- kernel estimator: coordinate-wise anchor-basis least-squares fit on sample index ...`
+  - `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md:25:- realizations: 5 trajectory seeds times 2 replicate IDs, with noise_seed = 1000 + 2 * trajectory_seed + replicate_id, for 10 independent realizations per noise level`
+
+Compound (fast): no actions. The session produced project-local clarifications but no repo-wide convention change or missing follow-up task, and `.scheduler/metrics/sessions.jsonl` was absent so there were no recent fleet sessions to audit.
+
+### 2026-04-27 (Adopted Lorenz63 denoising evaluation protocol)
+
+Claimed the pre-selected task through the scheduler control API before editing project state. `POST /api/tasks/claim` returned HTTP `200` with claim ID `53f4ca3df6c6a78b` for `Define the Lorenz63 denoising evaluation protocol`.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — project-local protocol design and documentation only; no LLM/API calls, GPU work, or long-running compute.
+
+Adopted the benchmark defaults in [evaluation_protocol.md](./evaluation_protocol.md): fixed-step RK4 with `dt = 0.01`, burn-in `5000`, recorded length `2048`, noise levels `0.02/0.05/0.10/0.20`, and `10` realizations per noise level from `5` trajectory seeds times `2` noise seeds. The protocol now fixes the metric set (`RMSE`, `relative_RMSE`, `denoising_gain`, per-coordinate RMSE), aggregation rule (sample mean and variance with complete `n = 10` groups), and required reporting outputs (`metrics_raw.csv`, `summary_by_setting.csv`, `best_by_noise.csv`, `robust_settings.csv`, plus three standard plots).
+
+Aligned downstream project state with the adopted protocol by updating [projects/smoothing/plans/2026-04-27-denoising-benchmark.md](./plans/2026-04-27-denoising-benchmark.md), [projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md), and marking the design task complete in [TASKS.md](./TASKS.md).
+
+Verification:
+- `curl -s -o /tmp/smoothing_claim_resp.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim ...`
+  Output: `200` and `{"ok":true,"claim":{"claimId":"53f4ca3df6c6a78b",...}}`
+- `rg -n "dt = 0\\.01|5000|2048|0\\.02, 0\\.05, 0\\.10, 0\\.20|metrics_raw\\.csv|best_by_noise\\.csv|robust_settings\\.csv|denoising_gain_vs_noise\\.png" projects/smoothing/evaluation_protocol.md projects/smoothing/plans/2026-04-27-denoising-benchmark.md projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
+  Output included:
+  - `projects/smoothing/evaluation_protocol.md:24:- Controlled: integration uses fixed-step RK4 with dt = 0.01.`
+  - `projects/smoothing/evaluation_protocol.md:31:1. Generate 5 clean trajectories ... integrate for 5000 + 2048 RK4 steps ...`
+  - `projects/smoothing/evaluation_protocol.md:43:5. Record one raw-result row ... metrics_raw.csv`
+  - `projects/smoothing/evaluation_protocol.md:47:8. Produce robust_settings.csv ...`
+  - `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md:24:- noise levels: alpha in {0.02, 0.05, 0.10, 0.20}`
+
+Compound (fast): no actions. The session did not reveal a repo-wide convention change or a missing follow-up task, and there was no `.scheduler/metrics/sessions.jsonl` file to audit recent fleet output.
+
+Session-type: autonomous
+Duration: 5
+Task-selected: Define the Lorenz63 denoising evaluation protocol
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+### 2026-04-27 — Project created
 
 Project initiated via `/project scaffold` for a human-requested study of denoising algorithms on noisy Lorenz63 trajectories. The project is scoped to produce benchmark knowledge: which method and hyperparameter regimes recover clean trajectories best as noise level varies.
 
@@ -20,6 +174,4 @@ Sources: none (project creation)
 
 ## Open questions
 
-- Which Lorenz63 integration time step, burn-in length, trajectory length, and number of realizations should define the default benchmark?
-- Which supporting metrics beyond RMSE should be included in the first report?
-- Should hyperparameters be selected per noise level, or should the report also recommend one robust hyperparameter setting across noise levels?
+- Should a later v2 protocol add dynamics-aware metrics, such as derivative or attractor-geometry error, once the v1 amplitude-space benchmark is running?

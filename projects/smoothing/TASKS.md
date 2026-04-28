@@ -2,10 +2,11 @@
 
 ## Phase 1: Benchmark design
 
-- [ ] Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]
+- [x] Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]
   Why: The project needs a fixed data-generation, noise, metric, and reporting protocol before algorithm results are comparable.
   Done when: `projects/smoothing/evaluation_protocol.md` specifies trajectory generation, coordinate-scaled Gaussian noise levels, realization counts, metrics, aggregation rules, and standard tables/plots.
   Priority: high
+  Evidence: `projects/smoothing/evaluation_protocol.md`; `projects/smoothing/plans/2026-04-27-denoising-benchmark.md`; `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
 
 - [ ] Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]
   Why: All denoising methods need shared clean/noisy trajectories with known provenance.
