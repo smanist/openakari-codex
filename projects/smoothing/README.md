@@ -2,15 +2,129 @@
 
 Status: active
 Mission: Identify denoising algorithms and hyperparameters that best recover clean on-attractor Lorenz63 trajectories from coordinate-scaled i.i.d. Gaussian observation noise.
-Done when: A reproducible benchmark report compares Savitzky-Golay filtering and kernel smoothing across a range of noise levels, reports mean and variance of RMSE and supporting metrics across multiple trajectory/noise realizations, and recommends hyperparameter regimes for each method.
+Done when: A reproducible benchmark report compares Savitzky-Golay filtering and a broader set of classical smoothers across a range of noise levels, reports mean and variance of RMSE and supporting metrics across multiple trajectory/noise realizations, and recommends hyperparameter regimes for the strongest method families.
 
 ## Context
 
-This project studies signal denoising on synthetic Lorenz63 trajectories sampled on the attractor. Clean trajectories should be generated first, then corrupted by independent Gaussian noise whose per-coordinate standard deviation is proportional to that coordinate's average absolute clean-signal magnitude. The initial algorithm set includes the standard Savitzky-Golay filter and a kernel smoother that fits the full signal using kernels centered at `M < N` equidistant time steps.
+This project studies signal denoising on synthetic Lorenz63 trajectories sampled on the attractor. Clean trajectories should be generated first, then corrupted by independent Gaussian noise whose per-coordinate standard deviation is proportional to that coordinate's average absolute clean-signal magnitude. The initial algorithm set included the standard Savitzky-Golay filter and a kernel smoother that fits the full signal using kernels centered at `M < N` equidistant time steps.
 
-The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel types in scope are Gaussian kernels and compact polynomial kernels of the form `k(x,x') = (1 - (x - x')^2 / h^2)^p` supported on `|x - x'| <= h`, where `p` is an additional hyperparameter. The first benchmark should be CPU-only and complete within 20 minutes, so the initial grid should be deliberately small and expanded only after a pilot confirms runtime.
+The v1 kernel smoother swept `M`, bandwidth `h`, and kernel type over Gaussian and compact-polynomial kernels of the form `k(x,x') = (1 - (x - x')^2 / h^2)^p` supported on `|x - x'| <= h`. That family is now treated as a frozen reference baseline. The planned v2 benchmark broadens the comparison to normalized local regression, local-linear regression, and cubic smoothing splines while keeping the workflow CPU-only and staged through a pilot before confirmatory replication.
 
 ## Log
+
+### 2026-04-28 (Integrated isolated task `Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]`)
+
+Integrated isolated task `Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]` after 3 review round(s).
+
+Session-type: autonomous
+Duration: 25
+Task-selected: Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Review fix: v2 benchmark design reproducibility and fairness contracts)
+
+Task claim check:
+- `curl -s -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","agentId":"manual-codex","taskText":"Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family"}'`
+  Output: `{"ok":true,"claim":{"claimId":"16f6a70fda33a8c2","taskId":"49b60d293fbc","taskText":"Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family","project":"smoothing","agentId":"manual-codex","claimedAt":1777355344719,"expiresAt":1777358044719}}`
+  Interpretation: the scheduler claim API is live in this worktree and accepted the pre-selected review-fix task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — documentation-only methodology fixes to a planned experiment record; no experiment execution, external model call, or long-running compute.
+
+Discovery:
+- The v2 benchmark had labeled its anchor-basis reference set as "frozen from v1" even though the committed v1 sweep never evaluated Gaussian `M=128, c_h=0.5`, and the strongest committed `compact_polynomial M=128` row in `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/summary_by_setting.csv` was `kernel|type=compact_polynomial|M=128|ch=2|degree=3`, not `ch=1|degree=2`.
+- The spline family had been parameterized from clean-side trajectory amplitude metadata (`scale_j`), which would leak information from the ground-truth trajectory into only one v2 family.
+- The local-regression families named spans `{11, 21, 41, 81}` but had not defined how span maps to radius/bandwidth, so multiple incompatible implementations would satisfy the old text.
+
+Execution result:
+- Updated [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md](./experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md) so the frozen anchor-basis reference set now matches the strongest actually committed `M=128` v1 rows: Gaussian `c_h in {1, 2, 4}` plus `compact_polynomial c_h=2, degree=3`.
+- Rewrote the spline contract to use only observable noisy-input scale, `obs_scale_j = mean_t |y_j(t)|`, with an explicit ban on consuming clean-side `coordinate_scales` dataset metadata during evaluation.
+- Added an explicit local-regression neighborhood contract: `span -> r = (span - 1)/2`, Gaussian `h = r/3`, Gaussian `K(u) = exp(-u^2 / 2)`, and tricube `K(u) = (1 - |u|^3)^3` for `|u| <= 1`.
+- Tightened the confirmatory comparison rule and success criteria so v2 families are compared against the best confirmatory-stage anchor-basis reference row among the four frozen settings at each noise level, not a weaker hand-picked subset.
+
+Verification:
+- `python - <<'PY' ... PY` reading `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/summary_by_setting.csv`
+  Output confirmed that the committed Gaussian `M=128` rows use `c_h in {1, 2, 4}` only, that `kernel|type=compact_polynomial|M=128|ch=2|degree=3` is the best compact-polynomial `M=128` row at every tested `alpha`, and that the best frozen anchor reference per `alpha` remains `kernel|type=gaussian|M=128|ch=1`.
+- `rg -n 'Frozen anchor-basis kernel reference settings|obs_scale_j|K\\(u\\) = exp|K\\(u\\) = \\(1 - \\|u\\|\\^3\\)\\^3|coordinate_scales|anchor-basis baseline at each noise level|best confirmatory-stage frozen anchor-basis reference row' projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`
+  Output confirmed the corrected frozen-reference definition, the noisy-input spline scaling rule, the explicit Gaussian/tricube kernel formulas plus span mapping, the clean-metadata prohibition, and the revised confirmatory comparison/success-criteria wording.
+
+Compound (fast): no actions. This review-fix session clarified one experiment contract but did not surface a reusable cross-project convention, new follow-up task, or scheduler-health issue beyond the project log and experiment-record update.
+
+### 2026-04-28 (Review fix: v2 confirmatory anchor reference and family-key schema contract)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]","agentId":"codex-manual-2026-04-28-lorenz63-v2-benchmark-design-review-fixes"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-manual-2026-04-28-lorenz63-v2-benchmark-design","expiresAt":1777357079039}` and `409`
+  Interpretation: the claim API is live, but the original design session still holds the claim, so this pass was limited to an in-place review fix on the existing benchmark record.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — documentation-only methodological corrections to an existing planned experiment; no experiment execution, external model call, or long-running compute.
+
+Discovery:
+- The confirmatory-stage wording reran finalist v2 settings and Savitzky-Golay references but omitted the frozen anchor-basis reference, even though the success criterion required a same-stage comparison against that baseline.
+- The v1 helper contract in `modules/smoothing/run_denoising_sweep.py` groups by the existing `method` field and would collapse distinct v2 families unless the v2 design explicitly promoted `method` to the family key.
+
+Execution result:
+- Updated [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md](./experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md) Step 8 to make `method` the explicit family key consumed by the reused v1 summary helpers, with `family` retained as a readable mirrored label and legacy v1 hyperparameter columns left nullable when not applicable.
+- Updated the confirmatory-stage method, confound note, and success criteria so the four frozen anchor-basis reference settings are rerun on the same `8`-seed confirmatory dataset as the finalists and Savitzky-Golay references.
+
+Verification:
+- `rg -n "method becomes the family key|four frozen anchor-basis reference settings|mixing pilot and confirmatory rows|confirmatory rerun of the frozen anchor-basis reference|best confirmatory-stage Savitzky-Golay" projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`
+  Output confirmed the new schema-contract language in Step 8, the added confirmatory rerun of the anchor-basis reference rows, the seed-matching confound mitigation, and the updated success/refutation criteria.
+
+Compound (fast): no actions. This review fix clarified an existing experiment contract but did not expose a reusable convention or new follow-up task beyond the project log and experiment-record edits.
+
+### 2026-04-28 (Integrated isolated task `Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]`)
+
+Integrated isolated task `Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 12
+Task-selected: Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+### 2026-04-28 (Designed the v2 Lorenz63 denoising benchmark)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]","agentId":"codex-manual-2026-04-28-lorenz63-v2-benchmark-design"}'`
+  Output: `{"ok":true,"claim":{"claimId":"d093c839edac9c55","taskId":"266c4437e6b0","taskText":"Design a v2 Lorenz63 denoising benchmark that expands beyond the current anchor-basis kernel family [requires-frontier] [skill: design] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-28-lorenz63-v2-benchmark-design","claimedAt":1777354379039,"expiresAt":1777357079039}}` and `200`
+  Interpretation: the scheduler claim API is available in this worktree and accepted the pre-selected v2 benchmark-design task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — design, planning, and project-record updates only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Plan:
+- Added [plans/2026-04-28-design-v2-lorenz63-benchmark.md](./plans/2026-04-28-design-v2-lorenz63-benchmark.md) to record the knowledge goal, scope, staged execution plan, and closeout criteria for the v2 design task.
+
+Discovery:
+- The v1 benchmark already resolved the immediate decision about where new knowledge is most likely to come from: the best anchor-basis kernel remained worse than Savitzky-Golay at all four `alpha` values and had negative mean denoising gain at `alpha = 0.02` and `0.05`, so v2 should expand across smoother families instead of spending more budget on fine retuning inside the same family.
+- The project README and task graph were still phrased around the original Savitzky-Golay-versus-kernel benchmark, so the durable project scope needed to be broadened alongside the new design artifact.
+
+Execution result:
+- Added [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md](./experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md), a planned experiment record that defines the v2 knowledge output, falsifiable hypothesis, staged pilot-plus-confirmatory method, broader smoother families, derivative-aware secondary diagnostic, validity threats, and success criteria.
+- Added [projects/smoothing/TASKS.md](./TASKS.md) Phase 4 tasks that decompose the v2 work into implementation, pilot execution, pilot analysis, confirmatory execution, and confirmatory analysis.
+- Updated [projects/smoothing/README.md](./README.md) so the project Done-when and Context now reflect the broadened v2 scope, and replaced the old v2-metrics placeholder question with two sharper post-design open questions about whether `derivative_RMSE` changes practical rankings.
+
+Verification:
+- `rg -n "status: planned|normalized_kernel_regression|local_linear_regression|cubic_smoothing_spline|derivative_RMSE|8 trajectory seeds" projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`
+  Output included the planned experiment status plus the new v2 families, `derivative_RMSE`, and the confirmatory-stage `8`-trajectory-seed design.
+- `rg -n "Design a v2 Lorenz63 denoising benchmark|Implement the v2 denoiser families|Run the v2 pilot|Analyze the confirmatory v2" projects/smoothing/TASKS.md`
+  Output showed the completed design task and the four follow-on v2 tasks at lines `55`, `61`, `67`, and `85`.
+- `rg -n "broader set of classical smoothers|planned v2 benchmark broadens|derivative_RMSE materially change" projects/smoothing/README.md`
+  Output confirmed the updated project Done-when, the broadened v2 Context paragraph, and the new open-question wording.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the intended README/TASKS/plan/experiment-design updates, and `.scheduler/metrics/sessions.jsonl` was absent in this worktree so there were no recent fleet sessions to audit.
 
 ### 2026-04-28 (Integrated isolated task `Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]`)
 
@@ -514,4 +628,5 @@ Sources: none (project creation)
 
 ## Open questions
 
-- Should a later v2 protocol add dynamics-aware metrics, such as derivative or attractor-geometry error, once the v1 amplitude-space benchmark is running?
+- Does `derivative_RMSE` materially change practical family rankings in the planned v2 benchmark, or does RMSE remain sufficient as the main selection metric?
+- If a non-anchor family nearly matches Savitzky-Golay on RMSE but wins on derivative fidelity, should a later v3 benchmark promote a dynamics-aware metric from secondary to primary?
