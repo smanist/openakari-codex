@@ -10,3 +10,7 @@ This module should hold reproducible code for Lorenz63 denoising benchmarks. Hea
   - `clean_trajectories.npz`
   - `noisy_observations.npz`
   - `metadata.json`
+- `denoise_baselines.py` exposes reusable baseline denoisers for the v1 benchmark:
+  - `savitzky_golay_denoise(signal, window_length, polyorder)` with SciPy `mode="interp"` semantics
+  - `gaussian_kernel_denoise(signal, n_anchors, bandwidth)` using the protocol anchor-basis least-squares estimator
+  - `compact_polynomial_kernel_denoise(signal, n_anchors, bandwidth, degree)` using the compact-support polynomial kernel basis

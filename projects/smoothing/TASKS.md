@@ -15,10 +15,11 @@
   Evidence: `modules/smoothing/generate_lorenz63_dataset.py`; `modules/smoothing/test_generate_lorenz63_dataset.py`
   Notes: CPU-only. Keep pilot generation small enough for a full benchmark dry run to stay under 20 minutes.
 
-- [ ] Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]
+- [x] Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]
   Why: The benchmark requires comparable implementations for the two requested algorithm families.
   Done when: `modules/smoothing/` exposes denoising functions or scripts for Savitzky-Golay, Gaussian-kernel smoothing, and compact-polynomial-kernel smoothing, and a smoke test verifies each returns a denoised signal with the same shape as the input.
   Priority: high
+  Evidence: `modules/smoothing/denoise_baselines.py`; `modules/smoothing/test_denoise_baselines.py`
 
 ## Phase 2: Benchmark execution
 

@@ -12,6 +12,47 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]`)
+
+Integrated isolated task `Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 7
+Task-selected: Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-27 (Implemented Savitzky-Golay and kernel smoothing baselines)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]","agentId":"codex-manual-2026-04-28-smoothing-baselines"}'`
+  Output: `{"ok":true,"claim":{"claimId":"938ee6418f445a7a","taskId":"91881d58b7fa","taskText":"Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-28-smoothing-baselines","claimedAt":1777343523588,"expiresAt":1777346223588}}` and `200`
+  Interpretation: the scheduler claim API is available and accepted the selected baseline-implementation task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — module-local Python implementation and test verification only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Discovery:
+- SciPy is installed in this environment, so the Savitzky-Golay baseline can implement the protocol's exact `scipy.signal.savgol_filter(..., mode="interp")` semantics instead of approximating the boundary rule.
+
+Execution result:
+- Added [modules/smoothing/denoise_baselines.py](../../modules/smoothing/denoise_baselines.py), which exposes three reusable denoisers for the benchmark: `savitzky_golay_denoise`, `gaussian_kernel_denoise`, and `compact_polynomial_kernel_denoise`.
+- Implemented the kernel smoother as the protocol-specified anchor-basis least-squares estimator on sample index: equidistant anchors over `0..N-1`, Gaussian or compact-polynomial basis evaluation, Moore-Penrose pseudoinverse solve, and full-length same-shape reconstruction.
+- Added [modules/smoothing/test_denoise_baselines.py](../../modules/smoothing/test_denoise_baselines.py) to pin the baseline contract: exact Savitzky-Golay parity with SciPy `mode="interp"` and closed-form projection checks for both kernel families.
+- Updated [modules/smoothing/README.md](../../modules/smoothing/README.md) and [TASKS.md](./TASKS.md) so the module advertises the new entry points and the selected task records concrete implementation evidence.
+
+Verification:
+- `pytest -q modules/smoothing/test_denoise_baselines.py modules/smoothing/test_generate_lorenz63_dataset.py`
+  Output: `6 passed in 0.43s`
+- `python - <<'PY' ... PY` importing the three denoisers and applying them to a `(12, 3)` array
+  Output: `{'savitzky_shape': (12, 3), 'gaussian_shape': (12, 3), 'compact_shape': (12, 3)}`
+
+Compound (fast): no actions. The session produced a project-local baseline module and tests but did not surface a reusable repo-wide convention change, follow-up task, or recent fleet-session artifact to audit.
+
 ### 2026-04-28 (Integrated isolated task `Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]`)
 
 Integrated isolated task `Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]` after 2 review round(s).
