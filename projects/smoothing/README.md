@@ -14,6 +14,96 @@ A human follow-up on 2026-04-28 reframed the kernel branch: the first-round resu
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]`)
+
+Integrated isolated task `Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]` after 2 review round(s).
+
+Session-type: autonomous
+Duration: 19
+Task-selected: Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Review fix: representative compact-retuning plot selection)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]","agentId":"codex-manual-2026-04-28-compact-retuning-review-fix"}'`
+  Output: curl exited with code `7` and printed `000`, so the local scheduler claim endpoint was unreachable in this session and no live claim could be created.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — module-local Python bugfix, regression coverage, and experiment-record clarification only; no experiment execution, external model call, or long-running compute.
+
+Discovery:
+- [modules/smoothing/run_compact_polynomial_retuning.py](../../modules/smoothing/run_compact_polynomial_retuning.py) rendered `plots/typical_denoised_trajectory.png` from `sample_contexts[0]`, so the qualitative success gate depended on dataset input order rather than a mechanically justified “typical” realization.
+
+Execution result:
+- Updated [modules/smoothing/run_compact_polynomial_retuning.py](../../modules/smoothing/run_compact_polynomial_retuning.py) to select the representative realization from the best compact-polynomial setting's raw metric rows by choosing the sample closest to the median RMSE across realizations, then breaking ties by closest `relative_rmse` and lowest `sample_index`.
+- Added `representative_sample` provenance to `run_manifest.json`, including the chosen sample metadata plus the median and absolute selection deltas that justify why that realization was plotted.
+- Extended [modules/smoothing/test_run_compact_polynomial_retuning.py](../../modules/smoothing/test_run_compact_polynomial_retuning.py) to verify the representative-sample selection rule against `metrics_raw.csv`, and updated [projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md](./experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md) so the visual-check contract now requires a metrics-derived representative realization with manifest provenance.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_compact_polynomial_retuning.py`
+  Output: `2 passed in 0.79s`
+- `pytest -q modules/smoothing/test_*.py`
+  Output: `11 passed in 1.04s`
+- `tmpdir=$(mktemp -d) && python modules/smoothing/run_compact_polynomial_retuning.py --out-dir "$tmpdir" --trajectory-seeds 0 1 --replicate-ids 0 --alpha 0.2 --dt 0.01 --burn-in-steps 32 --record-steps 64 --sigma 10.0 --rho 28.0 --beta 2.6666666666666665 --reference-savgol-settings 7:2 11:3 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-degrees 2 --overwrite`
+  Output: the smoke-run `run_manifest.json` recorded `representative_sample.selection_setting_id = kernel|type=compact_polynomial|M=8|ch=1|degree=2`, `sample_index = 0`, `trajectory_seed = 0`, `noise_seed = 1000`, `median_rmse = 1.7442567009511603`, `rmse = 1.6524280383596202`, and wrote `plots/typical_denoised_trajectory.png`.
+
+Session-type: manual
+Duration: 20
+Task-selected: Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Resources-consumed: none
+Budget-remaining: n/a
+
+### 2026-04-28 (Implemented compact-polynomial retuning support)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]","agentId":"codex-manual-2026-04-28-compact-kernel-retuning-implement"}'`
+  Output: curl exited with code `7` and printed `000`, so the local scheduler claim endpoint was unreachable in this session. The task was therefore claimed durably in-repo via `projects/smoothing/TASKS.md`.
+
+Scope classification:
+`[requires-frontier]` — the implementation adds a new experiment-specific runner, a new fixed-`alpha` artifact contract, and verification that preserves the frozen v1 sweep path unchanged.
+
+Plan:
+- Added [plans/2026-04-28-compact-kernel-retuning-implementation.md](./plans/2026-04-28-compact-kernel-retuning-implementation.md) to record the execution scope and implementation steps before code changes.
+
+Discovery:
+- The existing v1 sweep code in `modules/smoothing/run_denoising_sweep.py` already provided reusable dataset-writing, metric-summarization, and progress-log helpers, so the safest way to satisfy the retuning task without mutating frozen v1 artifacts was to add a separate runner that reuses those helpers but owns a different output contract.
+- The retuning implementation needs to keep both SG references, not only the single best SG row, so the v1 `best_by_noise` output pattern is insufficient for this experiment by itself.
+
+Execution result:
+- Added [modules/smoothing/run_compact_polynomial_retuning.py](../../modules/smoothing/run_compact_polynomial_retuning.py), a dedicated fixed-`alpha` runner for dense compact-polynomial tuning. It evaluates the required SG references plus a compact-only grid over anchor count, bandwidth multiplier, and degree, then writes `metrics_raw.csv`, `summary_by_setting.csv`, `best_compact_setting.csv`, `sg_reference_summary.csv`, `run_manifest.json`, `output.log`, and `plots/typical_denoised_trajectory.png`.
+- Added [modules/smoothing/test_run_compact_polynomial_retuning.py](../../modules/smoothing/test_run_compact_polynomial_retuning.py) to lock down the dense-grid enumeration contract and the required plot-output artifact contract.
+- Updated [modules/smoothing/README.md](../../modules/smoothing/README.md) and [projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md](./experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md) so the project record now points at the new runner and its outputs.
+- Marked the implementation task complete in [projects/smoothing/TASKS.md](./TASKS.md); the remaining Phase 4 work is to run the sweep and analyze the results.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_compact_polynomial_retuning.py`
+  Output: `2 passed in 0.98s`
+- `pytest -q modules/smoothing/test_*.py`
+  Output: `11 passed in 1.11s`
+- `python modules/smoothing/run_compact_polynomial_retuning.py --out-dir <tmpdir> --trajectory-seeds 0 1 --replicate-ids 0 --alpha 0.2 --dt 0.01 --burn-in-steps 32 --record-steps 64 --sigma 10.0 --rho 28.0 --beta 2.6666666666666665 --reference-savgol-settings 7:2 11:3 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-degrees 2 --overwrite`
+  Output: smoke run wrote `n_settings = 3`, `n_rows_written = 6`, `best_compact_setting.csv`, and `plots/typical_denoised_trajectory.png`.
+
+Session-type: autonomous
+Duration: 27
+Task-selected: Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 7
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-28 (Added compact-polynomial kernel retuning workstream)
 
 Augmented the project with a targeted follow-up requested by the human: retune the compactly supported polynomial anchor-basis kernel at a fixed noise level, defaulting to `alpha = 0.20`, against a v1 Savitzky-Golay reference. This workstream records the open question left by v1: whether the compact-polynomial kernel family was weak because of the family itself or because `M`, bandwidth, and degree were underexplored.

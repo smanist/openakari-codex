@@ -58,7 +58,7 @@
   Priority: high
   Evidence: `projects/smoothing/plans/2026-04-28-compact-kernel-retuning.md`; `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`
 
-- [ ] Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]
+- [x] Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]
   Why: The v1 runner only swept a coarse anchor/bandwidth/degree grid and did not emit typical denoised-trajectory visualizations.
   Done when: `modules/smoothing/` can run a compact-polynomial-only retuning sweep over denser `M`, bandwidth, and degree grids at a selected noise level, and tests cover the added grid construction plus plot-output contract without changing v1 artifacts.
   Priority: high

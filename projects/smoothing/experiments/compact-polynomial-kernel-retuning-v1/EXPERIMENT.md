@@ -59,7 +59,7 @@ For final candidate algorithms, produce typical denoised-trajectory plots at `al
 - clean trajectory
 - noisy observations
 
-Plot all three Lorenz63 coordinates for one representative realization. The figure should be saved under `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/`.
+Plot all three Lorenz63 coordinates for one representative realization. The realization must be selected mechanically from the run metrics rather than by input order. Default rule: choose the realization whose RMSE for the best compact-polynomial setting is closest to that setting's median RMSE across realizations, break ties by closest `relative_RMSE`, then lowest `sample_index`. Record the chosen sample metadata and selection deltas in `run_manifest.json`. The figure should be saved under `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/`.
 
 ## Success Criteria
 
@@ -87,11 +87,31 @@ Then register the experiment with the scheduler API.
 
 ## Changes
 
-Planned. Implementation should live under `modules/smoothing/`; runtime logs, result tables, and typical denoised plots should live under `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/`.
+2026-04-28 implementation added `modules/smoothing/run_compact_polynomial_retuning.py` plus `modules/smoothing/test_run_compact_polynomial_retuning.py`.
+
+The retuning runner:
+
+- fixes the study to one selected `alpha`
+- evaluates the exact SG reference settings alongside a compact-polynomial-only dense grid over anchor count, bandwidth multiplier, and degree
+- selects the qualitative-check realization mechanically from the best compact-setting metric rows and records that selection provenance in `run_manifest.json`
+- writes `metrics_raw.csv`, `summary_by_setting.csv`, `best_compact_setting.csv`, `sg_reference_summary.csv`, `run_manifest.json`, `output.log`, and `plots/typical_denoised_trajectory.png`
+
+The original v1 sweep implementation in `modules/smoothing/run_denoising_sweep.py` remains unchanged as the frozen reference path.
 
 ## Verification
 
-Planned. Record exact commands and key outputs after implementation and execution.
+- `pytest -q modules/smoothing/test_run_compact_polynomial_retuning.py`
+  Output: `2 passed in 0.98s`
+- `pytest -q modules/smoothing/test_run_compact_polynomial_retuning.py`
+  Output: `2 passed in 0.79s` after adding representative-sample median-selection coverage.
+- `pytest -q modules/smoothing/test_*.py`
+  Output: `11 passed in 1.11s`
+- `pytest -q modules/smoothing/test_*.py`
+  Output: `11 passed in 1.04s` after the representative-sample provenance fix.
+- `python modules/smoothing/run_compact_polynomial_retuning.py --out-dir <tmpdir> --trajectory-seeds 0 1 --replicate-ids 0 --alpha 0.2 --dt 0.01 --burn-in-steps 32 --record-steps 64 --sigma 10.0 --rho 28.0 --beta 2.6666666666666665 --reference-savgol-settings 7:2 11:3 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-degrees 2 --overwrite`
+  Output: smoke run wrote `n_settings = 3`, `n_rows_written = 6`, `best_compact_setting.csv`, and `plots/typical_denoised_trajectory.png` in the temporary artifact directory.
+- `python modules/smoothing/run_compact_polynomial_retuning.py --out-dir <tmpdir> --trajectory-seeds 0 1 --replicate-ids 0 --alpha 0.2 --dt 0.01 --burn-in-steps 32 --record-steps 64 --sigma 10.0 --rho 28.0 --beta 2.6666666666666665 --reference-savgol-settings 7:2 11:3 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-degrees 2 --overwrite`
+  Output: the smoke-run `run_manifest.json` recorded `representative_sample.selection_setting_id = kernel|type=compact_polynomial|M=8|ch=1|degree=2`, `sample_index = 0`, `trajectory_seed = 0`, `noise_seed = 1000`, `median_rmse = 1.7442567009511603`, and `rmse = 1.6524280383596202`, establishing provenance for the plotted realization.
 
 ## Findings
 
