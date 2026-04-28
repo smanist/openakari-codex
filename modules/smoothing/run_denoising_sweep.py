@@ -154,6 +154,15 @@ def _write_table(path: Path, fieldnames: Sequence[str], rows: Sequence[dict[str,
             writer.writerow(row)
 
 
+def _read_table(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _count_rows(path: Path) -> int:
+    return len(_read_table(path))
+
+
 def _save_dataset_artifacts(dataset: dict[str, Any], out_dir: Path, *, overwrite: bool) -> dict[str, str]:
     out_dir.mkdir(parents=True, exist_ok=True)
     clean_path = out_dir / "clean_trajectories.npz"
@@ -498,6 +507,126 @@ def render_plots(best_rows: Sequence[dict[str, Any]], *, plots_dir: Path) -> lis
     return written_paths
 
 
+def _portable_dataset_paths(dataset_dir: Path) -> dict[str, str]:
+    return {
+        "clean_path": str(dataset_dir / "clean_trajectories.npz"),
+        "noisy_path": str(dataset_dir / "noisy_observations.npz"),
+        "metadata_path": str(dataset_dir / "metadata.json"),
+    }
+
+
+def _build_manifest(
+    *,
+    dataset_outputs: dict[str, str],
+    metrics_raw_path: Path,
+    summary_path: Path,
+    best_by_noise_path: Path,
+    robust_settings_path: Path,
+    plots_dir: Path,
+    settings: dict[str, Any],
+    counts: dict[str, Any],
+    plot_paths: Sequence[str],
+) -> dict[str, Any]:
+    return {
+        "dataset": dataset_outputs,
+        "paths": {
+            "metrics_raw": str(metrics_raw_path),
+            "summary_by_setting": str(summary_path),
+            "best_by_noise": str(best_by_noise_path),
+            "robust_settings": str(robust_settings_path),
+            "plots_dir": str(plots_dir),
+        },
+        "settings": settings,
+        "counts": counts,
+        "plots": list(plot_paths),
+    }
+
+
+def _write_output_log(output_log_path: Path, manifest: dict[str, Any]) -> None:
+    progress_lines: list[str] = []
+    if output_log_path.exists():
+        for line in output_log_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                payload = json.loads(stripped)
+            except json.JSONDecodeError:
+                break
+            if payload.get("status") != "setting-complete":
+                break
+            progress_lines.append(stripped)
+
+    output_log_path.parent.mkdir(parents=True, exist_ok=True)
+    rendered_manifest = json.dumps(manifest, indent=2, sort_keys=True)
+    log_body = "\n".join(progress_lines + [rendered_manifest]) if progress_lines else rendered_manifest
+    output_log_path.write_text(log_body + "\n", encoding="utf-8")
+
+
+def restore_portable_artifacts(
+    out_dir: Path,
+    *,
+    make_plots: bool = True,
+) -> dict[str, Any]:
+    metrics_raw_path = out_dir / "metrics_raw.csv"
+    summary_path = out_dir / "summary_by_setting.csv"
+    best_by_noise_path = out_dir / "best_by_noise.csv"
+    robust_settings_path = out_dir / "robust_settings.csv"
+    plots_dir = out_dir / "plots"
+    manifest_path = out_dir / "run_manifest.json"
+    output_log_path = out_dir / "output.log"
+    dataset_dir = out_dir / "dataset"
+
+    required_paths = [
+        metrics_raw_path,
+        summary_path,
+        best_by_noise_path,
+        robust_settings_path,
+        dataset_dir / "clean_trajectories.npz",
+        dataset_dir / "noisy_observations.npz",
+        dataset_dir / "metadata.json",
+    ]
+    missing_paths = [path for path in required_paths if not path.exists()]
+    if missing_paths:
+        missing = ", ".join(str(path) for path in missing_paths)
+        raise FileNotFoundError(f"Cannot restore portable artifacts; missing required files: {missing}")
+
+    existing_manifest = (
+        json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    )
+    best_rows = _read_table(best_by_noise_path)
+    plot_paths = render_plots(best_rows, plots_dir=plots_dir) if make_plots and best_rows else []
+
+    with np.load(dataset_dir / "noisy_observations.npz") as noisy_data:
+        n_samples = int(noisy_data["observations"].shape[0])
+
+    counts = dict(existing_manifest.get("counts", {}))
+    counts.update(
+        {
+            "n_samples": n_samples,
+            "n_rows_written": _count_rows(metrics_raw_path),
+            "n_summary_rows": _count_rows(summary_path),
+            "n_best_rows": len(best_rows),
+            "n_robust_rows": _count_rows(robust_settings_path),
+        }
+    )
+    settings = dict(existing_manifest.get("settings", {}))
+    manifest = _build_manifest(
+        dataset_outputs=_portable_dataset_paths(dataset_dir),
+        metrics_raw_path=metrics_raw_path,
+        summary_path=summary_path,
+        best_by_noise_path=best_by_noise_path,
+        robust_settings_path=robust_settings_path,
+        plots_dir=plots_dir,
+        settings=settings,
+        counts=counts,
+        plot_paths=plot_paths,
+    )
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _write_output_log(output_log_path, manifest)
+    return manifest
+
+
 def run_sweep(
     *,
     out_dir: Path,
@@ -629,16 +758,14 @@ def run_sweep(
     _write_table(best_by_noise_path, SUMMARY_FIELDNAMES, best_rows)
     _write_table(robust_settings_path, ROBUST_FIELDNAMES, robust_rows)
 
-    manifest = {
-        "dataset": dataset_outputs,
-        "paths": {
-            "metrics_raw": str(metrics_raw_path),
-            "summary_by_setting": str(summary_path),
-            "best_by_noise": str(best_by_noise_path),
-            "robust_settings": str(robust_settings_path),
-            "plots_dir": str(plots_dir),
-        },
-        "settings": {
+    manifest = _build_manifest(
+        dataset_outputs=dataset_outputs,
+        metrics_raw_path=metrics_raw_path,
+        summary_path=summary_path,
+        best_by_noise_path=best_by_noise_path,
+        robust_settings_path=robust_settings_path,
+        plots_dir=plots_dir,
+        settings={
             "window_lengths": list(window_lengths),
             "polyorders": list(polyorders),
             "kernel_anchors": list(kernel_anchors),
@@ -646,7 +773,7 @@ def run_sweep(
             "kernel_types": list(kernel_types),
             "kernel_degrees": list(kernel_degrees),
         },
-        "counts": {
+        counts={
             "n_samples": int(dataset["noisy_observations"].shape[0]),
             "n_settings": int(len(settings)),
             "n_rows_expected": int(total_rows),
@@ -655,8 +782,8 @@ def run_sweep(
             "n_best_rows": int(len(best_rows)),
             "n_robust_rows": int(len(robust_rows)),
         },
-        "plots": plot_paths,
-    }
+        plot_paths=plot_paths,
+    )
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return manifest
 
@@ -686,28 +813,39 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--kernel-degrees", type=int, nargs="+", default=list(DEFAULT_KERNEL_DEGREES))
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--skip-plots", action="store_true")
+    parser.add_argument(
+        "--restore-portable-artifacts",
+        action="store_true",
+        help="Rebuild plots plus manifest/log path references from an existing sweep artifact directory.",
+    )
     args = parser.parse_args(argv)
 
-    manifest = run_sweep(
-        out_dir=args.out_dir,
-        trajectory_seeds=args.trajectory_seeds,
-        replicate_ids=args.replicate_ids,
-        noise_levels=args.noise_levels,
-        dt=args.dt,
-        burn_in_steps=args.burn_in_steps,
-        record_steps=args.record_steps,
-        sigma=args.sigma,
-        rho=args.rho,
-        beta=args.beta,
-        window_lengths=args.window_lengths,
-        polyorders=args.polyorders,
-        kernel_anchors=args.kernel_anchors,
-        bandwidth_multipliers=args.bandwidth_multipliers,
-        kernel_types=args.kernel_types,
-        kernel_degrees=args.kernel_degrees,
-        overwrite=args.overwrite,
-        make_plots=not args.skip_plots,
-    )
+    if args.restore_portable_artifacts:
+        manifest = restore_portable_artifacts(
+            out_dir=args.out_dir,
+            make_plots=not args.skip_plots,
+        )
+    else:
+        manifest = run_sweep(
+            out_dir=args.out_dir,
+            trajectory_seeds=args.trajectory_seeds,
+            replicate_ids=args.replicate_ids,
+            noise_levels=args.noise_levels,
+            dt=args.dt,
+            burn_in_steps=args.burn_in_steps,
+            record_steps=args.record_steps,
+            sigma=args.sigma,
+            rho=args.rho,
+            beta=args.beta,
+            window_lengths=args.window_lengths,
+            polyorders=args.polyorders,
+            kernel_anchors=args.kernel_anchors,
+            bandwidth_multipliers=args.bandwidth_multipliers,
+            kernel_types=args.kernel_types,
+            kernel_degrees=args.kernel_degrees,
+            overwrite=args.overwrite,
+            make_plots=not args.skip_plots,
+        )
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0
 

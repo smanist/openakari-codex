@@ -36,11 +36,11 @@
   Priority: high
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
 
-- [ ] Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]
+- [x] Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]
   Why: `run_manifest.json` and `output.log` reference the three plot PNGs under the original execution worktree, but the committed artifact directory in this worktree currently lacks `plots/`, which weakens report portability.
   Done when: `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/` contains `rmse_vs_noise.png`, `relative_rmse_vs_noise.png`, and `denoising_gain_vs_noise.png`, and the manifest/log references are regenerated or clarified for the current workspace.
   Priority: medium
-  Evidence: `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/run_manifest.json`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/output.log`
+  Evidence: `modules/smoothing/run_denoising_sweep.py`; `modules/smoothing/test_run_denoising_sweep.py`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/run_manifest.json`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/output.log`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/rmse_vs_noise.png`
 
 ## Phase 3: Report
 

@@ -3,7 +3,11 @@ from __future__ import annotations
 import csv
 import json
 
-from modules.smoothing.run_denoising_sweep import run_sweep, summarize_rows
+from modules.smoothing.run_denoising_sweep import (
+    restore_portable_artifacts,
+    run_sweep,
+    summarize_rows,
+)
 
 
 def test_summarize_rows_computes_cluster_variance_and_completeness() -> None:
@@ -174,3 +178,70 @@ def test_run_sweep_writes_required_outputs_for_smoke_configuration(tmp_path) -> 
 
     saved_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert saved_manifest["counts"]["n_summary_rows"] == 6
+
+
+def test_restore_portable_artifacts_rewrites_paths_and_recreates_plots(tmp_path) -> None:
+    out_dir = tmp_path / "portable"
+    manifest = run_sweep(
+        out_dir=out_dir,
+        trajectory_seeds=[0, 1],
+        replicate_ids=[0],
+        noise_levels=[0.05, 0.10],
+        dt=0.01,
+        burn_in_steps=32,
+        record_steps=64,
+        sigma=10.0,
+        rho=28.0,
+        beta=8.0 / 3.0,
+        window_lengths=[7],
+        polyorders=[2],
+        kernel_anchors=[8],
+        bandwidth_multipliers=[1.0],
+        kernel_types=["gaussian", "compact_polynomial"],
+        kernel_degrees=[2],
+        overwrite=True,
+        make_plots=True,
+    )
+
+    old_root = "/tmp/original-worktree/modules/smoothing/artifacts/lorenz63-denoising-sweep-v1"
+    stale_manifest = json.loads(json.dumps(manifest).replace(str(out_dir), old_root))
+    (out_dir / "run_manifest.json").write_text(
+        json.dumps(stale_manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (out_dir / "output.log").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "status": "setting-complete",
+                        "setting_id": "savgol|w=7|p=2",
+                        "rows_written": 4,
+                        "total_rows": 12,
+                    },
+                    sort_keys=True,
+                ),
+                json.dumps(stale_manifest, indent=2, sort_keys=True),
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    for plot_path in out_dir.glob("plots/*.png"):
+        plot_path.unlink()
+
+    restored = restore_portable_artifacts(out_dir)
+
+    expected_plot_dir = out_dir / "plots"
+    assert restored["paths"]["plots_dir"] == str(expected_plot_dir)
+    assert all(path.startswith(str(expected_plot_dir)) for path in restored["plots"])
+    for name in ("rmse_vs_noise.png", "relative_rmse_vs_noise.png", "denoising_gain_vs_noise.png"):
+        assert (expected_plot_dir / name).exists()
+
+    saved_manifest = json.loads((out_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert saved_manifest["dataset"]["clean_path"] == str(out_dir / "dataset" / "clean_trajectories.npz")
+    assert old_root not in (out_dir / "run_manifest.json").read_text(encoding="utf-8")
+
+    output_log_text = (out_dir / "output.log").read_text(encoding="utf-8")
+    assert '"status": "setting-complete"' in output_log_text
+    assert old_root not in output_log_text

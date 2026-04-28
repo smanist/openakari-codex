@@ -22,6 +22,8 @@ reports/
 *.zip
 *.tar.gz
 *.png
+!modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/
+!modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/*.png
 *.jpg
 *.jpeg
 .failed-evolution.json

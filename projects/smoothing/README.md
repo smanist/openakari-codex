@@ -12,6 +12,54 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]`)
+
+Integrated isolated task `Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 9
+Task-selected: Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 11
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Restored portable Lorenz63 sweep plot artifacts)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]","agentId":"codex-manual-2026-04-28-restore-lorenz63-plots"}'`
+  Output: `{"ok":true,"claim":{"claimId":"d044c068033539dc","taskId":"67ec68f3a4cd","taskText":"Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-28-restore-lorenz63-plots","claimedAt":1777348920491,"expiresAt":1777351620491}}` and `200`
+  Interpretation: the scheduler claim API is live in this worktree and accepted the pre-selected artifact-restoration task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — module-local artifact regeneration and documentation updates only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Discovery:
+- The committed `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/` bundle had the sweep CSVs and dataset snapshot, but it lacked `plots/`, and both `run_manifest.json` plus the trailing manifest block in `output.log` still referenced the original execution worktree.
+- The repo-wide `*.png` ignore rule would also hide regenerated plot files unless this specific sweep artifact directory was explicitly unignored.
+
+Execution result:
+- Added a portable restore path to [modules/smoothing/run_denoising_sweep.py](../../modules/smoothing/run_denoising_sweep.py): `restore_portable_artifacts(...)` plus `--restore-portable-artifacts` now rebuild the three standard plot PNGs from `best_by_noise.csv`, rewrite `run_manifest.json` with current-worktree artifact paths, and normalize `output.log` so its final manifest no longer points at the original run directory.
+- Added a regression test in [modules/smoothing/test_run_denoising_sweep.py](../../modules/smoothing/test_run_denoising_sweep.py) that simulates stale manifest/log paths, deletes `plots/*.png`, runs the restore helper, and verifies the rewritten files now point at the current artifact directory.
+- Restored the committed plot artifacts under [modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots](../../modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots), updated [.gitignore](../../.gitignore) to unignore this plot directory, documented the restore mode in [modules/smoothing/README.md](../../modules/smoothing/README.md), and marked the selected task complete in [TASKS.md](./TASKS.md).
+
+Verification:
+- `pytest -q modules/smoothing/test_run_denoising_sweep.py`
+  Output: `3 passed in 1.02s`
+- `python modules/smoothing/run_denoising_sweep.py --out-dir modules/smoothing/artifacts/lorenz63-denoising-sweep-v1 --restore-portable-artifacts`
+  Output: JSON manifest with `plots_dir = "modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots"`, `n_rows_written = 1920`, and the three restored plot paths under `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/`.
+- `find modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots -maxdepth 1 -type f | sort`
+  Output:
+  - `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/denoising_gain_vs_noise.png`
+  - `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/relative_rmse_vs_noise.png`
+  - `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/rmse_vs_noise.png`
+- `python - <<'PY' ... PY` reading `run_manifest.json` and `output.log`
+  Output: `old_ref_in_manifest = false` and `old_ref_in_output_log = false`, with `dataset.clean_path = "modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/dataset/clean_trajectories.npz"` and `plots_dir = "modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots"`.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the intended portable-artifact restoration changes, and `.scheduler/metrics/sessions.jsonl` was absent in this worktree so there were no recent fleet sessions to audit.
+
 ### 2026-04-28 (Integrated isolated task `Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]`)
 
 Integrated isolated task `Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]` after 2 review round(s).
