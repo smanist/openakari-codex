@@ -154,6 +154,13 @@ def _write_table(path: Path, fieldnames: Sequence[str], rows: Sequence[dict[str,
             writer.writerow(row)
 
 
+def _portable_path(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT.resolve()))
+    except ValueError:
+        return str(path)
+
+
 def _read_table(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
@@ -197,9 +204,9 @@ def _save_dataset_artifacts(dataset: dict[str, Any], out_dir: Path, *, overwrite
     }
     metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return {
-        "clean_path": str(clean_path),
-        "noisy_path": str(noisy_path),
-        "metadata_path": str(metadata_path),
+        "clean_path": _portable_path(clean_path),
+        "noisy_path": _portable_path(noisy_path),
+        "metadata_path": _portable_path(metadata_path),
     }
 
 
@@ -503,15 +510,15 @@ def render_plots(best_rows: Sequence[dict[str, Any]], *, plots_dir: Path) -> lis
         plt.tight_layout()
         plt.savefig(plot_path, dpi=150)
         plt.close()
-        written_paths.append(str(plot_path))
+        written_paths.append(_portable_path(plot_path))
     return written_paths
 
 
 def _portable_dataset_paths(dataset_dir: Path) -> dict[str, str]:
     return {
-        "clean_path": str(dataset_dir / "clean_trajectories.npz"),
-        "noisy_path": str(dataset_dir / "noisy_observations.npz"),
-        "metadata_path": str(dataset_dir / "metadata.json"),
+        "clean_path": _portable_path(dataset_dir / "clean_trajectories.npz"),
+        "noisy_path": _portable_path(dataset_dir / "noisy_observations.npz"),
+        "metadata_path": _portable_path(dataset_dir / "metadata.json"),
     }
 
 
@@ -530,11 +537,11 @@ def _build_manifest(
     return {
         "dataset": dataset_outputs,
         "paths": {
-            "metrics_raw": str(metrics_raw_path),
-            "summary_by_setting": str(summary_path),
-            "best_by_noise": str(best_by_noise_path),
-            "robust_settings": str(robust_settings_path),
-            "plots_dir": str(plots_dir),
+            "metrics_raw": _portable_path(metrics_raw_path),
+            "summary_by_setting": _portable_path(summary_path),
+            "best_by_noise": _portable_path(best_by_noise_path),
+            "robust_settings": _portable_path(robust_settings_path),
+            "plots_dir": _portable_path(plots_dir),
         },
         "settings": settings,
         "counts": counts,

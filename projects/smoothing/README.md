@@ -14,6 +14,102 @@ A human follow-up on 2026-04-28 reframed the kernel branch: the first-round resu
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]`)
+
+Integrated isolated task `Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]` after 2 review round(s).
+
+Session-type: autonomous
+Duration: 18
+Task-selected: Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 18
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Review fix: compact-retuning artifact manifests now use repo-relative paths)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]","agentId":"codex-review-fix-2026-04-28-alpha020-retuning-paths"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-manual-2026-04-28-alpha020-retuning-sweep","expiresAt":1777416399434}` and `409`
+  Interpretation: the claim API is live, but the original execution session still held the selected task claim, so this pass was limited to an in-place review fix on the existing retuning bundle.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — serializer bugfix, regression coverage, and artifact refresh only; no long-running compute, detached experiment submission, or external model call.
+
+Discovery:
+- [modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/run_manifest.json](../../modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/run_manifest.json) and [modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/output.log](../../modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/output.log) both serialized `dataset`, `paths`, and `plots` with worktree-specific absolute `/Users/.../.worktrees/...` prefixes, unlike the repo-relative contract already preserved in the frozen v1 Lorenz63 sweep manifest.
+- The committed retuning `output.log` was not a richer execution transcript; it was just the same broken manifest snapshot duplicated into a second file, so refreshing the serializer and rerunning the retuning writer was sufficient to repair both provenance surfaces together.
+
+Execution result:
+- Updated [modules/smoothing/run_denoising_sweep.py](../../modules/smoothing/run_denoising_sweep.py) with a shared portability helper that records repo-relative artifact paths whenever outputs live under the repository root, while preserving absolute paths for out-of-repo temporary runs.
+- Updated [modules/smoothing/run_compact_polynomial_retuning.py](../../modules/smoothing/run_compact_polynomial_retuning.py) so the fixed-alpha retuning manifest and typical-trajectory plot list use the same repo-relative artifact contract as the original Lorenz63 sweep.
+- Extended [modules/smoothing/test_run_compact_polynomial_retuning.py](../../modules/smoothing/test_run_compact_polynomial_retuning.py) with a regression test that monkeypatches a fake repo root and asserts in-repo retuning outputs serialize as `modules/smoothing/artifacts/...` rather than absolute filesystem paths.
+- Regenerated [modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/run_manifest.json](../../modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/run_manifest.json) and refreshed [modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/output.log](../../modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/output.log) in place so the committed bundle now matches the portable-path contract expected by downstream analysis sessions.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_compact_polynomial_retuning.py`
+  Output: `3 passed in 0.88s`
+- `pytest -q modules/smoothing/test_*.py`
+  Output: `12 passed in 1.14s`
+- `python modules/smoothing/run_compact_polynomial_retuning.py --out-dir modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1 --overwrite >/tmp/compact-retuning-review-fix.stdout`
+  Output: command exited `0` and rewrote the committed retuning bundle with the fixed serializer.
+- `rg -n "/Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-alpha-0-20-compact-polynomial-kernel-ret-task-run-moj660rg" modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/run_manifest.json modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/output.log`
+  Output: no matches.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the intended serializer, test, artifact, and project-log changes, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree so there were no recent fleet sessions to audit.
+
+### 2026-04-28 (Integrated isolated task `Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]`)
+
+Integrated isolated task `Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 14
+Task-selected: Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 15
+Commits: 2
+Compound-actions: none
+Resources-consumed: local CPU sweep only
+Budget-remaining: n/a
+
+### 2026-04-28 (Ran the alpha-0.20 compact-polynomial kernel retuning sweep)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]","agentId":"codex-manual-2026-04-28-alpha020-retuning-sweep"}'`
+  Output: `{"ok":true,"claim":{"claimId":"6658148faf6e9765","taskId":"87482721fea7","taskText":"Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-28-alpha020-retuning-sweep","claimedAt":1777413699434,"expiresAt":1777416399434}}` and `200`
+  Interpretation: the scheduler claim API is available in this worktree and accepted the pre-selected retuning-execution task before project state changed.
+
+Scope classification:
+`RESOURCE` (`consumes_resources: true`) — the selected task executes a real CPU sweep and writes experiment artifacts, but a timed benchmark of the full default command completed in `real 7.23s`, so the run stayed below the repo's `>2 minute` detached-run threshold and could be executed inline.
+
+Plan:
+- Added [plans/2026-04-28-alpha020-compact-retuning-execution.md](./plans/2026-04-28-alpha020-compact-retuning-execution.md) to record the knowledge goal, runtime-based execution choice, artifact checks, and closeout steps before mutating project state.
+
+Discovery:
+- `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/` did not exist in this worktree before execution, so the selected task had not yet been run here.
+- The default retuning grid evaluates `210` compact-polynomial settings plus `2` Savitzky-Golay references over `10` noisy samples (`5` trajectory seeds times `2` replicate IDs at fixed `alpha = 0.20`), so the expected raw output size is `212 * 10 = 2120` rows.
+- A full timed benchmark run in a temporary directory completed in `real 7.23s`, which is well below the session-discipline cutoff for fire-and-forget submission.
+- The repo-wide `*.png` ignore rule also hid `plots/typical_denoised_trajectory.png` from the first commit despite the file existing on disk, so portability required the same per-directory unignore pattern already used for the v1 sweep plot bundle.
+
+Execution result:
+- Ran the full default retuning command in place, writing artifacts under [modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1](../../modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1).
+- Updated [.gitignore](../../.gitignore) to unignore `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/*.png`, then committed the representative trajectory plot so the required visual-check artifact is durable in-repo rather than local-only.
+- Updated [projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md](./experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md) to `status: completed` with the exact execution command, timing evidence, and artifact-count provenance.
+- Marked the selected execution task complete in [TASKS.md](./TASKS.md); the follow-on analysis task remains open.
+
+Verification:
+- `/usr/bin/time -p python modules/smoothing/run_compact_polynomial_retuning.py --out-dir /tmp/compact-retuning-benchmark-$$ --overwrite >/tmp/compact-retuning-benchmark-$$.stdout`
+  Output: `real 7.23`, `user 6.89`, `sys 0.86`
+- `/usr/bin/time -p python /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-alpha-0-20-compact-polynomial-kernel-ret-task-run-moj660rg/modules/smoothing/run_compact_polynomial_retuning.py --out-dir /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-alpha-0-20-compact-polynomial-kernel-ret-task-run-moj660rg/modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1 --overwrite >/tmp/compact-retuning-run-33202.stdout`
+  Output: `real 7.01`, `user 6.81`, `sys 0.70`
+- `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/{metrics_raw.csv,summary_by_setting.csv,best_compact_setting.csv,sg_reference_summary.csv}` and reading `run_manifest.json`
+  Output: `metrics_raw.csv 2120`, `summary_by_setting.csv 212`, `best_compact_setting.csv 1`, `sg_reference_summary.csv 2`, and `manifest_counts {'n_compact_settings': 210, 'n_reference_settings': 2, 'n_rows_expected': 2120, 'n_rows_written': 2120, 'n_samples': 10, 'n_settings': 212, 'n_summary_rows': 212}`. The manifest also recorded `plots/typical_denoised_trajectory.png` plus representative-sample provenance for `selection_setting_id = kernel|type=compact_polynomial|M=192|ch=3|degree=6`, `sample_index = 3`, `trajectory_seed = 1`, and `noise_seed = 1003`.
+
+Compound (fast): no actions. `git diff --stat HEAD` showed only the intended smoothing plan/README/TASKS/experiment updates, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree so there were no recent fleet sessions to audit.
+
 ### 2026-04-28 (Integrated isolated task `Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]`)
 
 Integrated isolated task `Implement dense compact-polynomial kernel retuning support [requires-frontier] [skill: execute]` after 2 review round(s).

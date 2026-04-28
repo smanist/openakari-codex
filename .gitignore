@@ -24,6 +24,8 @@ reports/
 *.png
 !modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/
 !modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/*.png
+!modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/
+!modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/*.png
 *.jpg
 *.jpeg
 .failed-evolution.json

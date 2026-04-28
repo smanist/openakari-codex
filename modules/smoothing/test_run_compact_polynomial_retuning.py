@@ -4,6 +4,7 @@ import csv
 import json
 import statistics
 
+import modules.smoothing.run_denoising_sweep as run_denoising_sweep
 from modules.smoothing.run_compact_polynomial_retuning import (
     enumerate_retuning_settings,
     run_compact_polynomial_retuning,
@@ -117,3 +118,43 @@ def test_run_compact_polynomial_retuning_writes_summary_and_typical_plot(tmp_pat
     assert representative["rmse"] == float(expected_row["rmse"])
     assert representative["median_rmse"] == expected_median_rmse
     assert representative["median_relative_rmse"] == expected_median_relative_rmse
+
+
+def test_run_compact_polynomial_retuning_uses_repo_relative_paths_for_repo_artifacts(
+    tmp_path, monkeypatch
+) -> None:
+    fake_repo_root = tmp_path / "repo"
+    out_dir = (
+        fake_repo_root / "modules" / "smoothing" / "artifacts" / "compact-polynomial-kernel-retuning-v1"
+    )
+    monkeypatch.setattr(run_denoising_sweep, "REPO_ROOT", fake_repo_root)
+
+    manifest = run_compact_polynomial_retuning(
+        out_dir=out_dir,
+        trajectory_seeds=[0],
+        replicate_ids=[0],
+        alpha=0.2,
+        dt=0.01,
+        burn_in_steps=32,
+        record_steps=64,
+        sigma=10.0,
+        rho=28.0,
+        beta=8.0 / 3.0,
+        reference_savgol_settings=[(7, 2), (11, 3)],
+        kernel_anchors=[8],
+        bandwidth_multipliers=[1.0],
+        kernel_degrees=[2],
+        overwrite=True,
+    )
+
+    manifest_path = out_dir / "run_manifest.json"
+    expected_prefix = "modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1"
+
+    assert manifest["dataset"]["clean_path"] == f"{expected_prefix}/dataset/clean_trajectories.npz"
+    assert manifest["paths"]["metrics_raw"] == f"{expected_prefix}/metrics_raw.csv"
+    assert manifest["paths"]["plots_dir"] == f"{expected_prefix}/plots"
+    assert manifest["plots"] == [f"{expected_prefix}/plots/typical_denoised_trajectory.png"]
+
+    saved_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert saved_manifest["dataset"]["metadata_path"] == f"{expected_prefix}/dataset/metadata.json"
+    assert str(fake_repo_root) not in manifest_path.read_text(encoding="utf-8")

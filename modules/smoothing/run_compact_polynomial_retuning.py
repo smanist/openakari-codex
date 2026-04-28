@@ -33,6 +33,7 @@ from modules.smoothing.run_denoising_sweep import (
     _build_setting_evaluator,
     _compute_metrics,
     _float_text,
+    _portable_path,
     _save_dataset_artifacts,
     _write_output_log,
     _write_table,
@@ -239,7 +240,7 @@ def render_typical_trajectory_plot(
     fig.tight_layout()
     fig.savefig(plot_path, dpi=150)
     plt.close(fig)
-    return str(plot_path)
+    return _portable_path(plot_path)
 
 
 def _build_retuning_manifest(
@@ -258,11 +259,11 @@ def _build_retuning_manifest(
     return {
         "dataset": dataset_outputs,
         "paths": {
-            "metrics_raw": str(metrics_raw_path),
-            "summary_by_setting": str(summary_path),
-            "best_compact_setting": str(best_compact_path),
-            "sg_reference_summary": str(reference_summary_path),
-            "plots_dir": str(plots_dir),
+            "metrics_raw": _portable_path(metrics_raw_path),
+            "summary_by_setting": _portable_path(summary_path),
+            "best_compact_setting": _portable_path(best_compact_path),
+            "sg_reference_summary": _portable_path(reference_summary_path),
+            "plots_dir": _portable_path(plots_dir),
         },
         "settings": settings,
         "counts": counts,

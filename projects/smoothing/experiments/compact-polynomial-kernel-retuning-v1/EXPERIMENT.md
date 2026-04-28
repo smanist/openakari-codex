@@ -1,7 +1,7 @@
 ---
 id: compact-polynomial-kernel-retuning-v1
 type: experiment
-status: planned
+status: completed
 date: 2026-04-28
 project: smoothing
 consumes_resources: true
@@ -95,6 +95,8 @@ The retuning runner:
 - evaluates the exact SG reference settings alongside a compact-polynomial-only dense grid over anchor count, bandwidth multiplier, and degree
 - selects the qualitative-check realization mechanically from the best compact-setting metric rows and records that selection provenance in `run_manifest.json`
 - writes `metrics_raw.csv`, `summary_by_setting.csv`, `best_compact_setting.csv`, `sg_reference_summary.csv`, `run_manifest.json`, `output.log`, and `plots/typical_denoised_trajectory.png`
+- completed the default `alpha = 0.20` sweep under `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/`, producing `2120` raw rows across `212` evaluated settings and the required representative trajectory plot.
+- unignored `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/*.png` in `.gitignore` so the representative plot is versioned as part of the portable artifact bundle rather than left as a local-only file.
 
 The original v1 sweep implementation in `modules/smoothing/run_denoising_sweep.py` remains unchanged as the frozen reference path.
 
@@ -112,6 +114,12 @@ The original v1 sweep implementation in `modules/smoothing/run_denoising_sweep.p
   Output: smoke run wrote `n_settings = 3`, `n_rows_written = 6`, `best_compact_setting.csv`, and `plots/typical_denoised_trajectory.png` in the temporary artifact directory.
 - `python modules/smoothing/run_compact_polynomial_retuning.py --out-dir <tmpdir> --trajectory-seeds 0 1 --replicate-ids 0 --alpha 0.2 --dt 0.01 --burn-in-steps 32 --record-steps 64 --sigma 10.0 --rho 28.0 --beta 2.6666666666666665 --reference-savgol-settings 7:2 11:3 --kernel-anchors 8 --bandwidth-multipliers 1 --kernel-degrees 2 --overwrite`
   Output: the smoke-run `run_manifest.json` recorded `representative_sample.selection_setting_id = kernel|type=compact_polynomial|M=8|ch=1|degree=2`, `sample_index = 0`, `trajectory_seed = 0`, `noise_seed = 1000`, `median_rmse = 1.7442567009511603`, and `rmse = 1.6524280383596202`, establishing provenance for the plotted realization.
+- `/usr/bin/time -p python modules/smoothing/run_compact_polynomial_retuning.py --out-dir /tmp/compact-retuning-benchmark-$$ --overwrite >/tmp/compact-retuning-benchmark-$$.stdout`
+  Output: `real 7.23`, `user 6.89`, `sys 0.86`, establishing that the full default sweep stays below the repo's `2` minute detached-run threshold.
+- `/usr/bin/time -p python /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-alpha-0-20-compact-polynomial-kernel-ret-task-run-moj660rg/modules/smoothing/run_compact_polynomial_retuning.py --out-dir /Users/daninghuang/Repos/openakari-codex/modules/.worktrees/smoothing/Run-the-alpha-0-20-compact-polynomial-kernel-ret-task-run-moj660rg/modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1 --overwrite >/tmp/compact-retuning-run-33202.stdout`
+  Output: `real 7.01`, `user 6.81`, `sys 0.70`
+- `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/{metrics_raw.csv,summary_by_setting.csv,best_compact_setting.csv,sg_reference_summary.csv}` and reading `run_manifest.json`
+  Output: `metrics_raw.csv 2120`, `summary_by_setting.csv 212`, `best_compact_setting.csv 1`, `sg_reference_summary.csv 2`, and `manifest_counts {'n_compact_settings': 210, 'n_reference_settings': 2, 'n_rows_expected': 2120, 'n_rows_written': 2120, 'n_samples': 10, 'n_settings': 212, 'n_summary_rows': 212}`. The same manifest recorded `plots/typical_denoised_trajectory.png` plus representative-sample provenance for `selection_setting_id = kernel|type=compact_polynomial|M=192|ch=3|degree=6`, `sample_index = 3`, `trajectory_seed = 1`, and `noise_seed = 1003`.
 
 ## Findings
 

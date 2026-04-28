@@ -64,7 +64,7 @@
   Priority: high
   Evidence: `projects/smoothing/experiments/compact-polynomial-kernel-retuning-v1/EXPERIMENT.md`
 
-- [ ] Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]
+- [x] Run the alpha-0.20 compact-polynomial kernel retuning sweep [skill: execute]
   Why: The project needs empirical evidence for whether dense tuning can make the compact polynomial kernel beat the v1 Savitzky-Golay reference at a representative high-noise setting.
   Done when: artifacts exist under `modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/`, the experiment record captures the exact command/submission, and the run includes both aggregate metrics and typical denoised-trajectory plots.
   Priority: high
