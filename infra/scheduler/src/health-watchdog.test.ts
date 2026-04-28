@@ -403,6 +403,25 @@ describe("analyzeHealth", () => {
       expect(checks.find((c) => c.id === "task_starvation")).toBeUndefined();
     });
 
+    it("does not classify failed no-output sessions as task starvation", () => {
+      const sessions = [
+        ...Array.from({ length: 3 }, (_, i) =>
+          session({
+            runId: `failed-${i}`,
+            ok: false,
+            knowledge: defaultKnowledge(),
+            verification: { ...defaultVerification(), hasCommit: false, filesChanged: 0 },
+            crossProject: { projectsTouched: [], findingsPerProject: {}, crossProjectRefs: 0 },
+          }),
+        ),
+        ...Array.from({ length: 7 }, (_, i) =>
+          productiveSession({ runId: `pk-${i}` }),
+        ),
+      ];
+      const checks = analyzeHealth(sessions);
+      expect(checks.find((c) => c.id === "task_starvation")).toBeUndefined();
+    });
+
     it("does not classify as task starvation if projects touched", () => {
       const sessions = [
         ...Array.from({ length: 3 }, (_, i) =>

@@ -589,6 +589,10 @@ function isGenuineWaste(s: SessionMetrics): boolean {
 function isTaskStarvation(s: SessionMetrics): boolean {
   if (!s.verification) return false;
   if (s.runtime === "opencode_local") return false;
+  // Failed sessions without output are execution problems, not evidence that
+  // the fleet had nothing to do. Counting them here turns review/integration
+  // failures into false supply alarms.
+  if (!s.ok) return false;
   // Manual runs are often used as smoke checks and may legitimately produce no commits/files.
   // Counting them as "task starvation" inflates supply alarms.
   if (s.triggerSource === "manual") return false;

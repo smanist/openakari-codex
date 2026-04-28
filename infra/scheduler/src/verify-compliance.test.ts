@@ -5,6 +5,17 @@ import { classifyUncommittedFiles, checkPartialCompletionBan, checkFalseTaskComp
 import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+import { execFileSync } from "node:child_process";
+
+function git(cwd: string, ...args: string[]): string {
+  return execFileSync("git", args, { cwd, encoding: "utf-8" }).trim();
+}
+
+function initGitRepo(cwd: string): void {
+  git(cwd, "init");
+  git(cwd, "config", "user.email", "test@example.com");
+  git(cwd, "config", "user.name", "Test User");
+}
 
 // ── Orphaned file classification tests ────────────────────────────────────
 
@@ -930,6 +941,114 @@ describe("stallViolationCommand propagation", () => {
     expect(result.stallViolation).toBe(false);
     expect(result.stallViolationCommand).toBeUndefined();
     await rm(tmpDir, { recursive: true });
+  });
+});
+
+describe("verifySession ledger consistency", () => {
+  it("does not require a ledger entry for documentation-only edits to a planned consumes_resources experiment", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "verify-ledger-docs-"));
+    initGitRepo(tmpDir);
+
+    await mkdir(join(tmpDir, "projects", "smoothing", "experiments", "bench-v2"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "README.md"),
+      "# Smoothing\n\n## Log\n",
+    );
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "experiments", "bench-v2", "EXPERIMENT.md"),
+      `---
+id: bench-v2
+status: planned
+consumes_resources: true
+---
+## Design
+Initial draft.
+`,
+    );
+    git(tmpDir, "add", ".");
+    git(tmpDir, "commit", "-m", "base");
+    const headBefore = git(tmpDir, "rev-parse", "HEAD");
+
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "README.md"),
+      "# Smoothing\n\n## Log\n\n### 2026-04-28\n- Logged documentation-only benchmark refinements.\n",
+    );
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "experiments", "bench-v2", "EXPERIMENT.md"),
+      `---
+id: bench-v2
+status: planned
+consumes_resources: true
+---
+## Design
+Refined benchmark contract wording only.
+`,
+    );
+    git(tmpDir, "add", ".");
+    git(tmpDir, "commit", "-m", "docs-only experiment edit");
+
+    const result = await verifySession(tmpDir, headBefore, 0);
+    expect(result.ledgerConsistent).toBe(true);
+    expect(result.warnings.some((w) => w.includes("Ledger violation"))).toBe(false);
+
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("requires a ledger entry when progress for a consumes_resources experiment changes", async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), "verify-ledger-progress-"));
+    initGitRepo(tmpDir);
+
+    await mkdir(join(tmpDir, "projects", "smoothing", "experiments", "sweep-v1"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "README.md"),
+      "# Smoothing\n\n## Log\n",
+    );
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "experiments", "sweep-v1", "EXPERIMENT.md"),
+      `---
+id: sweep-v1
+status: planned
+consumes_resources: true
+---
+## Design
+Queued run.
+`,
+    );
+    git(tmpDir, "add", ".");
+    git(tmpDir, "commit", "-m", "base");
+    const headBefore = git(tmpDir, "rev-parse", "HEAD");
+
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "README.md"),
+      "# Smoothing\n\n## Log\n\n### 2026-04-28\n- Submitted the sweep run.\n",
+    );
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "experiments", "sweep-v1", "EXPERIMENT.md"),
+      `---
+id: sweep-v1
+status: running
+consumes_resources: true
+---
+## Design
+Queued run.
+`,
+    );
+    await writeFile(
+      join(tmpDir, "projects", "smoothing", "experiments", "sweep-v1", "progress.json"),
+      '{"status":"running","current":1,"total":10}',
+    );
+    git(tmpDir, "add", ".");
+    git(tmpDir, "commit", "-m", "run submitted");
+
+    const result = await verifySession(tmpDir, headBefore, 0);
+    expect(result.ledgerConsistent).toBe(false);
+    expect(result.warnings.some((w) => w.includes("Ledger violation"))).toBe(true);
+
+    await rm(tmpDir, { recursive: true, force: true });
   });
 });
 

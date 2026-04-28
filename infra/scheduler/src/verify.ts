@@ -627,7 +627,9 @@ export async function verifySession(
     } catch { /* best effort */ }
   }
 
-  // Check for consumes_resources experiments in touched projects
+  // Check for direct evidence that a consumes_resources experiment actually ran
+  // this session. Editing a planned/completed experiment record for design or
+  // analysis work does not itself imply resource consumption.
   const resourceProjects = new Set<string>();
   if (hasCommit && headBefore) {
     try {
@@ -635,18 +637,36 @@ export async function verifySession(
         "git", ["diff", "--name-only", headBefore, "HEAD"],
         { cwd },
       );
-      const experimentFiles = stdout.split("\n").filter((f) =>
-        EXPERIMENT_MD_RE.test(f.trim()),
-      );
+      const experimentPaths = stdout.split("\n")
+        .map((f) => f.trim())
+        .filter((f) => f.startsWith("projects/") && f.includes("/experiments/"));
+      const checkedExperiments = new Map<string, boolean>();
 
-      for (const expFile of experimentFiles) {
-        const filePath = expFile.trim();
-        const consumes = await checkConsumesResources(cwd, filePath);
+      for (const filePath of experimentPaths) {
+        const match = filePath.match(/^projects\/([^/]+)\/experiments\/([^/]+)\/(.+)$/);
+        if (!match) continue;
+
+        const [, project, experiment, relativePath] = match;
+        const expFile = `projects/${project}/experiments/${experiment}/EXPERIMENT.md`;
+        let consumes = checkedExperiments.get(expFile);
+        if (consumes === undefined) {
+          consumes = await checkConsumesResources(cwd, expFile);
+          checkedExperiments.set(expFile, consumes);
+        }
         if (consumes) {
-          // Extract project name from path: projects/<project>/experiments/...
-          const match = filePath.match(/^projects\/([^/]+)\//);
-          if (match) {
-            resourceProjects.add(match[1]);
+          // Concrete evidence of a resource-consuming run:
+          // - progress.json updated by experiment-runner
+          // - result tables written under results/
+          // - EXPERIMENT.md moved into the live running state
+          if (relativePath === "progress.json" || relativePath.startsWith("results/")) {
+            resourceProjects.add(project);
+            continue;
+          }
+          if (relativePath === "EXPERIMENT.md") {
+            const status = await getExperimentStatus(cwd, expFile);
+            if (status === "running") {
+              resourceProjects.add(project);
+            }
           }
         }
       }

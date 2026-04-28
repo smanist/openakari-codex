@@ -14,6 +14,33 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-28 (Diagnosed latest scheduler health signals and patched two false positives)
+
+Diagnosed the latest scheduler health alerts from the newest `20` scheduler-triggered rows in `.scheduler/metrics/sessions.jsonl` (`2026-04-16T07:14:13.526Z` → `2026-04-28T05:55:27.977Z`) and found that the reported `task_starvation` and `ledger_inconsistent` signals were both overstating the problem.
+
+The `3/20` starvation rows were all failed isolated-module sessions, not successful empty-queue runs:
+- `z2jh7475-2f653c76` (`dymad_dev`) failed with `Reviewer changed worktree state`
+- `g8e3qs2o-d189163a` and `g8e3qs2o-522269ba` (`smoothing`) failed with `Blocking findings remain after 2 fix rounds`
+
+The duration outlier `g8e3qs2o-d5055b06` (`1522.2s`) is real wall-clock overhead, but it is a localized `smoothing` isolated-review cluster rather than a repo-wide slowdown: the same task family already produced neighboring `1516.4s` and `1777.8s` rows, all with `3` review rounds.
+
+The `4` ledger warnings in the window were all zero-cost `smoothing` sessions that edited `EXPERIMENT.md` files with `consumes_resources: true`, including a planned v2 benchmark record and analysis/design follow-up on a completed sweep. The verifier was using “edited a resource-tagged experiment record” as a proxy for spend even when no run evidence existed.
+
+Applied two scoped fixes in scheduler code:
+- `infra/scheduler/src/health-watchdog.ts`: failed sessions no longer count as `task_starvation`
+- `infra/scheduler/src/verify.ts`: zero-cost ledger warnings now require concrete run evidence (`progress.json`, `results/`, or `status: running`) rather than any edit to a `consumes_resources` experiment record
+
+Verification:
+- `cd infra/scheduler && npx vitest run src/health-watchdog.test.ts src/verify-compliance.test.ts`
+  - `Test Files 2 passed (2)`
+  - `Tests 267 passed (267)`
+- `cd infra/scheduler && npx tsc --noEmit`
+  - command completed successfully with no output
+- `python - <<'PY' ... PY` over `.scheduler/metrics/sessions.jsonl`
+  - Output confirmed `3` starvation rows, all `ok:false`; `4` ledger-warning rows, all `costUsd: 0` and all on `smoothing`
+
+Recorded the full diagnosis in `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-04-28.md`, marked the duration-investigation task complete, and left one follow-up task open to validate that ledger warnings stay at `0` over a fresh 10-session post-fix window.
+
 ### 2026-04-28 (New project: Smoothing)
 
 Created `projects/smoothing/` via `/project scaffold` for a human-initiated research project on Lorenz63 signal denoising. Mission: identify denoising algorithms and hyperparameters that best recover clean on-attractor Lorenz63 trajectories from coordinate-scaled i.i.d. Gaussian observation noise.

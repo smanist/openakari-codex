@@ -239,3 +239,17 @@
   Why: Follow-up from `projects/akari/diagnosis/diagnosis-low-knowledge-output-alerts-2026-04-04.md` — session `x13yb5tx-5b9a104a` asked for guidance after an unrelated `projects/akari/plans/2026-04-04-scheduler-health-diagnosis-followup.md` file appeared in `git status`, which left the run with `hasLogEntry=false`, `hasCompleteFooter=false`, and only a structural preflight footprint.
   Done when: A diagnosis identifies whether the right behavior is auto-ignore, preflight auto-commit, or machine-readable blocked exit for foreign files in scheduler sessions, with at least one implementation or SOP follow-up created from the result. (Implemented as module-aware isolated worktrees plus verify/cleanup support in `infra/scheduler/src/isolated-*.ts`, `infra/scheduler/src/worktree-manager.ts`, and `infra/scheduler/src/verify.ts`; plan: `projects/akari/plans/2026-04-19-module-aware-isolated-task-workflow.md`.)
   Priority: high
+
+- [x] Investigate session duration anomaly [detected: 2026-04-28] [requires-frontier] [skill: diagnose] [zero-resource]
+  Why: anomaly-detection:durationMs:g8e3qs2o-d5055b06 (2026-04-28T05:55:27.977Z) — Duration 1522s exceeds P95 threshold 1410s
+  Done when: Duration outlier explained or performance issue resolved
+  Priority: high
+  Evidence: `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-04-28.md`
+
+- [ ] Validate post-fix ledger consistency over 10 scheduler sessions [detected: 2026-04-28] [requires-frontier] [skill: analyze] [zero-resource]
+  Why: `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-04-28.md` found that `ledger_inconsistent` was firing on zero-cost documentation/analysis edits to `consumes_resources` experiment records; the verifier was tightened in `infra/scheduler/src/verify.ts`, but the health window still needs a fresh post-fix confirmation.
+  Done when: Ledger entries consistently match costs (0 warnings in 10 sessions)
+  Priority: high
+  Evidence: `projects/akari/diagnosis/diagnosis-scheduler-health-signals-2026-04-28.md`
+  Evidence: `infra/scheduler/src/verify.ts`
+  Verification: `cd infra/scheduler && npx vitest run src/verify-compliance.test.ts`
