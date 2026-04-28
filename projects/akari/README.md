@@ -14,6 +14,12 @@ The artifacts here are adapted from the original private akari repo's operationa
 
 ## Log
 
+### 2026-04-28 (New project: Smoothing)
+
+Created `projects/smoothing/` via `/project scaffold` for a human-initiated research project on Lorenz63 signal denoising. Mission: identify denoising algorithms and hyperparameters that best recover clean on-attractor Lorenz63 trajectories from coordinate-scaled i.i.d. Gaussian observation noise.
+
+Sources: `projects/smoothing/README.md`
+
 ### 2026-04-23 (Re-scaffolded generic DyMAD development project)
 
 Re-created `projects/dymad_dev/` as a generic feature-development scaffold around the already-registered `modules/dymad_dev` module. The new project intentionally resets the previous slice-specific backlog and leaves the first concrete DyMAD feature request as an explicit open question so future work can be added as dependency-aware feature blocks.
