@@ -12,6 +12,87 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]`)
+
+Integrated isolated task `Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]` after 2 review round(s).
+
+Session-type: autonomous
+Duration: 16
+Task-selected: Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-27 (Review fix: supporting-metric variances in Lorenz63 sweep findings)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]","agentId":"codex-manual-2026-04-27-review-fix"}'`
+  Output: `{"ok":true,"claim":{"claimId":"d92a1cc36282ec2e","taskId":"ff78fd4bff9a","taskText":"Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-27-review-fix","claimedAt":1777347647851,"expiresAt":1777350347851}}` and `200`
+  Interpretation: the scheduler claim API is live in this worktree and accepted the pre-selected analysis task for the review-fix session.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — this fix is limited to artifact inspection plus documentation updates in project records; no new experiment run, external model call, or long-running compute was required.
+
+Discovery:
+- `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/best_by_noise.csv` already contained the missing supporting-metric variance columns: `variance_cluster_relative_rmse` and `variance_cluster_denoising_gain`.
+- The completed Findings section had reported only RMSE variance, so the selected task's done-when was still under-documented even though the source artifact already supported the missing evidence.
+
+Execution result:
+- Updated [projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) so the per-noise comparison table now reports mean plus cluster-adjusted variance for RMSE, relative RMSE, and denoising gain for both Savitzky-Golay and kernel winners.
+- Expanded the uncertainty narrative in Findings item 8 to state explicitly that kernel uncertainty remains larger on all three reported metrics, not just RMSE.
+
+Verification:
+- `python - <<'PY'\nimport pandas as pd\nfrom pathlib import Path\nbase = Path('modules/smoothing/artifacts/lorenz63-denoising-sweep-v1')\ndf = pd.read_csv(base / 'best_by_noise.csv').sort_values(['alpha','method'])\nprint(df[['alpha','method','setting_id','mean_rmse','variance_cluster_rmse','mean_relative_rmse','variance_cluster_relative_rmse','mean_denoising_gain','variance_cluster_denoising_gain']].to_string(index=False))\nPY`
+  Output included the exact supporting-metric variance columns used in the patched Findings table, e.g. at `alpha = 0.02` the best kernel row reported `variance_cluster_relative_rmse = 2.865330e-05` and `variance_cluster_denoising_gain = 0.102205`, while the best Savitzky-Golay row reported `2.065305e-08` and `0.000068`.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the project log plus the experiment Findings fix, `.scheduler/metrics/sessions.jsonl` was absent in this worktree, and the review resolution did not surface a new reusable convention or follow-up task beyond the evidence already recorded.
+
+### 2026-04-27 (Analyzed Lorenz63 denoising sweep results)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]","agentId":"codex-manual-2026-04-27-lorenz63-sweep-analysis"}'`
+  Output: `{"ok":true,"claim":{"claimId":"a1fe144dcff83b33","taskId":"ff78fd4bff9a","taskText":"Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-27-lorenz63-sweep-analysis","claimedAt":1777347086909,"expiresAt":1777349786909}}` and `200`
+  Interpretation: the scheduler claim API is available and accepted the pre-selected analysis task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — artifact inspection, result synthesis, and documentation only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Plan:
+- Added [plans/2026-04-27-analyze-lorenz63-sweep-results.md](./plans/2026-04-27-analyze-lorenz63-sweep-results.md) to record the interpretation workflow and closeout criteria for the completed v1 sweep.
+
+Discovery:
+- `best_by_noise.csv` shows the same kernel winner at every noise level, `kernel|type=gaussian|M=128|ch=1`, but the best Savitzky-Golay setting beats it on RMSE, relative RMSE, and denoising gain in every `alpha` slice.
+- `robust_settings.csv` contains only one cross-noise recommendation, `savgol|w=21|p=3`, which indicates no kernel setting satisfied the sweep's robust-positive-gain filter.
+- The committed artifact directory in this worktree contains the tabular outputs and dataset snapshot but not `plots/`; `run_manifest.json` and `output.log` still point to plot files under the original execution worktree.
+
+Execution result:
+- Expanded [projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md](./experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md) with provenance-backed findings that compare the best Savitzky-Golay and kernel rows at each noise level, quantify the low-noise kernel failure mode, and recommend `savgol|w=21|p=3` as the best single cross-noise default.
+- Marked the selected analysis task complete in [TASKS.md](./TASKS.md) and added a follow-up execution task to restore portable plot artifacts for the sweep output.
+
+Verification:
+- `python - <<'PY'\nimport pandas as pd\nbase = 'modules/smoothing/artifacts/lorenz63-denoising-sweep-v1'\ndf = pd.read_csv(f'{base}/summary_by_setting.csv')\nbest = pd.read_csv(f'{base}/best_by_noise.csv')\nidx = df.groupby(['alpha','method'])['mean_rmse'].idxmin()\nprint(df.loc[idx][['alpha','method','setting_id','mean_rmse','mean_relative_rmse','mean_denoising_gain','variance_cluster_rmse']].sort_values(['alpha','method']).to_string(index=False))\nprint('\\nrobust_settings:')\nprint(pd.read_csv(f'{base}/robust_settings.csv').to_string(index=False))\nPY`
+  Output included:
+  - best Savitzky-Golay rows `savgol|w=21|p=5` at `alpha = 0.02`, `savgol|w=21|p=3` at `0.05` and `0.10`, and `savgol|w=41|p=5` at `0.20`
+  - best kernel row `kernel|type=gaussian|M=128|ch=1` at all `4` noise levels
+  - robust row `savgol|w=21|p=3` with `robust_mean_relative_rmse_across_noise = 0.029421693881328793` and `positive_gain_noise_levels = 4`
+- `python - <<'PY'\nimport pandas as pd\nbase = 'modules/smoothing/artifacts/lorenz63-denoising-sweep-v1'\ndf = pd.read_csv(f'{base}/summary_by_setting.csv')\nres = df.groupby(['alpha','method']).agg(\n    n_settings=('setting_id','count'),\n    n_positive_gain=('mean_denoising_gain', lambda s: int((s > 0).sum()))\n).reset_index()\nprint(res.to_string(index=False))\nPY`
+  Output:
+  - `0.02 kernel_smoothing n_settings=36 n_positive_gain=0`
+  - `0.02 savitzky_golay n_settings=12 n_positive_gain=10`
+  - `0.05 kernel_smoothing n_settings=36 n_positive_gain=0`
+  - `0.05 savitzky_golay n_settings=12 n_positive_gain=10`
+  - `0.10 kernel_smoothing n_settings=36 n_positive_gain=8`
+  - `0.10 savitzky_golay n_settings=12 n_positive_gain=12`
+  - `0.20 kernel_smoothing n_settings=36 n_positive_gain=11`
+  - `0.20 savitzky_golay n_settings=12 n_positive_gain=12`
+- `find modules/smoothing/artifacts/lorenz63-denoising-sweep-v1 -maxdepth 2 -type f | sort`
+  Output listed `best_by_noise.csv`, `metrics_raw.csv`, `robust_settings.csv`, `run_manifest.json`, `summary_by_setting.csv`, and the `dataset/` files, but no `plots/*.png`.
+
+Compound (fast): 1 action — added the follow-up task `Restore portable Lorenz63 sweep plot artifacts` so a later execution session can regenerate or clarify the missing committed plot files referenced by the sweep manifest. `.scheduler/metrics/sessions.jsonl` was absent in this worktree, so there were no recent fleet sessions to audit.
+
 ### 2026-04-28 (Integrated isolated task `Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]`)
 
 Integrated isolated task `Run the first Lorenz63 denoising hyperparameter sweep [skill: execute]` after 1 review round(s).

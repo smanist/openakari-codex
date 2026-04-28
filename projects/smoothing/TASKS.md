@@ -30,11 +30,17 @@
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`; `modules/smoothing/run_denoising_sweep.py`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/run_manifest.json`
   Notes: CPU-only. Maximum intended runtime for the first sweep is 20 minutes.
 
-- [ ] Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Analyze Lorenz63 denoising sweep results [requires-frontier] [skill: analyze] [zero-resource]
   Why: Raw sweep outputs need interpretation into method rankings and hyperparameter recommendations.
   Done when: The experiment Findings section reports mean and variance of RMSE and supporting metrics by noise level and method, with provenance to result files or inline arithmetic, and identifies best-performing hyperparameter regimes.
   Priority: high
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
+
+- [ ] Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]
+  Why: `run_manifest.json` and `output.log` reference the three plot PNGs under the original execution worktree, but the committed artifact directory in this worktree currently lacks `plots/`, which weakens report portability.
+  Done when: `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/` contains `rmse_vs_noise.png`, `relative_rmse_vs_noise.png`, and `denoising_gain_vs_noise.png`, and the manifest/log references are regenerated or clarified for the current workspace.
+  Priority: medium
+  Evidence: `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/run_manifest.json`; `modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/output.log`
 
 ## Phase 3: Report
 
