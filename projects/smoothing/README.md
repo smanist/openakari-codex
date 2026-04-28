@@ -12,6 +12,75 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]`)
+
+Integrated isolated task `Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]` after 2 review round(s).
+
+Session-type: autonomous
+Duration: 15
+Task-selected: Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 5
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-27 (Review fix: per-sample noise-seed replay)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]","agentId":"codex-manual-2026-04-27-lorenz63-review-fix-1e9f8294"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-manual-2026-04-27-lorenz63-generator","expiresAt":1777344392281}` and `409`
+  Interpretation: the scheduler claim API is available, but the selected task already had an active claim from the earlier dataset-generator session, so this review-fix session proceeded without creating a duplicate claim.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — module-local Python bugfix and regression-test verification only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Discovery:
+- `modules/smoothing/generate_lorenz63_dataset.py` currently instantiates one RNG per `(trajectory_seed, replicate_id)` pair before iterating over `alpha`. The saved `noise_seed` therefore replays only the first noisy sample for that pair; later `alpha` rows depend on prior draws from the same stream and cannot be reconstructed from the persisted per-row metadata alone.
+
+Execution result:
+- Resolved the blocking dataset-generator review finding in [modules/smoothing/generate_lorenz63_dataset.py](../../modules/smoothing/generate_lorenz63_dataset.py) by reinitializing the RNG from the saved `noise_seed` for each emitted noisy row instead of advancing one shared stream across `alpha`.
+- Added a regression test in [modules/smoothing/test_generate_lorenz63_dataset.py](../../modules/smoothing/test_generate_lorenz63_dataset.py) that reconstructs every noisy sample directly from its persisted `noise_seed` and `noise_scales`; it failed before the fix and now passes.
+- Extended dataset metadata with `seed_rules.noise_replay_rule` so downstream audits know the intended replay contract for saved noisy rows.
+
+Verification:
+- `pytest -q modules/smoothing/test_generate_lorenz63_dataset.py`
+  Output: `3 passed in 0.04s`
+- `python modules/smoothing/generate_lorenz63_dataset.py --out-dir /tmp/lorenz63-review-fix --trajectory-seeds 0 --replicate-ids 0 --noise-levels 0.02 0.05 --burn-in-steps 8 --record-steps 16 --overwrite`
+  Output: JSON with `clean_path`, `noisy_path`, and `metadata_path` under `/tmp/lorenz63-review-fix/`
+- `python - <<'PY' ... PY` to replay `/tmp/lorenz63-review-fix/noisy_observations.npz` rows from their saved seeds
+  Output: `{"replay_matches": true, "noise_seeds": [1000, 1000], "noise_levels": [0.02, 0.05], "shape": [2, 16, 3]}`
+
+Compound (fast): no actions. The session surfaced a project-local replay-contract bugfix but no reusable repo-wide convention or follow-up task, and `.scheduler/metrics/sessions.jsonl` was absent so there were no recent fleet sessions to audit.
+
+### 2026-04-27 (In progress: reproducible Lorenz63 noisy-signal dataset generator)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]","agentId":"codex-manual-2026-04-27-lorenz63-generator"}'`
+  Output: `{"ok":true,"claim":{"claimId":"28912556fd325d7b","taskId":"80d472d04969","taskText":"Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-27-lorenz63-generator","claimedAt":1777341692281,"expiresAt":1777344392281}}` and `200`
+  Interpretation: the scheduler claim API is available and accepted the selected dataset-generator task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — module-local Python implementation and smoke-test verification only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Execution result:
+- Added [modules/smoothing/generate_lorenz63_dataset.py](../../modules/smoothing/generate_lorenz63_dataset.py), a reproducible RK4-based Lorenz63 dataset generator with both reusable Python APIs (`build_dataset`, `write_dataset`) and a CLI entrypoint. It generates clean trajectories from protocol-seeded initial conditions, derives coordinate scales from the clean signal, injects Gaussian noise with `noise_seed = 1000 + 2 * trajectory_seed + replicate_id`, and writes `clean_trajectories.npz`, `noisy_observations.npz`, and `metadata.json`.
+- Added [modules/smoothing/test_generate_lorenz63_dataset.py](../../modules/smoothing/test_generate_lorenz63_dataset.py) to pin the generator contract: reproducible outputs for repeated runs with the same seeds, coordinate-scaled noise bookkeeping, and saved artifact/metadata layout for a two-seed, two-noise-level smoke configuration.
+- Updated [modules/smoothing/README.md](../../modules/smoothing/README.md) and [TASKS.md](./TASKS.md) so the module advertises the new entrypoint and the selected task now records concrete implementation evidence.
+
+Verification:
+- `pytest -q modules/smoothing/test_generate_lorenz63_dataset.py`
+  Output: `2 passed in 0.04s`
+- `python modules/smoothing/generate_lorenz63_dataset.py --out-dir /tmp/lorenz63-smoke --trajectory-seeds 0 1 --replicate-ids 0 1 --noise-levels 0.02 0.05 --burn-in-steps 8 --record-steps 16 --overwrite`
+  Output: JSON with `clean_path`, `noisy_path`, and `metadata_path` under `/tmp/lorenz63-smoke/`
+- `python - <<'PY' ... PY` to inspect `/tmp/lorenz63-smoke/metadata.json`
+  Output included `dataset_counts = {"n_clean_trajectories": 2, "n_noise_levels": 2, "n_replicates_per_clean": 2, "n_noisy_samples": 8}`, `integration = {"method": "rk4", "dt": 0.01, "burn_in_steps": 8, "record_steps": 16, "total_steps": 24}`, and per-clean `coordinate_scales` metadata.
+- `python - <<'PY' ... PY` to inspect `/tmp/lorenz63-smoke/{clean_trajectories,noisy_observations}.npz`
+  Output included `clean trajectories shape (2, 16, 3)`, `clean seeds [0, 1]`, `noisy observations shape (8, 16, 3)`, `alphas [0.02, 0.05]`, and `noise scales shape (8, 3)`.
+
+Compound (fast): no actions. This session produced a project-local implementation and tests but surfaced no reusable repo-wide convention change or follow-up task, and `.scheduler/metrics/sessions.jsonl` was absent so there were no recent fleet sessions to audit.
+
 ### 2026-04-28 (Integrated isolated task `Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]`)
 
 Integrated isolated task `Define the Lorenz63 denoising evaluation protocol [requires-frontier] [skill: design] [zero-resource]` after 2 review round(s).

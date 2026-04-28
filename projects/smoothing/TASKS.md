@@ -8,10 +8,11 @@
   Priority: high
   Evidence: `projects/smoothing/evaluation_protocol.md`; `projects/smoothing/plans/2026-04-27-denoising-benchmark.md`; `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
 
-- [ ] Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]
+- [x] Implement a reproducible Lorenz63 noisy-signal dataset generator [skill: execute]
   Why: All denoising methods need shared clean/noisy trajectories with known provenance.
   Done when: `modules/smoothing/` contains a script or package entrypoint that generates clean and noisy Lorenz63 trajectory datasets for at least two noise levels and two seeds, with metadata recording integration settings and per-coordinate noise scales.
   Priority: high
+  Evidence: `modules/smoothing/generate_lorenz63_dataset.py`; `modules/smoothing/test_generate_lorenz63_dataset.py`
   Notes: CPU-only. Keep pilot generation small enough for a full benchmark dry run to stay under 20 minutes.
 
 - [ ] Implement Savitzky-Golay and kernel smoothing baselines [skill: execute]
