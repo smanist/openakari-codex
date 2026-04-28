@@ -20,31 +20,6 @@ Re-created `projects/dymad_dev/` as a generic feature-development scaffold aroun
 
 Sources: `projects/dymad_dev/README.md`, `projects/dymad_dev/TASKS.md`, `modules/registry.yaml`
 
-### 2026-04-21 (Added `/project feature` mode for dependency-aware feature planning)
-
-Extended the `project` skill with a dedicated `feature` mode for occasional feature/workstream additions inside an existing project. The new mode is narrower than `augment`: it keeps project mission and done-when fixed, adds human-readable feature headings in `TASKS.md`, requires an explicit gate task such as `Complete feature <name>`, and standardizes blocker-aware downstream tasks that reference those gate names directly.
-
-The `augment` mode now explicitly redirects feature-format requests to `feature`, which keeps generic project extension separate from dependency-aware feature planning. I also updated the skill-classification index so `/project feature` is documented as human-triggered alongside `/project scaffold` and `/project augment`.
-
-Verification:
-- `rg -n "Mode: feature|/project feature|project feature:|add feature-formatted workstreams" .agents/skills/project/SKILL.md`
-  - matched the new frontmatter description, the top-level mode list, the `## Mode: feature` section, and the feature-mode commit message guidance
-- `rg -n "Last updated: 2026-04-21|/project feature" docs/skill-classifications.md`
-  - matched the refreshed timestamp and the new `/project feature` classification row
-- `git diff -- .agents/skills/project/SKILL.md docs/skill-classifications.md`
-  - showed only the intended `feature`-mode additions and the corresponding classification update
-
-Session-type: directed
-Duration: 12
-Task-selected: Add `/project feature` mode for structured feature/workstream augmentation
-Task-completed: yes
-Approvals-created: 0
-Files-changed: 3
-Commits: 0
-Compound-actions: none
-Resources-consumed: none
-Budget-remaining: n/a
-
 ### 2026-04-20 (Added shared-style `.scheduler/logs` records for isolated workflow runs)
 
 Recorded and fixed a scheduler observability gap in isolated mode. The isolated module workflow already kept structured manifests in `.scheduler/task-runs/` and review findings in `.scheduler/reviews/`, but it did not emit the same top-level `.scheduler/logs/<job>-<timestamp>.log` artifact that shared execution writes. That made isolated sessions harder to inspect from the standard operator log surface even though the run summary already existed in memory.

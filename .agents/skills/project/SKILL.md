@@ -1,30 +1,27 @@
 ---
 name: project
-description: "Manage research project setup and scope changes — propose new projects, scaffold new projects, add feature-formatted workstreams, or augment existing projects"
+description: "Manage research project setup and scope changes — propose new projects, scaffold new projects, or augment existing projects"
 complexity: very_high
 model-minimum: frontier
 disable-model-invocation: false
 allowed-tools: ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write", "Bash(git diff *)", "Bash(git log *)", "Bash(git status)", "Bash(git add *)", "Bash(git commit *)", "Bash(mkdir -p *)"]
-argument-hint: "propose [topic] | scaffold <description> | feature <project> <feature request> | augment <project> <request>"
+argument-hint: "propose [topic] | scaffold <description> | augment <project> <request>"
 interview: true
 ---
 
 # /project <mode> [argument]
 
-Unified skill for project setup and scope changes. Four modes:
+Unified skill for project setup and scope changes. Three modes:
 
 - **`/project propose [topic]`** — Agent-initiated. Scans the repo for research gaps, assesses whether a gap warrants a project, and writes a formal proposal for PI review. Proposals require approval to activate. If topic is omitted, scans for candidate gaps first.
 
 - **`/project scaffold <description>`** — Human-initiated. Interactive interview to understand what the human wants, then scaffolds the project directory with all required files. No approval needed — the human requesting it has authority.
-
-- **`/project feature <project> <feature request>`** — Human-initiated. Interactive workflow to add a feature or workstream inside an existing project using dependency-aware task formatting: human-readable section headings, explicit gate tasks, and stable `[blocked-by: ...]` tags for downstream work.
 
 - **`/project augment <project> <request>`** — Human-initiated. Interactive workflow to extend an existing project's scope with new context, tasks, plans, or resource records while keeping the project's mission and done-when fixed.
 
 **When to use which mode:**
 - You identified a research gap and want to propose an investigation → `propose`
 - A human asked you to set up a new project → `scaffold`
-- A human asked you to add a structured feature/workstream with dependency-aware tasks inside an existing project → `feature`
 - A human asked you to extend or refine an existing project → `augment`
 
 ---
@@ -370,8 +367,6 @@ Read the target project's:
 
 If the request does not fit, say so explicitly and redirect to `scaffold`, `propose`, or ordinary task editing as appropriate.
 
-If the request is specifically "add feature A/B/C-style work with explicit dependency gates and blocker-aware task formatting," redirect to `feature` instead of handling it as generic augment.
-
 ### Step 4: Interview for missing details
 
 Ask only for the missing pieces. Common gaps:
@@ -424,151 +419,6 @@ Follow `docs/sops/commit-workflow.md`. Commit message: `project augment: <projec
 ### Step 8: Log completion
 
 Add a dated log entry to the target project's `README.md` summarizing what was added and why.
-
----
-
-## Mode: feature
-
-Human-initiated existing-project feature/workstream addition. Interactive — requires human direction on the target project and desired feature, but uses a more opinionated output format than `augment`.
-
-### Human Input Protocol (Deep Work Sessions)
-
-When running in a deep work session (autonomous, headless), use the same question marker pattern as scaffold/augment:
-
-```
-[QUESTION: project-feature-<unique-id>]
-skill="project"
-mode="feature"
-
-1. Which existing project should receive the feature?
-2. What feature or workstream should be added?
-[/QUESTION]
-```
-
-Resume when the human replies with the missing details.
-
-### Step 1: Parse the request
-
-Extract:
-- **Target project** — existing `projects/<slug>/`
-- **Feature/workstream name** — short stable name for headings and gate tasks
-- **Requested outcome** — what should be newly true after the feature lands
-- **Dependency shape** — whether the feature is independent, parallel with other work, or blocked on existing gates
-- **Scope pressure** — whether the request still fits the current mission and done-when unchanged
-
-Summarize in 2-3 sentences before editing anything.
-
-### Step 2: Load current project state
-
-Read the target project's:
-1. `README.md` — mission, done-when, context, recent log, open questions
-2. `TASKS.md` — current task inventory, existing section organization, blocked state, and any relevant gate tasks
-3. `plans/` or `experiments/` entries relevant to the new feature
-4. `budget.yaml` / `ledger.yaml` if the feature may consume resources
-
-### Step 3: Assess fit before proceeding
-
-**Proceed with feature if:**
-- The request is a natural extension of the project's existing mission
-- The current `Done when:` still makes sense unchanged
-- The work is best represented as one bounded feature/workstream with internal subtasks and explicit dependency gates
-
-**Do not use feature if:**
-- The request would change the project's mission or `Done when:`
-- The work is orthogonal enough that it should be a new project
-- The request is just one or two standalone tasks and does not benefit from feature grouping or gate tasks
-- The request is a broad project-wide reorganization better handled by `augment`
-
-If the request does not fit, say so explicitly and redirect to `augment`, `scaffold`, `propose`, or ordinary task editing as appropriate.
-
-### Step 4: Interview for missing details
-
-Ask only for the missing pieces. Common gaps:
-
-1. **Acceptance** — what concrete condition means the feature is complete?
-2. **Dependencies** — does it depend on another feature or gate task already in `TASKS.md`?
-3. **Parallelism** — which subtasks can proceed independently vs. which must wait?
-4. **Boundaries** — what is explicitly out of scope for this feature addition?
-5. **Artifacts** — does this need only tasks, or also a plan / experiment scaffold / budget change?
-
-Interview protocol:
-- Ask in batches of 2-3 questions
-- Summarize assumptions after each batch
-- Stop after enough information exists to create a bounded feature block
-
-### Step 5: Structure the feature work
-
-When editing `TASKS.md`, use this format:
-
-1. Add a human-readable section heading such as `## Feature: <name>` or reuse an existing heading if one already matches. Headings are for readability only; do not rely on them as machine-readable blockers.
-2. Decompose the feature into independently actionable subtasks whenever parallel work is possible.
-3. Add an explicit gate task with stable wording, typically `Complete feature <name>`.
-4. Write the gate task's `Done when:` as both:
-   - all feature subtasks that feed the gate are `[x]`, and
-   - the feature-level acceptance condition is satisfied.
-5. For downstream work, use `[blocked-by: Complete feature <name>]` referencing the exact gate-task text.
-6. When a task depends on multiple upstream features, block it on all relevant gates in one tag string, e.g. `[blocked-by: Complete feature A and Complete feature B]`.
-7. Avoid blocker chains deeper than 2. Prefer direct blockers on the nearest meaningful gate rather than transitive chains.
-8. Keep gate task names short, unique inside the file, and stable across edits so blocker matching remains reliable.
-9. Apply routing tags and task schema fields (`Why:`, `Done when:`, `Priority:`) to every new task.
-
-**Default pattern:**
-
-```markdown
-## Feature: <name>
-
-- [ ] <subtask 1> [skill: execute]
-  Why: <motivation>
-  Done when: <mechanically verifiable condition>
-  Priority: <level>
-
-- [ ] <subtask 2> [skill: execute]
-  Why: <motivation>
-  Done when: <mechanically verifiable condition>
-  Priority: <level>
-
-- [ ] Complete feature <name> [skill: govern] [requires-frontier]
-  Why: Dependency gate for downstream work.
-  Done when: All `<name>` subtasks required for completion are [x], and <feature acceptance condition>.
-  Priority: <level>
-```
-
-### Step 6: Apply the feature addition
-
-Update only the files needed by the request:
-
-- **`projects/<project>/README.md`** — add context or a dated log entry describing the feature addition and any dependency decisions
-- **`projects/<project>/TASKS.md`** — add the feature block, gate task, and blocker-aware downstream tasks
-- **`projects/<project>/plans/<name>.md`** — add a plan when the feature spans multiple phases or more than ~3 subtasks
-- **`projects/<project>/budget.yaml` / `ledger.yaml`** — touch only if the new feature changes resource accounting
-
-Prefer minimal deltas. Feature mode should add a structured workstream, not rewrite unrelated project state.
-
-### Step 7: Present the delta
-
-Show the human a concise summary:
-
-```text
-Updated project: <project>
-
-Planned changes:
-- TASKS.md — added feature block `<name>` with <N> subtasks and gate task `Complete feature <name>`
-- README.md — logged feature addition and dependency decisions
-- plans/<name>.md — <if added>
-- budget.yaml — <if changed>
-
-Does this feature addition look right before commit?
-```
-
-Wait for confirmation. Apply requested adjustments.
-
-### Step 8: Commit
-
-Follow `docs/sops/commit-workflow.md`. Commit message: `project feature: <project> <feature-name>`
-
-### Step 9: Log completion
-
-Add a dated log entry to the target project's `README.md` summarizing what feature was added, what gate task text was introduced, and any blocker relationships created.
 
 ---
 
