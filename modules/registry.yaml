@@ -7,3 +7,7 @@ entries:
     module: dymad_dev
     path: modules/dymad_dev
     type: submodule
+  - project: smoothing
+    module: smoothing
+    path: modules/smoothing
+    type: local-scratch
