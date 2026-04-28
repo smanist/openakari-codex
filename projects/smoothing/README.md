@@ -12,6 +12,50 @@ The kernel smoother should sweep `M`, bandwidth `h`, and kernel type. Kernel typ
 
 ## Log
 
+### 2026-04-28 (Integrated isolated task `Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]`)
+
+Integrated isolated task `Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 9
+Task-selected: Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Wrote Lorenz63 denoising benchmark report)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]","agentId":"codex-manual-2026-04-28-lorenz63-benchmark-report"}'`
+  Output: `{"ok":true,"claim":{"claimId":"ca2cb647ad11cf15","taskId":"a50cdd86b1d1","taskText":"Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-28-lorenz63-benchmark-report","claimedAt":1777350721616,"expiresAt":1777353421616}}` and `200`
+  Interpretation: the scheduler claim API is available in this worktree and accepted the pre-selected report-writing task before project state changed.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — artifact synthesis, report writing, and project-record updates only; no external model/API calls beyond the scheduler claim, no GPU work, and no long-running compute.
+
+Plan:
+- Added [plans/2026-04-28-write-lorenz63-benchmark-report.md](./plans/2026-04-28-write-lorenz63-benchmark-report.md) to record the report-writing workflow and closeout criteria for the selected task.
+
+Discovery:
+- The needed quantitative evidence already existed in the committed sweep artifacts: `run_manifest.json` captured the completed row counts, `best_by_noise.csv` already contained the per-noise winner rows plus supporting-metric variances, `robust_settings.csv` contained a single cross-noise recommendation for Savitzky-Golay, and `summary_by_setting.csv` confirmed that no kernel setting had positive denoising gain at `alpha = 0.02` or `0.05`.
+- The selected task therefore required durable synthesis rather than new analysis code or a rerun of the benchmark.
+
+Execution result:
+- Added [projects/smoothing/benchmark_report.md](./benchmark_report.md), a durable v1 report artifact that consolidates the protocol, sweep-grid shape, artifact provenance, per-noise metric means plus cluster-adjusted variances, method comparison, and final recommendations.
+- The report makes the project-level conclusion explicit: Savitzky-Golay is the recommended v1 method, `savgol|w=21|p=3` is the best single cross-noise default, per-noise retuning changes only the lowest-noise and highest-noise settings, and the tested kernel family is best treated as a weaker baseline than a robust default.
+- Marked the selected task complete in [TASKS.md](./TASKS.md).
+
+Verification:
+- `python - <<'PY'\nimport pandas as pd\nfrom pathlib import Path\nbase = Path('modules/smoothing/artifacts/lorenz63-denoising-sweep-v1')\nbest = pd.read_csv(base / 'best_by_noise.csv').sort_values(['alpha','method'])\nrobust = pd.read_csv(base / 'robust_settings.csv')\nsummary = pd.read_csv(base / 'summary_by_setting.csv')\nprint(best[['alpha','method','setting_id','mean_rmse','variance_cluster_rmse','mean_relative_rmse','variance_cluster_relative_rmse','mean_denoising_gain','variance_cluster_denoising_gain']].to_string(index=False))\nprint('\\nrobust settings\\n', robust.to_string(index=False))\nprint('\\npositive gain counts\\n', summary.groupby(['alpha','method']).agg(n_settings=('setting_id','count'), n_positive_gain=('mean_denoising_gain', lambda s: int((s > 0).sum()))).reset_index().to_string(index=False))\nPY`
+  Output included the exact winner rows and robust-setting metrics now summarized in `benchmark_report.md`, including `savgol|w=21|p=3` with `robust_mean_relative_rmse_across_noise = 0.029422`, kernel winner `kernel|type=gaussian|M=128|ch=1` at all four `alpha` values, and kernel positive-gain counts `0/36`, `0/36`, `8/36`, `11/36`.
+- `rg -n "Status: v1|savgol\\|w=21\\|p=3|kernel\\|type=gaussian\\|M=128\\|ch=1|robust_mean_relative_rmse_across_noise" projects/smoothing/benchmark_report.md`
+  Output included the report header plus the recommendation lines for `savgol|w=21|p=3`, `kernel|type=gaussian|M=128|ch=1`, and `robust_mean_relative_rmse_across_noise = 0.029421693881328793`.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the intended report/task/log/plan updates, and `.scheduler/metrics/sessions.jsonl` was absent in this worktree so there were no recent fleet sessions to audit.
+
 ### 2026-04-28 (Integrated isolated task `Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]`)
 
 Integrated isolated task `Restore portable Lorenz63 sweep plot artifacts [fleet-eligible] [skill: execute] [zero-resource]` after 1 review round(s).

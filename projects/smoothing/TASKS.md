@@ -44,7 +44,8 @@
 
 ## Phase 3: Report
 
-- [ ] Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]
+- [x] Write the Lorenz63 denoising benchmark report [requires-frontier] [skill: record] [zero-resource]
   Why: The project Done-when requires a durable report that consolidates protocol, algorithms, results, and recommendations.
   Done when: `projects/smoothing/benchmark_report.md` exists and summarizes the benchmark design, sweep grid, metric means/variances, method comparison, and recommended hyperparameters.
   Priority: medium
+  Evidence: `projects/smoothing/benchmark_report.md`; `projects/smoothing/experiments/lorenz63-denoising-sweep-v1/EXPERIMENT.md`
