@@ -103,13 +103,13 @@
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`
 
-- [ ] Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]
+- [x] Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]
   Why: Final recommendations should be based on a larger cluster count than v1 after the pilot has pruned the grid.
   Done when: confirmatory artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/`, and the v2 experiment record captures the confirmatory submission and completion state.
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/`
 
-- [ ] Analyze the confirmatory v2 Lorenz63 denoising benchmark [requires-frontier] [skill: analyze] [zero-resource] [blocked-by: v2 confirmatory completion]
+- [ ] Analyze the confirmatory v2 Lorenz63 denoising benchmark [requires-frontier] [skill: analyze] [zero-resource]
   Why: The project needs a final interpretation of whether any broadened v2 family materially improves on the v1 anchor-basis baseline and approaches Savitzky-Golay.
   Done when: the v2 experiment record reports confirmatory-stage findings with provenance, including both state-space and derivative-aware comparisons.
   Priority: medium
