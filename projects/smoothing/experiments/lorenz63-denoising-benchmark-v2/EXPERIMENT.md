@@ -1,7 +1,7 @@
 ---
 id: lorenz63-denoising-benchmark-v2
 type: experiment
-status: planned
+status: in_progress
 date: 2026-04-28
 project: smoothing
 consumes_resources: true
@@ -111,3 +111,23 @@ The core judgment call was to expand laterally across smoother families instead 
 I kept Savitzky-Golay and a small frozen slice of the anchor-basis family in the grid because v2 still needs anchored comparisons, but I rejected carrying the entire v1 `36`-setting kernel sweep forward. The broader signal-processing question is whether locality and penalization help, not whether one more anchor-count tweak rescues the old family.
 
 I chose normalized kernel regression, local-linear regression, and cubic smoothing splines because they cover three distinct failure-mode hypotheses: row normalization may remove amplitude shrinkage, local-linear fitting may reduce boundary and bias error, and spline penalization may offer a smoother global bias-variance tradeoff than the v1 low-rank basis. I did not include wavelet shrinkage or Kalman-style filters in v2 because they would introduce a larger dependency and modeling jump before the benchmark has exhausted simpler classical smoothers.
+
+## Changes
+
+2026-04-28 pilot execution completed the first staged artifact bundle under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`.
+
+- The default pilot run was executed inline rather than through `infra/experiment-runner/run.py --detach` because a timed full-command benchmark completed in under the repo's `2` minute threshold.
+- The pilot bundle writes the dataset snapshot, `metrics_raw.csv`, `summary_by_setting.csv`, `family_screen.csv`, `run_manifest.json`, `output.log`, and the three standard comparison plots.
+- `.gitignore` now explicitly unignores `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/{pilot,confirmatory}/plots/*.png` so staged plot artifacts remain portable in git rather than local-only.
+- The overall experiment remains `in_progress`: pilot execution is complete, but pilot analysis and confirmatory execution are still pending.
+
+## Verification
+
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Run the v2 pilot Lorenz63 denoising sweep [skill: execute]","agentId":"codex-manual-2026-04-28-v2-lorenz63-pilot"}'`
+  Output: curl exited with code `7` and printed `000`, so the scheduler claim endpoint was unreachable in this session and no live claim could be created.
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep_v2.py --out-dir /tmp/lorenz63-v2-pilot-benchmark-$$ --stage pilot --overwrite >/tmp/lorenz63-v2-pilot-benchmark-$$.stdout`
+  Output: `real 28.96`, `user 28.68`, `sys 0.16`, establishing that the full default pilot stays below the repo's detached-run threshold.
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep_v2.py --out-dir modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot --stage pilot --overwrite >/tmp/lorenz63-v2-pilot-run.stdout`
+  Output: `real 28.87`, `user 28.58`, `sys 0.17`
+- `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/{metrics_raw.csv,summary_by_setting.csv,family_screen.csv}` and reading `run_manifest.json`
+  Output: `metrics_raw.csv 1160`, `summary_by_setting.csv 116`, `family_screen.csv 21`, and `manifest_counts {'n_family_screen_rows': 21, 'n_rows_expected': 1160, 'n_rows_written': 1160, 'n_samples': 40, 'n_settings': 29, 'n_summary_rows': 116}`. The same manifest recorded repo-relative pilot dataset paths and plot paths under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`.

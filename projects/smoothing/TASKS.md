@@ -91,13 +91,13 @@
   Priority: medium
   Evidence: `modules/smoothing/denoise_families_v2.py`; `modules/smoothing/run_denoising_sweep_v2.py`; `modules/smoothing/test_denoise_families_v2.py`
 
-- [ ] Run the v2 pilot Lorenz63 denoising sweep [skill: execute]
+- [x] Run the v2 pilot Lorenz63 denoising sweep [skill: execute]
   Why: The staged design requires a family-level screen before committing more CPU to confirmatory replication, and compact-polynomial retuning has left a remaining gap to the strongest Savitzky-Golay reference.
   Done when: pilot artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`, and `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md` records the pilot submission and completion state.
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`
 
-- [ ] Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource] [blocked-by: v2 pilot completion]
+- [ ] Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]
   Why: The pilot must identify which non-anchor settings justify confirmatory reruns and whether any family already fails the low-noise positive-gain criterion.
   Done when: the v2 experiment record names the finalist settings and records the pilot-stage findings with provenance to pilot artifacts.
   Priority: medium

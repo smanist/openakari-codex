@@ -14,6 +14,50 @@ A human follow-up on 2026-04-28 reframed the kernel branch: the first-round resu
 
 ## Log
 
+### 2026-04-29 (Integrated isolated task `Run the v2 pilot Lorenz63 denoising sweep [skill: execute]`)
+
+Integrated isolated task `Run the v2 pilot Lorenz63 denoising sweep [skill: execute]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Run the v2 pilot Lorenz63 denoising sweep [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 16
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Ran the v2 pilot Lorenz63 denoising sweep)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Run the v2 pilot Lorenz63 denoising sweep [skill: execute]","agentId":"codex-manual-2026-04-28-v2-lorenz63-pilot"}'`
+  Output: curl exited with code `7` and printed `000`, so the local scheduler claim endpoint was unreachable in this session and no live claim could be created.
+
+Scope classification:
+`RESOURCE` (`consumes_resources: true`) — the selected task executes a real CPU sweep and writes durable experiment artifacts, but a timed benchmark of the full default pilot command completed in `real 28.96s`, so the run stayed below the repo's `2` minute detached-run threshold and could be executed inline.
+
+Discovery:
+- `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/` did not exist in this worktree before execution, so the selected pilot run had not yet been completed here.
+- The default pilot grid evaluates `29` settings (`4` Savitzky-Golay references, `4` frozen anchor-basis references, `8` normalized-kernel settings, `8` local-linear settings, `5` spline settings) over `40` noisy samples (`5` trajectory seeds × `2` replicate IDs × `4` noise levels), so the expected raw output size is `29 × 40 = 1160` rows.
+- The repo-wide `*.png` ignore rule would have hidden the staged v2 plot bundle from version control, so the same per-artifact unignore pattern used by the v1 sweep and compact-retuning bundles had to be extended to the v2 pilot and confirmatory plot directories.
+
+Execution result:
+- Ran the full default pilot command in place, writing artifacts under [modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot](../../modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot).
+- Updated [.gitignore](../../.gitignore) to unignore `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/{pilot,confirmatory}/plots/*.png` so the standard pilot plot bundle is durable in-repo rather than local-only.
+- Updated [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md](./experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md) to `status: in_progress` and recorded the inline-execution decision, exact commands, and pilot artifact counts.
+- Marked the selected execution task complete in [TASKS.md](./TASKS.md) and removed the stale `v2 pilot completion` blocker from the follow-on pilot analysis task now that the required artifacts exist.
+
+Verification:
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep_v2.py --out-dir /tmp/lorenz63-v2-pilot-benchmark-$$ --stage pilot --overwrite >/tmp/lorenz63-v2-pilot-benchmark-$$.stdout`
+  Output: `real 28.96`, `user 28.68`, `sys 0.16`
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep_v2.py --out-dir modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot --stage pilot --overwrite >/tmp/lorenz63-v2-pilot-run.stdout`
+  Output: `real 28.87`, `user 28.58`, `sys 0.17`
+- `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/{metrics_raw.csv,summary_by_setting.csv,family_screen.csv}` and reading `run_manifest.json`
+  Output: `metrics_raw.csv 1160`, `summary_by_setting.csv 116`, `family_screen.csv 21`, and `manifest_counts {'n_family_screen_rows': 21, 'n_rows_expected': 1160, 'n_rows_written': 1160, 'n_samples': 40, 'n_settings': 29, 'n_summary_rows': 116}`. The same manifest recorded the three standard plot PNGs and repo-relative pilot dataset paths.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` matched the intended pilot-artifact and project-state updates, the pilot analysis follow-up task was already present and only needed unblocking, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree so there were no recent fleet sessions to audit locally.
+
 ### 2026-04-29 (Resolved smoothing project merge conflicts)
 
 Resolved concurrent project/module state from the compact-polynomial retuning workstream and the v2 denoiser implementation branch.

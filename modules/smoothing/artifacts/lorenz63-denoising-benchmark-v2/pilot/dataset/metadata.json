@@ -1,0 +1,124 @@
+{
+  "artifacts": {
+    "clean_trajectories": "clean_trajectories.npz",
+    "metadata": "metadata.json",
+    "noisy_observations": "noisy_observations.npz"
+  },
+  "clean_trajectory_metadata": [
+    {
+      "clean_index": 0,
+      "coordinate_scales": [
+        6.840448903634876,
+        7.085482822291156,
+        24.07225748263878
+      ],
+      "initial_state": [
+        1.0125730221093394,
+        0.9867895136708698,
+        1.0640422650443282
+      ],
+      "trajectory_seed": 0
+    },
+    {
+      "clean_index": 1,
+      "coordinate_scales": [
+        6.178520622000361,
+        6.7942338303918035,
+        22.952223108590456
+      ],
+      "initial_state": [
+        1.0345584192064785,
+        1.082161814350116,
+        1.0330437076183387
+      ],
+      "trajectory_seed": 1
+    },
+    {
+      "clean_index": 2,
+      "coordinate_scales": [
+        6.399901211108204,
+        6.867700278270141,
+        23.456818188754504
+      ],
+      "initial_state": [
+        1.0189053381793534,
+        0.9477251558519253,
+        0.9586936456608106
+      ],
+      "trajectory_seed": 2
+    },
+    {
+      "clean_index": 3,
+      "coordinate_scales": [
+        6.426700492129508,
+        6.924775025960007,
+        23.440464304392325
+      ],
+      "initial_state": [
+        1.2040919121385183,
+        0.7444334968685817,
+        1.0418098846725778
+      ],
+      "trajectory_seed": 3
+    },
+    {
+      "clean_index": 4,
+      "coordinate_scales": [
+        6.561915293703865,
+        7.035301576205852,
+        23.830632405302225
+      ],
+      "initial_state": [
+        0.9348208847388311,
+        0.9825282707674223,
+        1.1663723991391197
+      ],
+      "trajectory_seed": 4
+    }
+  ],
+  "dataset_counts": {
+    "n_clean_trajectories": 5,
+    "n_noise_levels": 4,
+    "n_noisy_samples": 40,
+    "n_replicates_per_clean": 2
+  },
+  "generator": {
+    "dataset_version": "lorenz63-noisy-signal-v1",
+    "name": "generate_lorenz63_dataset.py",
+    "protocol_source": "projects/smoothing/evaluation_protocol.md"
+  },
+  "integration": {
+    "burn_in_steps": 5000,
+    "dt": 0.01,
+    "method": "rk4",
+    "record_steps": 2048,
+    "total_steps": 7048
+  },
+  "lorenz63": {
+    "beta": 2.6666666666666665,
+    "rho": 28.0,
+    "sigma": 10.0
+  },
+  "noise_levels": [
+    0.02,
+    0.05,
+    0.1,
+    0.2
+  ],
+  "replicate_ids": [
+    0,
+    1
+  ],
+  "seed_rules": {
+    "noise_replay_rule": "For each saved noisy sample, reinitialize the RNG from noise_seed before drawing scaled Gaussian noise.",
+    "noise_seed_rule": "1000 + 2 * trajectory_seed + replicate_id",
+    "trajectory_seed_rule": "initial_state = (1, 1, 1) + 0.1 * Normal(0, I_3)"
+  },
+  "trajectory_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
+}

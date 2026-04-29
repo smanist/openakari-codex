@@ -1,0 +1,114 @@
+{
+  "counts": {
+    "n_family_screen_rows": 21,
+    "n_rows_expected": 1160,
+    "n_rows_written": 1160,
+    "n_samples": 40,
+    "n_settings": 29,
+    "n_summary_rows": 116
+  },
+  "dataset": {
+    "clean_path": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/dataset/clean_trajectories.npz",
+    "metadata_path": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/dataset/metadata.json",
+    "noisy_path": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/dataset/noisy_observations.npz"
+  },
+  "paths": {
+    "family_screen": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/family_screen.csv",
+    "metrics_raw": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/metrics_raw.csv",
+    "plots_dir": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/plots",
+    "summary_by_setting": "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/summary_by_setting.csv"
+  },
+  "plots": [
+    "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/plots/rmse_vs_noise.png",
+    "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/plots/relative_rmse_vs_noise.png",
+    "modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/plots/denoising_gain_vs_noise.png"
+  ],
+  "settings": {
+    "anchor_references": [
+      {
+        "bandwidth_multiplier": 1.0,
+        "kernel_type": "gaussian",
+        "n_anchors": 128
+      },
+      {
+        "bandwidth_multiplier": 2.0,
+        "kernel_type": "gaussian",
+        "n_anchors": 128
+      },
+      {
+        "bandwidth_multiplier": 4.0,
+        "kernel_type": "gaussian",
+        "n_anchors": 128
+      },
+      {
+        "bandwidth_multiplier": 2.0,
+        "kernel_degree": 3,
+        "kernel_type": "compact_polynomial",
+        "n_anchors": 128
+      }
+    ],
+    "local_linear_kernels": [
+      "gaussian",
+      "tricube"
+    ],
+    "local_linear_spans": [
+      11,
+      21,
+      41,
+      81
+    ],
+    "noise_levels": [
+      0.02,
+      0.05,
+      0.1,
+      0.2
+    ],
+    "normalized_kernel_kernels": [
+      "gaussian",
+      "tricube"
+    ],
+    "normalized_kernel_spans": [
+      11,
+      21,
+      41,
+      81
+    ],
+    "replicate_ids": [
+      0,
+      1
+    ],
+    "savgol_references": [
+      [
+        11,
+        3
+      ],
+      [
+        21,
+        3
+      ],
+      [
+        21,
+        5
+      ],
+      [
+        41,
+        5
+      ]
+    ],
+    "spline_lambda_rels": [
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "trajectory_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "stage": "pilot"
+}

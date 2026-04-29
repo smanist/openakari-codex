@@ -26,6 +26,10 @@ reports/
 !modules/smoothing/artifacts/lorenz63-denoising-sweep-v1/plots/*.png
 !modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/
 !modules/smoothing/artifacts/compact-polynomial-kernel-retuning-v1/plots/*.png
+!modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/plots/
+!modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/plots/*.png
+!modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/plots/
+!modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/plots/*.png
 *.jpg
 *.jpeg
 .failed-evolution.json
