@@ -14,6 +14,59 @@ A human follow-up on 2026-04-28 reframed the kernel branch: the first-round resu
 
 ## Log
 
+### 2026-04-29 (Integrated isolated task `Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]`)
+
+Integrated isolated task `Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]` after 1 review round(s).
+
+Session-type: autonomous
+Duration: 12
+Task-selected: Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 4
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+### 2026-04-28 (Analyzed the v2 pilot Lorenz63 denoising sweep)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]","agentId":"codex-manual-2026-04-28-v2-pilot-analysis"}'`
+  Output: `{"ok":true,"claim":{"claimId":"bb1cba2ca532a4e0","taskId":"2f1d7e2d4d5b","taskText":"Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]","project":"smoothing","agentId":"codex-manual-2026-04-28-v2-pilot-analysis","claimedAt":1777428105365,"expiresAt":1777430805365}}` and `200`
+
+Scope classification:
+`ROUTINE (verifiable)` (`consumes_resources: false`) — the selected task analyzes already-committed pilot artifacts and updates durable project state only; no new experiment execution or external model/API work was required beyond the scheduler claim.
+
+Discovery:
+- The v2 pilot bundle already existed and was structurally complete in this worktree: `metrics_raw.csv` has `1160` rows, `summary_by_setting.csv` has `116`, and `family_screen.csv` has `21`, matching the designed `29 × 40 = 1160` pilot matrix.
+- `family_screen.csv` selected `6` confirmatory finalists from `11/21` eligible non-anchor settings: two splines, two local-linear `span=11` rows, and two normalized-kernel `span=11` rows. No family required the fallback "best failure-case reference" path.
+- Savitzky-Golay remains the best primary-RMSE family at all four pilot noise levels, but the best non-anchor row beats the frozen anchor-basis reference at every `alpha` and stays within `14.66460182333849%` of the best Savitzky-Golay RMSE.
+- The derivative-aware pilot view is different: the lowest-`derivative_RMSE` non-anchor row beats the best derivative-aware Savitzky-Golay row at all four `alpha` values, and at `alpha = 0.10` and `0.20` those derivative leaders are eligible `span=21` local-linear settings that the primary relative-RMSE handoff rule does not select.
+
+Execution result:
+- Added a durable session plan in [projects/smoothing/plans/2026-04-28-analyze-v2-pilot-lorenz63-denoising-sweep.md](./plans/2026-04-28-analyze-v2-pilot-lorenz63-denoising-sweep.md).
+- Updated [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md](./experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md) with provenance-backed pilot findings, exact confirmatory finalists, and the derivative-metric caveat for the upcoming confirmatory stage.
+- Marked the selected pilot-analysis task complete in [TASKS.md](./TASKS.md) and removed the stale `v2 pilot analysis` blocker from the confirmatory execution task.
+
+Verification:
+- `python - <<'PY' ... PY` summarizing finalist selection, per-noise primary winners, and derivative winners from the pilot CSVs
+  Output:
+  `artifact_counts metrics_raw=1160 summary=116 family_screen=21`
+  `family cubic_smoothing_spline eligible=3/5 selected=2`
+  `family local_linear_regression eligible=4/8 selected=2`
+  `family normalized_kernel_regression eligible=4/8 selected=2`
+  `selected_finalists spline|lambda_rel=1, spline|lambda_rel=0.5, local_linear|type=tricube|span=11, local_linear|type=gaussian|span=11, normalized|type=tricube|span=11, normalized|type=gaussian|span=11`
+  `alpha 0.02 primary sg=savgol|w=21|p=5 rmse=0.120012 non_anchor=spline|lambda_rel=1 rmse=0.132752 ratio_vs_sg=1.106162 ratio_vs_anchor=0.138668`
+  `alpha 0.02 derivative non_anchor=spline|lambda_rel=1 deriv=3.985906 sg=savgol|w=21|p=5 deriv=4.252440 selected=True`
+  `alpha 0.05 primary sg=savgol|w=21|p=3 rmse=0.274086 non_anchor=local_linear|type=tricube|span=11 rmse=0.312081 ratio_vs_sg=1.138623 ratio_vs_anchor=0.321292`
+  `alpha 0.05 derivative non_anchor=spline|lambda_rel=1 deriv=7.616714 sg=savgol|w=21|p=3 deriv=7.714158 selected=True`
+  `alpha 0.10 primary sg=savgol|w=21|p=3 rmse=0.492264 non_anchor=local_linear|type=tricube|span=11 rmse=0.564453 ratio_vs_sg=1.146646 ratio_vs_anchor=0.553547`
+  `alpha 0.10 derivative non_anchor=local_linear|type=gaussian|span=21 deriv=11.991120 sg=savgol|w=41|p=5 deriv=12.112833 selected=False`
+  `alpha 0.20 primary sg=savgol|w=41|p=5 rmse=0.882383 non_anchor=local_linear|type=gaussian|span=21 rmse=0.943215 ratio_vs_sg=1.068942 ratio_vs_anchor=0.790292`
+  `alpha 0.20 derivative non_anchor=local_linear|type=tricube|span=21 deriv=17.234338 sg=savgol|w=41|p=5 deriv=20.005708 selected=False`
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` matched the intended plan/experiment/task/readme updates, the confirmatory execution and confirmatory analysis tasks already exist for the only actionable follow-up, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree so there were no recent fleet sessions to audit locally.
+
 ### 2026-04-29 (Integrated isolated task `Run the v2 pilot Lorenz63 denoising sweep [skill: execute]`)
 
 Integrated isolated task `Run the v2 pilot Lorenz63 denoising sweep [skill: execute]` after 1 review round(s).

@@ -112,6 +112,34 @@ I kept Savitzky-Golay and a small frozen slice of the anchor-basis family in the
 
 I chose normalized kernel regression, local-linear regression, and cubic smoothing splines because they cover three distinct failure-mode hypotheses: row normalization may remove amplitude shrinkage, local-linear fitting may reduce boundary and bias error, and spline penalization may offer a smoother global bias-variance tradeoff than the v1 low-rank basis. I did not include wavelet shrinkage or Kalman-style filters in v2 because they would introduce a larger dependency and modeling jump before the benchmark has exhausted simpler classical smoothers.
 
+## Findings
+
+Result: partially confirmed in the pilot stage. Every non-anchor v2 family produced confirmatory-worthy settings with positive mean denoising gain at low noise, and the best non-anchor row beat the frozen anchor-basis reference at every tested `alpha`, but Savitzky-Golay remained the primary-RMSE winner at all four noise levels. The derivative-aware diagnostic keeps confirmatory evaluation necessary because it favors some unselected local-linear settings that the primary handoff rule does not carry forward.
+
+- The committed pilot bundle is internally complete: `metrics_raw.csv` contains `1160` rows, `summary_by_setting.csv` contains `116` grouped rows, and `family_screen.csv` contains `21` screening rows. This matches the declared pilot design because `29` settings evaluated over `40` noisy samples implies `29 * 40 = 1160` raw rows. Provenance: `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/{metrics_raw.csv,summary_by_setting.csv,family_screen.csv,run_manifest.json}`.
+- Pilot screening selected `6` confirmatory finalists from `11/21` gain-eligible non-anchor settings, and no family required the fallback "single best failure-case reference" path. The selected settings are `spline|lambda_rel=1`, `spline|lambda_rel=0.5`, `local_linear|type=tricube|span=11`, `local_linear|type=gaussian|span=11`, `normalized|type=tricube|span=11`, and `normalized|type=gaussian|span=11`. Eligible-setting counts were `3/5` for cubic splines, `4/8` for local-linear regression, and `4/8` for normalized kernel regression. Provenance: `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/family_screen.csv`.
+- Savitzky-Golay still leads on the primary RMSE metric at every tested noise level, but the best non-anchor row is already much stronger than the frozen anchor-basis reference and stays within `14.66460182333849%` of the best Savitzky-Golay RMSE even at its worst pilot slice. The best frozen anchor row is the same setting, `anchor|type=gaussian|M=128|ch=1`, at all four `alpha` values.
+
+| alpha | best Savitzky-Golay | mean RMSE | best non-anchor | mean RMSE | best non-anchor / SG | best non-anchor / anchor |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| 0.02 | `savgol\|w=21\|p=5` | 0.120012 | `spline\|lambda_rel=1` | 0.132752 | 1.106162 | 0.138668 |
+| 0.05 | `savgol\|w=21\|p=3` | 0.274086 | `local_linear\|type=tricube\|span=11` | 0.312081 | 1.138623 | 0.321292 |
+| 0.10 | `savgol\|w=21\|p=3` | 0.492264 | `local_linear\|type=tricube\|span=11` | 0.564453 | 1.146646 | 0.553547 |
+| 0.20 | `savgol\|w=41\|p=5` | 0.882383 | `local_linear\|type=gaussian\|span=21` | 0.943215 | 1.068942 | 0.790292 |
+
+Provenance: `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/summary_by_setting.csv`; inline arithmetic from the same file.
+- No non-anchor family fails the pilot low-noise positive-gain criterion at the family level. Each family has at least one setting with positive mean denoising gain on all four noise levels, while the rejected settings cluster in the over-smoothed regime: spline `lambda_rel in {2, 4}` has `0/4` positive-gain noise levels, both `span=81` local-linear settings have `0/4`, both `span=81` normalized settings have `0/4`, and the `span=41` local-linear/normalized rows range from `1/4` to `2/4`. Provenance: `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/family_screen.csv`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/summary_by_setting.csv`.
+- `derivative_RMSE` changes the provisional story enough that the confirmatory stage should keep reporting it even though the pilot handoff rule stays primary-metric driven. At every `alpha`, the best non-anchor derivative row beats the best derivative-aware Savitzky-Golay row, but the derivative winners at `alpha = 0.10` and `0.20` are eligible `span=21` local-linear settings that were not selected for confirmatory reruns because the pilot rule ranks by average `relative_RMSE` instead.
+
+| alpha | best non-anchor derivative row | mean derivative RMSE | best SG derivative row | mean derivative RMSE | selected for confirmatory |
+| --- | --- | ---: | --- | ---: | --- |
+| 0.02 | `spline\|lambda_rel=1` | 3.985906 | `savgol\|w=21\|p=5` | 4.252440 | yes |
+| 0.05 | `spline\|lambda_rel=1` | 7.616714 | `savgol\|w=21\|p=3` | 7.714158 | yes |
+| 0.10 | `local_linear\|type=gaussian\|span=21` | 11.991120 | `savgol\|w=41\|p=5` | 12.112833 | no |
+| 0.20 | `local_linear\|type=tricube\|span=21` | 17.234338 | `savgol\|w=41\|p=5` | 20.005708 | no |
+
+Provenance: `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/summary_by_setting.csv`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/family_screen.csv`.
+
 ## Changes
 
 2026-04-28 pilot execution completed the first staged artifact bundle under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`.
@@ -119,7 +147,8 @@ I chose normalized kernel regression, local-linear regression, and cubic smoothi
 - The default pilot run was executed inline rather than through `infra/experiment-runner/run.py --detach` because a timed full-command benchmark completed in under the repo's `2` minute threshold.
 - The pilot bundle writes the dataset snapshot, `metrics_raw.csv`, `summary_by_setting.csv`, `family_screen.csv`, `run_manifest.json`, `output.log`, and the three standard comparison plots.
 - `.gitignore` now explicitly unignores `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/{pilot,confirmatory}/plots/*.png` so staged plot artifacts remain portable in git rather than local-only.
-- The overall experiment remains `in_progress`: pilot execution is complete, but pilot analysis and confirmatory execution are still pending.
+- 2026-04-28 pilot analysis named six confirmatory finalists and documented the derivative-metric caveat where two eligible `span=21` local-linear rows beat Savitzky-Golay on `derivative_RMSE` but are not part of the primary-metric finalist handoff.
+- The overall experiment remains `in_progress`: pilot execution and pilot analysis are complete, but confirmatory execution and confirmatory analysis are still pending.
 
 ## Verification
 
@@ -131,3 +160,18 @@ I chose normalized kernel regression, local-linear regression, and cubic smoothi
   Output: `real 28.87`, `user 28.58`, `sys 0.17`
 - `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/{metrics_raw.csv,summary_by_setting.csv,family_screen.csv}` and reading `run_manifest.json`
   Output: `metrics_raw.csv 1160`, `summary_by_setting.csv 116`, `family_screen.csv 21`, and `manifest_counts {'n_family_screen_rows': 21, 'n_rows_expected': 1160, 'n_rows_written': 1160, 'n_samples': 40, 'n_settings': 29, 'n_summary_rows': 116}`. The same manifest recorded repo-relative pilot dataset paths and plot paths under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`.
+- `python - <<'PY' ... PY` summarizing finalist selection, per-noise primary winners, and derivative winners from the pilot CSVs
+  Output:
+  `artifact_counts metrics_raw=1160 summary=116 family_screen=21`
+  `family cubic_smoothing_spline eligible=3/5 selected=2`
+  `family local_linear_regression eligible=4/8 selected=2`
+  `family normalized_kernel_regression eligible=4/8 selected=2`
+  `selected_finalists spline|lambda_rel=1, spline|lambda_rel=0.5, local_linear|type=tricube|span=11, local_linear|type=gaussian|span=11, normalized|type=tricube|span=11, normalized|type=gaussian|span=11`
+  `alpha 0.02 primary sg=savgol|w=21|p=5 rmse=0.120012 non_anchor=spline|lambda_rel=1 rmse=0.132752 ratio_vs_sg=1.106162 ratio_vs_anchor=0.138668`
+  `alpha 0.02 derivative non_anchor=spline|lambda_rel=1 deriv=3.985906 sg=savgol|w=21|p=5 deriv=4.252440 selected=True`
+  `alpha 0.05 primary sg=savgol|w=21|p=3 rmse=0.274086 non_anchor=local_linear|type=tricube|span=11 rmse=0.312081 ratio_vs_sg=1.138623 ratio_vs_anchor=0.321292`
+  `alpha 0.05 derivative non_anchor=spline|lambda_rel=1 deriv=7.616714 sg=savgol|w=21|p=3 deriv=7.714158 selected=True`
+  `alpha 0.10 primary sg=savgol|w=21|p=3 rmse=0.492264 non_anchor=local_linear|type=tricube|span=11 rmse=0.564453 ratio_vs_sg=1.146646 ratio_vs_anchor=0.553547`
+  `alpha 0.10 derivative non_anchor=local_linear|type=gaussian|span=21 deriv=11.991120 sg=savgol|w=41|p=5 deriv=12.112833 selected=False`
+  `alpha 0.20 primary sg=savgol|w=41|p=5 rmse=0.882383 non_anchor=local_linear|type=gaussian|span=21 rmse=0.943215 ratio_vs_sg=1.068942 ratio_vs_anchor=0.790292`
+  `alpha 0.20 derivative non_anchor=local_linear|type=tricube|span=21 deriv=17.234338 sg=savgol|w=41|p=5 deriv=20.005708 selected=False`

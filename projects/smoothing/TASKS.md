@@ -97,13 +97,13 @@
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`
 
-- [ ] Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]
+- [x] Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]
   Why: The pilot must identify which non-anchor settings justify confirmatory reruns and whether any family already fails the low-noise positive-gain criterion.
   Done when: the v2 experiment record names the finalist settings and records the pilot-stage findings with provenance to pilot artifacts.
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`
 
-- [ ] Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute] [blocked-by: v2 pilot analysis]
+- [ ] Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]
   Why: Final recommendations should be based on a larger cluster count than v1 after the pilot has pruned the grid.
   Done when: confirmatory artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/`, and the v2 experiment record captures the confirmatory submission and completion state.
   Priority: medium
