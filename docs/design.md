@@ -1,34 +1,44 @@
-Design rationale for the akari repo structure.
+# Design
 
-## Core premise
+OpenAkari Core treats the repository as the durable memory for recurring agent sessions.
 
-This repo is not just storage — it is the agents' shared brain. Human researchers keep state in their heads; LLM agents lose all state between sessions. Every design choice follows from this asymmetry.
+## Premise
 
-## Agents are not humans
+LLM sessions are stateless. The repo stores what a continuing research assistant needs to know:
 
-| Property | Human researcher | LLM agent | Design implication |
-|---|---|---|---|
-| Memory | Persistent across months | None between sessions | Repo must encode cognitive state explicitly |
-| Context | Can hold an entire project mentally | Limited window, ~100-200 pages | Files must be small, self-contained, and skimmable |
-| Accuracy | Occasionally wrong, knows it | Confidently fabricates | All claims require traceable provenance |
-| Consistency | Builds stable judgment over time | Stochastic, may contradict prior sessions | Decisions must be recorded to prevent re-litigation |
-| Initiative | Self-directed, notices things | Only acts when invoked | Next actions must be written down or they won't happen |
-| Throughput | One person, sequential | Many agents, parallel | Projects must be independent to avoid conflicts |
+- project missions and logs
+- decomposed tasks
+- plans and decisions
+- experiment records
+- artifact locations
+- lightweight budgets
 
-## Key mechanisms
-
-**Log as continuity.** The reverse-chronological log in each project README is the primary mechanism for inter-session memory. An agent reads the last few entries and is immediately oriented. This is cheaper and more robust than maintaining a complex state document.
-
-**Provenance as hallucination defense.** Every factual claim is leashed to a source. This is not academic rigor for its own sake — it is a structural defense against the most dangerous failure mode of autonomous agents.
-
-**Decisions as consistency anchor.** The `decisions/` directory prevents two agents from independently making incompatible choices. Once a choice is recorded, it is the default until explicitly superseded.
-
-**Schemas as convention.** The log, task, SOP, and decision schemas in AGENTS.md reduce the space of choices agents must make. Less freedom means less drift.
+The scheduler and Slack interface are operational helpers around that memory layer.
 
 ## Principles
 
-1. **Everything is plain text.** Diff-friendly, grep-able, LLM-native.
-2. **Projects are self-contained.** An agent pointed at one project directory has full context.
-3. **Projects are memory, modules are execution.** `projects/<project>/` holds research orchestration: plans, tasks, configs, analysis, and write-ups. Project-owned code, scripts, and heavy artifacts live in `modules/<package>/`.
-4. **Shared tooling lives in `infra/`.** Experiment harnesses, data pipelines, and utilities that serve multiple projects live in `infra/`. Package-specific implementation lives in `modules/`, not `projects/`.
-5. **Grow structure on demand.** Don't create directories or files until they're needed. An agent can always create them later.
+1. Plain text first: Markdown and YAML are easy for humans, agents, and git.
+2. Projects are memory: `projects/<project>/` contains coordination and findings.
+3. Modules are execution: `modules/<module>/` contains code and heavy artifacts.
+4. Shared tools live in `infra/`.
+5. Grow structure only when a real project needs it.
+6. Keep the core small enough that a new agent can read it quickly.
+
+## Retained Runtime
+
+The scheduler provides:
+
+- cron or interval jobs
+- persisted job state
+- local session launch
+- optional Slack DM/operator interface
+- status and reports
+
+Experiment tooling provides:
+
+- detached execution
+- progress records
+- artifact placement
+- experiment record validation
+
+Budget tooling is deliberately lightweight: reports read `budget.yaml` and `ledger.yaml`; no external provider audit is part of the core.

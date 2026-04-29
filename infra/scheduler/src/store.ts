@@ -4,7 +4,6 @@ import { readFile, writeFile, mkdir, rename, access } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { Store, Job, JobCreate, Schedule } from "./types.js";
 import { computeNextRunAtMs } from "./schedule.js";
-import { OPENCODE_MODEL } from "./backend.js";
 
 /** Deterministic fingerprint of a schedule for change detection. */
 function scheduleFingerprint(s: Schedule): string {
@@ -28,12 +27,7 @@ type LegacyJobPayload = Job["payload"] & {
 
 function normalizeLegacyPayload(payload: LegacyJobPayload): Job["payload"] {
   const normalized = { ...payload } as LegacyJobPayload;
-  const legacyBackend = typeof normalized.backend === "string" ? normalized.backend : undefined;
   delete normalized.backend;
-
-  if (!normalized.model && legacyBackend === "opencode") {
-    normalized.model = OPENCODE_MODEL;
-  }
 
   return normalized;
 }

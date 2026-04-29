@@ -1,25 +1,15 @@
 #!/usr/bin/env node
-/** CLI for the akari scheduler. Manages cron jobs and runs the scheduler daemon. */
+/** CLI for the trimmed OpenAkari scheduler. */
 
-import { readFileSync, writeFileSync, accessSync, existsSync, unlinkSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  checkForExistingInstance,
-  acquireLock,
-  releaseLock,
-  getSchedulerLockfilePath,
-  isPidAlive,
-} from "./instance-guard.js";
 
-// Load environment variables from two layers:
-//   1. infra/.env        — common vars shared across all akari infra (Databricks, AWS, etc.)
-//   2. infra/scheduler/.env — scheduler-specific vars (Slack tokens, etc.)
-// Scheduler-specific vars override common vars; neither overrides real system env vars.
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(__dirname, "../../..");
+const schedulerStateDir = resolve(repoRoot, ".scheduler");
 const systemEnvKeys = new Set(Object.keys(process.env));
 
-/** Parse a .env file and apply its values to process.env, skipping keys already in system env. */
 function loadEnvFile(path: string): void {
   try {
     const content = readFileSync(path, "utf-8");
@@ -30,18 +20,13 @@ function loadEnvFile(path: string): void {
       if (eq === -1) continue;
       const key = trimmed.slice(0, eq).trim();
       const val = trimmed.slice(eq + 1).trim();
-      if (!systemEnvKeys.has(key)) {
-        process.env[key] = val;
-      }
+      if (!systemEnvKeys.has(key)) process.env[key] = val;
     }
   } catch {
-    // .env files are optional
+    // Optional.
   }
 }
 
-/** Parse .env content and merge into target object, overwriting existing keys.
- *  Used by the restart handler to build a fresh environment for pm2 --update-env,
- *  bypassing PM2's cached environment. */
 export function mergeEnvContent(target: Record<string, string>, content: string): void {
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
@@ -52,106 +37,64 @@ export function mergeEnvContent(target: Record<string, string>, content: string)
   }
 }
 
-loadEnvFile(resolve(__dirname, "../..", ".env"));  // infra/.env (common)
-loadEnvFile(resolve(__dirname, "..", ".env"));     // infra/scheduler/.env (scheduler-specific)
+loadEnvFile(resolve(repoRoot, "infra/.env"));
+loadEnvFile(resolve(repoRoot, "infra/scheduler/.env"));
 
 import { JobStore } from "./store.js";
 import { SchedulerService } from "./service.js";
-import { executeJob, type ExecutionResult } from "./executor.js";
+import { executeJob } from "./executor.js";
 import { getPendingApprovals } from "./notify.js";
 import * as slack from "./slack.js";
-import { clearAll as clearSessions, listSessions } from "./session.js";
-import { readPersistedSessions, clearPersistedSessions } from "./session-persistence.js";
-import { checkBudget } from "./budget-gate.js";
-import { runBurst } from "./burst.js";
-import { diagnoseSession } from "./session-autofix.js";
-import { verifySession, countKnowledgeOutput, countCrossProjectMetrics, countQualityAuditMetrics, getHeadCommit, formatVerification } from "./verify.js";
-import { recordMetrics, generateRunId, type SessionMetrics } from "./metrics.js";
-import { checkPendingEvolution, applyEvolution } from "./evolution.js";
-import { PushQueue } from "./push-queue.js";
-import { startApiServer, stopApiServer } from "./api/server.js";
-import { rebaseAndPush } from "./rebase-push.js";
-import { runScheduledReport, shouldRunReport } from "./report/scheduled.js";
-import { runHealthWatchdog, formatHealthReport } from "./health-watchdog.js";
-import { runInteractionAudit, formatInteractionReport } from "./interaction-audit.js";
-import { runAnomalyDetection, formatAnomalyReport } from "./anomaly-detection.js";
-import { runWarningEscalation, formatEscalationReport } from "./warning-escalation.js";
-import { createHealthTasks } from "./health-tasks.js";
-import { triggerAutoDiagnosis } from "./auto-diagnose.js";
-import { runBranchCleanup, formatCleanupReport } from "./branch-cleanup.js";
-import { runRecurringTasks } from "./recurring-tasks.js";
-import type { Schedule, JobCreate, Job } from "./types.js";
+import { listSessions } from "./session.js";
 import { listExperiments } from "./experiments.js";
-import { wasFullOrient } from "./orient-tier.js";
-import { getUnifiedStatus, formatUnifiedStatus, toStatusExperiment, type StatusSession, type StatusExperiment, type StatusJob } from "./status.js";
-import { getExecutableBursts, markBurstExecuted } from "./approval-burst.js";
-import { resolveRegisteredModulePath } from "./project-modules.js";
+import { getUnifiedStatus, formatUnifiedStatus, toStatusExperiment, type StatusJob } from "./status.js";
+import { startApiServer, stopApiServer } from "./api/server.js";
+import {
+  checkForExistingInstance,
+  acquireLock,
+  releaseLock,
+  getSchedulerLockfilePath,
+  isPidAlive,
+} from "./instance-guard.js";
+import type { Job, JobCreate, Schedule } from "./types.js";
 
 const HELP = `
-akari — Cron scheduler for autonomous agent sessions
+akari — Cron scheduler for OpenAkari Core
 
 Commands:
-  start                     Run the scheduler daemon (foreground)
+  start                     Run the scheduler daemon
   stop                      Stop the running scheduler daemon
-  add <options>             Add a new scheduled job
-  list                      List all jobs
+  add <options>             Add a scheduled job
+  list                      List jobs
   remove <id>               Remove a job
-  run <id>                  Run a job immediately
-  enable <id>               Enable a disabled job
+  run <id>                  Run a job now
+  enable <id>               Enable a job
   disable <id>              Disable a job
-  status                    Show unified status (sessions, experiments, jobs)
-  heartbeat                 Check APPROVAL_QUEUE.md and notify if items pending
-  watchdog                  Run session health checks and notify on anomalies
-  check-health              Ping scheduler API and alert if unresponsive (external monitoring)
-  audit-interactions        Run interaction quality audit and notify on anomalies
-  detect-anomalies          Run statistical outlier detection on session metrics
-  escalate-warnings         Detect recurring verification warnings across sessions
-  burst <options>           Run sessions in a rapid loop until a stop condition
-  cleanup-branches          Delete old session-work-session-* branches from remote
+  status                    Show sessions, experiments, and jobs
+  heartbeat                 Notify Slack if APPROVAL_QUEUE.md has pending items
+  check-health              Ping the scheduler API and optionally notify Slack
 
-Run options (manual runs only; overrides are not persisted):
-  --message <msg>           Override the job prompt for this run only
-  --model <model>           Override the model for this run only
-  --cwd <path>              Override the working directory for this run only
-  --profile <key>           Override agent profile key (e.g. skillCycle)
-  --max-duration-ms <ms>    Override max session duration in ms
+Add options:
+  --name <name>             Job name
+  --cron <expr>             Cron expression, e.g. "0 * * * *"
+  --every <ms>              Interval in milliseconds
+  --tz <timezone>           IANA timezone for cron jobs
+  --message <msg>           Prompt message
+  --message-default         Use the default work-cycle prompt
+  --message-project <name>  Use the project-scoped work-cycle prompt
+  --model <model>           Model name
+  --cwd <dir>               Working directory
 
-Watchdog options:
-  --limit <N>               Analyze last N sessions (default: 20)
-  --notify                  Send Slack DM if issues found
-
-Audit-interactions options:
-  --since <ISO>             Only analyze interactions after this timestamp
-  --notify                  Send Slack DM if issues found
-
-Burst options:
-  --job <name>              Job name to run (required)
-  --max-sessions <N>        Maximum number of sessions (default: 10)
-  --max-cost <C>            Maximum cumulative cost in USD (default: 50)
-  --autofix                 Enable session autofix (diagnose and retry on failure)
-  --autofix-retries <N>     Maximum autofix attempts per burst (default: 3)
-
-Cleanup-branches options:
-  --keep-days <N>           Keep unmerged branches from last N days (default: 7)
-  --dry-run                 Show what would be deleted without deleting
-  --notify                  Send Slack DM with results
+Run options:
+  --message <msg>           Override prompt for this run
+  --model <model>           Override model for this run
+  --cwd <dir>               Override working directory for this run
+  --max-duration-ms <ms>    Override max session duration
 
 Check-health options:
   --url <url>               Scheduler API URL (default: http://localhost:8420)
-  --timeout <ms>            Request timeout in ms (default: 5000)
-  --state-file <path>       State file for tracking consecutive failures (default: /tmp/akari-health-state.json)
-  --notify                  Send Slack DM on failure/recovery
-
-Add options:
-  --name <name>             Job name (required)
-  --cron <expr>             Cron expression, e.g. "0 * * * *" (required unless --every)
-  --every <ms>              Interval in milliseconds (alternative to --cron)
-  --tz <timezone>           IANA timezone for cron (default: local timezone, fallback UTC)
-  --message <msg>           Prompt message for agent session
-  --message-default         Use the default autonomous work-cycle prompt
-  --message-project <name>  Use the project-scoped work-cycle prompt for <name>
-  --model <model>           Model name (e.g. opus, sonnet)
-  --cwd <dir>               Working directory for agent session (default: repo root)
+  --timeout <ms>            Request timeout ms (default: 5000)
+  --notify                  Send Slack DM on failure
 `.trim();
 
 function fail(msg: string): never {
@@ -164,1377 +107,273 @@ function requireArg(val: string | undefined, label: string): string {
   return val;
 }
 
-type VerifySessionResult = Awaited<ReturnType<typeof verifySession>>;
+function parseOptions(args: string[]): Record<string, string | true> {
+  const opts: Record<string, string | true> = {};
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith("--")) continue;
+    const key = arg.slice(2);
+    const next = args[i + 1];
+    if (next && !next.startsWith("--")) {
+      opts[key] = next;
+      i++;
+    } else {
+      opts[key] = true;
+    }
+  }
+  return opts;
+}
 
-async function recordRunMetrics(opts: {
-  job: Job;
-  result: ExecutionResult;
-  headBeforeRaw: string | null;
-}): Promise<{ verification: VerifySessionResult | null }> {
-  const { job, result, headBeforeRaw } = opts;
-  const dir = job.payload.cwd ?? process.cwd();
+function defaultWorkCyclePrompt(): string {
+  return [
+    "Run one OpenAkari work cycle.",
+    "Read AGENTS.md, inspect project README/TASKS files, select one actionable task, execute it, update project memory, verify, and commit the completed logical unit.",
+  ].join("\n");
+}
 
-  // Use post-auto-commit HEAD as the baseline for attribution. This ensures
-  // orphaned files from prior sessions (auto-committed before this session)
-  // are not credited to this session's knowledge metrics.
-  const headBefore = result.headAfterAutoCommit ?? headBeforeRaw;
+function projectWorkCyclePrompt(project: string): string {
+  return [
+    `Run one OpenAkari work cycle scoped to projects/${project}.`,
+    "Read the project README and TASKS, select one actionable task, execute it, update project memory, verify, and commit the completed logical unit.",
+  ].join("\n");
+}
 
-  const verification = await verifySession(
-    dir,
-    headBefore,
-    result.costUsd,
-    result.numTurns,
-    result.durationMs,
-    undefined,
-    result.sleepViolation,
-    result.stallViolation,
-  ).catch((err) => {
-    console.error(`[verify] Error: ${err}`);
-    return null;
-  });
+function formatSchedule(schedule: Schedule): string {
+  if (schedule.kind === "cron") return schedule.tz ? `${schedule.expr} (${schedule.tz})` : schedule.expr;
+  return `every ${schedule.everyMs}ms`;
+}
 
-  const knowledge = await countKnowledgeOutput(dir, headBefore).catch((err) => {
-    console.error(`[verify] Knowledge counting error: ${err}`);
-    return null;
-  });
-
-  const crossProject = await countCrossProjectMetrics(dir, headBefore).catch((err) => {
-    console.error(`[verify] Cross-project metrics error: ${err}`);
-    return null;
-  });
-
-  const qualityAudit = await countQualityAuditMetrics(dir, headBefore).catch((err) => {
-    console.error(`[verify] Quality audit metrics error: ${err}`);
-    return null;
-  });
-
-  const budgetGate = await checkBudget(job).catch(() => null);
-
-  const metrics: SessionMetrics = {
-    timestamp: new Date().toISOString(),
-    jobName: job.name,
-    runId: generateRunId(job.id),
-    triggerSource: result.triggerSource,
-    runtime: result.runtime ?? "codex_cli",
-    durationMs: result.durationMs,
-    costUsd: result.costUsd ?? null,
-    numTurns: result.numTurns ?? null,
-    timedOut: result.timedOut ?? false,
-    ok: result.ok,
-    error: result.error,
-    verification: verification ? {
-      uncommittedFiles: verification.uncommittedFiles.length,
-      orphanedFiles: verification.orphanedFiles.length,
-      hasLogEntry: verification.hasLogEntry,
-      hasCommit: verification.hasCommit,
-      hasCompleteFooter: verification.hasCompleteFooter,
-      ledgerConsistent: verification.ledgerConsistent,
-      filesChanged: verification.filesChanged,
-      commitCount: verification.commitCount,
-      agentCommitCount: verification.agentCommitCount,
-      warningCount: verification.warnings.length,
-      l2ViolationCount: verification.l2ViolationCount,
-      l2ChecksPerformed: verification.l2ChecksPerformed,
-      stallViolationCommand: verification.stallViolationCommand,
-    } : null,
-    knowledge,
-    budgetGate: budgetGate ? { allowed: budgetGate.allowed, reason: budgetGate.reason } : null,
-    modelUsage: result.modelUsage ?? null,
-    toolCounts: result.toolCounts ?? null,
-    orientTurns: result.orientTurns ?? null,
-    crossProject: crossProject ?? null,
-    qualityAudit: qualityAudit ?? null,
-    injectedOrientTier: result.injectedOrientTier ?? null,
-    injectedCompoundTier: result.injectedCompoundTier ?? null,
-    injectedRole: result.injectedRole ?? null,
-    pushQueueResult: result.pushQueueResult,
-    executionMode: result.executionMode ?? "shared",
-    taskRunId: result.taskRunId,
-    reviewRounds: result.reviewRounds,
-    integrationStatus: result.integrationStatus,
+function toStatusJob(job: Job): StatusJob {
+  return {
+    id: job.id,
+    name: job.name,
+    enabled: job.enabled,
+    schedule: formatSchedule(job.schedule),
+    nextRunAtMs: job.state.nextRunAtMs,
+    lastStatus: job.state.lastStatus,
+    lastRunAtMs: job.state.lastRunAtMs,
+    runCount: job.state.runCount,
   };
+}
 
-  await recordMetrics(metrics).catch((err) => {
-    console.error(`[metrics] Failed to record: ${err}`);
+async function buildStatus(daemonState: "running" | "stopped") {
+  const store = new JobStore();
+  await store.load();
+  const experiments = await listExperiments(repoRoot);
+  return getUnifiedStatus({
+    sessions: listSessions(),
+    experiments: experiments.map((e) => toStatusExperiment(e)),
+    jobs: store.list().map(toStatusJob),
+    daemonState,
   });
-
-  if (verification) {
-    const warningText = formatVerification(verification);
-    if (warningText) {
-      console.log(`[verify] Warnings for ${job.name}:\n${warningText}`);
-    }
-  }
-
-  return { verification };
-}
-
-/** Wait for active sessions to complete before restarting.
- *  Polls every second with a 5-minute timeout.
- *  Exported for integration testing. */
-export async function waitForActiveSessions(timeoutMs = 300_000): Promise<void> {
-  const startTime = Date.now();
-  const pollIntervalMs = 1000;
-
-  while (Date.now() - startTime < timeoutMs) {
-    const activeSessions = listSessions();
-
-    if (activeSessions.length === 0) {
-      console.log(`[evolution] All sessions complete, proceeding with restart.`);
-      return;
-    }
-
-    console.log(`[evolution] Waiting for ${activeSessions.length} session(s) to complete...`);
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-  }
-
-  console.warn(`[evolution] Timeout waiting for sessions, proceeding with restart anyway.`);
-}
-
-export function buildDefaultWorkCycleMessage(): string {
-  return "You are an autonomous research agent starting a work session. You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient. Step 2: Select a task. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.";
-}
-
-export function buildProjectWorkCycleMessage(project: string, repoRoot = process.cwd()): string {
-  const modulePath = resolveRegisteredModulePath(repoRoot, project);
-  const scope = modulePath
-    ? `Work in projects/${project} and its registered module ${modulePath} unless you must touch shared infra that directly supports this project.`
-    : `Work only on projects/${project} unless you must touch shared infra that directly supports this project.`;
-  return `You are an autonomous research agent starting a work session on project ${project}. Run /orient ${project}. ${scope} You MUST complete ALL 5 steps of the autonomous work cycle SOP at docs/sops/autonomous-work-cycle.md: Step 1: Run /orient ${project}. Step 2: Select a task from projects/${project}/TASKS.md. Step 3: Classify scope. Step 4: Execute or defer to APPROVAL_QUEUE.md. Step 5: Git commit and log. Do NOT just produce a text report.`;
-}
-
-export function resolveAddMessage(
-  opts: Record<string, string | boolean>,
-  repoRoot = process.cwd(),
-): string {
-  const hasExplicit = typeof opts["message"] === "string";
-  const hasDefault = opts["message-default"] === true;
-  const hasProject = typeof opts["message-project"] === "string";
-  const count = Number(hasExplicit) + Number(hasDefault) + Number(hasProject);
-
-  if (count === 0) {
-    throw new Error("Error: choose one of --message, --message-default, or --message-project.");
-  }
-  if (count > 1) {
-    throw new Error("Choose exactly one of --message, --message-default, or --message-project.");
-  }
-
-  if (hasExplicit) {
-    return String(opts["message"]);
-  }
-  if (hasDefault) {
-    return buildDefaultWorkCycleMessage();
-  }
-  return buildProjectWorkCycleMessage(String(opts["message-project"]), repoRoot);
-}
-
-export function resolveRepoRoot(importMetaUrl = import.meta.url): string {
-  return new URL("../../..", importMetaUrl).pathname.replace(/\/$/, "");
-}
-
-export function resolveAddCwd(
-  opts: Record<string, string | boolean>,
-  importMetaUrl = import.meta.url,
-): string {
-  return getStringFlag(opts, "cwd") ?? resolveRepoRoot(importMetaUrl);
-}
-
-export function resolveLocalCronTimezone(
-  detectTimezone: () => string | undefined = () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-): string {
-  try {
-    const timezone = detectTimezone()?.trim();
-    return timezone ? timezone : "UTC";
-  } catch {
-    return "UTC";
-  }
-}
-
-export function resolveAddSchedule(
-  opts: Record<string, string | boolean>,
-  detectTimezone?: () => string | undefined,
-): Schedule {
-  const cronExpr = getStringFlag(opts, "cron");
-  const everyMs = getStringFlag(opts, "every");
-  if (cronExpr) {
-    return {
-      kind: "cron",
-      expr: cronExpr,
-      tz: getStringFlag(opts, "tz") ?? resolveLocalCronTimezone(detectTimezone),
-    };
-  }
-  if (everyMs) {
-    return { kind: "every", everyMs: parseInt(everyMs, 10) };
-  }
-  throw new Error("Error: --cron or --every is required.");
-}
-
-export interface StopSchedulerOpts {
-  lockfilePath: string;
-  killFn?: (pid: number, signal?: NodeJS.Signals | number) => void;
-  isPidAlive?: (pid: number) => boolean;
-  waitTimeoutMs?: number;
-  pollIntervalMs?: number;
-  sleepFn?: (ms: number) => Promise<void>;
-}
-
-export interface StopSchedulerResult {
-  stopped: boolean;
-  pid?: number;
-  message: string;
-}
-
-export async function stopScheduler(opts: StopSchedulerOpts): Promise<StopSchedulerResult> {
-  const killFn = opts.killFn ?? process.kill.bind(process);
-  const isPidAliveFn = opts.isPidAlive ?? isPidAlive;
-  const waitTimeoutMs = opts.waitTimeoutMs ?? 5_000;
-  const pollIntervalMs = opts.pollIntervalMs ?? 100;
-  const sleepFn = opts.sleepFn ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
-
-  if (!existsSync(opts.lockfilePath)) {
-    return { stopped: false, message: "No running scheduler found." };
-  }
-
-  let pid: number;
-  try {
-    const content = readFileSync(opts.lockfilePath, "utf-8").trim();
-    pid = parseInt(content, 10);
-    if (isNaN(pid)) {
-      unlinkSync(opts.lockfilePath);
-      return { stopped: false, message: "Removed invalid scheduler lockfile." };
-    }
-  } catch (err) {
-    return {
-      stopped: false,
-      message: `Failed to read scheduler lockfile: ${err instanceof Error ? err.message : String(err)}`,
-    };
-  }
-
-  if (!isPidAliveFn(pid)) {
-    try {
-      unlinkSync(opts.lockfilePath);
-    } catch {
-      // best-effort stale lock cleanup
-    }
-    return {
-      stopped: false,
-      pid,
-      message: `Removed stale scheduler lockfile for PID ${pid}.`,
-    };
-  }
-
-  try {
-    killFn(pid, "SIGTERM");
-
-    const deadline = Date.now() + waitTimeoutMs;
-    while (Date.now() < deadline) {
-      const alive = isPidAliveFn(pid);
-      const lockExists = existsSync(opts.lockfilePath);
-      if (!alive) {
-        if (lockExists) {
-          try {
-            unlinkSync(opts.lockfilePath);
-          } catch {
-            // best-effort stale lock cleanup after observed exit
-          }
-        }
-        return {
-          stopped: true,
-          pid,
-          message: `Scheduler PID ${pid} stopped.`,
-        };
-      }
-      if (!lockExists) {
-        return {
-          stopped: true,
-          pid,
-          message: `Scheduler PID ${pid} stopped.`,
-        };
-      }
-      await sleepFn(pollIntervalMs);
-    }
-
-    return {
-      stopped: true,
-      pid,
-      message: `Sent SIGTERM to scheduler PID ${pid}; waiting for graceful shutdown.`,
-    };
-  } catch (err) {
-    return {
-      stopped: false,
-      pid,
-      message: `Failed to stop scheduler PID ${pid}: ${err instanceof Error ? err.message : String(err)}`,
-    };
-  }
 }
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const cmd = args[0];
-
-  if (!cmd || cmd === "help" || cmd === "--help") {
+  if (!cmd || cmd === "--help" || cmd === "-h") {
     console.log(HELP);
     return;
   }
 
-  if (cmd === "start") {
-    await cmdStart();
-  } else if (cmd === "stop") {
-    await cmdStop();
-  } else if (cmd === "add") {
-    await cmdAdd(args.slice(1));
-  } else if (cmd === "list") {
-    await cmdList();
-  } else if (cmd === "remove") {
-    await cmdRemove(requireArg(args[1], "job ID"));
-  } else if (cmd === "run") {
-    await cmdRun(requireArg(args[1], "job ID"), args.slice(2));
-  } else if (cmd === "enable") {
-    await cmdSetEnabled(requireArg(args[1], "job ID"), true);
-  } else if (cmd === "disable") {
-    await cmdSetEnabled(requireArg(args[1], "job ID"), false);
-  } else if (cmd === "status") {
-    await cmdStatus();
-  } else if (cmd === "heartbeat") {
-    await cmdHeartbeat();
-  } else if (cmd === "watchdog") {
-    await cmdWatchdog(args.slice(1));
-  } else if (cmd === "check-health") {
-    await cmdCheckHealth(args.slice(1));
-  } else if (cmd === "audit-interactions") {
-    await cmdAuditInteractions(args.slice(1));
-  } else if (cmd === "detect-anomalies") {
-    await cmdDetectAnomalies(args.slice(1));
-  } else if (cmd === "escalate-warnings") {
-    await cmdEscalateWarnings(args.slice(1));
-  } else if (cmd === "burst") {
-    await cmdBurst(args.slice(1));
-  } else if (cmd === "cleanup-branches") {
-    await cmdCleanupBranches(args.slice(1));
-  } else {
-    console.error(`Unknown command: ${cmd}\n`);
-    console.log(HELP);
-    process.exit(1);
-  }
+  if (cmd === "start") return cmdStart();
+  if (cmd === "stop") return cmdStop();
+  if (cmd === "add") return cmdAdd(args.slice(1));
+  if (cmd === "list") return cmdList();
+  if (cmd === "remove") return cmdRemove(requireArg(args[1], "job ID"));
+  if (cmd === "run") return cmdRun(requireArg(args[1], "job ID"), args.slice(2));
+  if (cmd === "enable") return cmdSetEnabled(requireArg(args[1], "job ID"), true);
+  if (cmd === "disable") return cmdSetEnabled(requireArg(args[1], "job ID"), false);
+  if (cmd === "status") return cmdStatus();
+  if (cmd === "heartbeat") return cmdHeartbeat();
+  if (cmd === "check-health") return cmdCheckHealth(args.slice(1));
+  return fail(`Unknown command: ${cmd}\n\n${HELP}`);
 }
 
 async function cmdStart(): Promise<void> {
-  clearSessions();
-
-  const schedulerDir = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
-  const persistBaseDir = new URL("../../../.scheduler", import.meta.url).pathname;
-
-  // Duplicate instance guard: refuse to start if another scheduler is running
-  const lockfilePath = getSchedulerLockfilePath(persistBaseDir);
-  const instanceCheck = checkForExistingInstance(lockfilePath);
-  if (!instanceCheck.canStart) {
-    console.error(`[startup] ${instanceCheck.message}`);
-    process.exit(1);
-  }
-  console.log(`[startup] ${instanceCheck.message}`);
-  acquireLock(lockfilePath);
-
-  // Set up living message disk persistence directory
-  slack.setPersistenceDir(persistBaseDir);
-
-  // Track HEAD before each job for verification
-  const headBeforeMap = new Map<string, string | null>();
-
-  let evolutionInProgress = false;
-  let burstInProgress = false;
-
-  // Startup: warn about stale failed evolution artifacts
-  try {
-    accessSync(join(schedulerDir, ".failed-evolution.json"));
-    console.warn(`[evolution] WARNING: .failed-evolution.json exists — a previous evolution attempt failed. Check the file for details.`);
-  } catch { /* no failed evolution, normal */ }
-
-  // Startup crash detection: if we restarted very recently, skip evolution checks
-  // for a cooldown period to break potential crash loops from broken compiled JS.
-  const STARTUP_COOLDOWN_MS = 30_000;
-  const startupTimePath = join(schedulerDir, ".last-startup-ms");
-  let skipEvolutionUntil = 0;
-  try {
-    const lastStartupStr = readFileSync(startupTimePath, "utf-8");
-    const lastStartupMs = parseInt(lastStartupStr, 10);
-    const timeSinceLastStartup = Date.now() - lastStartupMs;
-    if (timeSinceLastStartup < STARTUP_COOLDOWN_MS) {
-      console.warn(`[evolution] Process restarted ${timeSinceLastStartup}ms after last startup — possible crash loop. Skipping evolution checks for ${STARTUP_COOLDOWN_MS / 1000}s.`);
-      skipEvolutionUntil = Date.now() + STARTUP_COOLDOWN_MS;
-    }
-  } catch { /* first startup or file missing */ }
-  writeFileSync(startupTimePath, String(Date.now()));
-
-  const pushQueue = new PushQueue();
-  console.log(`[startup] Push queue initialized`);
-
-  const repoRootForService = schedulerDir.replace(/\/infra\/scheduler$/, "");
+  const lockfile = getSchedulerLockfilePath(schedulerStateDir);
+  const check = checkForExistingInstance(lockfile);
+  if (!check.canStart) fail(check.message);
+  acquireLock(lockfile);
 
   const service = new SchedulerService({
-    repoDir: repoRootForService,
-    isPushQueueBusy: () => pushQueue.isProcessing(),
-    onBeforeRun: async (job) => {
-      // Budget gate
-      const gate = await checkBudget(job);
-      if (!gate.allowed) {
-        console.log(`[budget-gate] Blocking job ${job.name}: ${gate.reason}`);
-        await slack.notifyBudgetBlocked(job.name, gate.reason ?? "budget exhausted");
-        return false;
-      }
-
-      // Record HEAD before session for verification diff
-      const cwd = job.payload.cwd ?? process.cwd();
-      const head = await getHeadCommit(cwd);
-      headBeforeMap.set(job.id, head);
-
-      return true;
-    },
-
-    onAfterRun: async (job, result) => {
-      const dir = job.payload.cwd ?? process.cwd();
-      const headBeforeRaw = headBeforeMap.get(job.id) ?? null;
-      headBeforeMap.delete(job.id);
-
-      await recordRunMetrics({ job, result, headBeforeRaw });
-
-      // Update orient/compound tier timestamps (ADR 0030)
-      if (result.ok) {
-        const tierPatch: Record<string, unknown> = {};
-        if (result.ranFullOrient) {
-          tierPatch.lastFullOrientAt = Date.now();
-          console.log(`[orient-tier] Full orient detected (${result.orientTurns} turns) — updating lastFullOrientAt`);
-        }
-        if (result.injectedCompoundTier === "full" && !result.timedOut) {
-          tierPatch.lastFullCompoundAt = Date.now();
-        }
-        if (Object.keys(tierPatch).length > 0) {
-          const store = service.getStore();
-          await store.updateState(job.id, tierPatch as any);
-        }
-      }
-
-      // Check approvals
-      const approvals = await getPendingApprovals(dir);
-      if (approvals.length > 0) {
-        console.log(`[${new Date().toISOString()}] ${approvals.length} pending approval(s) in APPROVAL_QUEUE.md`);
-        for (const a of approvals) {
-          console.log(`  - ${a.title} (${a.project}) [${a.type}]`);
-        }
-      }
-    },
-
-    onTick: async (dueCount) => {
-      // Check for pending self-evolution (skip if already applying or burst running
-      // — prevents overlapping ticks from spawning concurrent evolution attempts,
-      // and prevents interrupting active burst sessions)
-      if (!evolutionInProgress && !burstInProgress && Date.now() >= skipEvolutionUntil) {
-        const evo = await checkPendingEvolution(schedulerDir).catch(() => ({
-          shouldRestart: false as const,
-        }));
-        if (evo.shouldRestart && !service.isDraining()) {
-          console.log(`[evolution] Pending evolution detected: ${evo.description}`);
-          console.log(`[evolution] Starting drain before applying evolution...`);
-          evolutionInProgress = true;
-          try {
-            const ok = await applyEvolution(schedulerDir);
-            if (ok) {
-              console.log(`[evolution] Build succeeded, draining before restart...`);
-              await slack.notifyEvolution(evo.description ?? "scheduler self-evolution");
-              await service.startDrain();
-              // Wait for active sessions and living messages before exiting
-              await waitForActiveSessions();
-              process.exit(0); // pm2 restarts
-            } else {
-              console.error(`[evolution] Build failed, skipping restart`);
-            }
-          } finally {
-            evolutionInProgress = false;
-          }
-        } else if ("error" in evo && evo.error) {
-          console.log(`[evolution] Check: ${evo.error}`);
-        }
-      }
-
-      // Burst-after-approval: check for approved burst requests on every tick
-      if (!burstInProgress && !service.isDraining()) {
-        const monitorDir = schedulerDir.replace(/\/infra\/scheduler$/, "");
-        getExecutableBursts(monitorDir).then(async (bursts) => {
-          if (bursts.length === 0 || burstInProgress) return;
-          const burst = bursts[0];
-          const store = service.getStore();
-          await store.load();
-          const job = store.list().find((j) => j.name === burst.job);
-          if (!job) {
-            console.log(`[approval-burst] Job "${burst.job}" not found, skipping burst`);
-            await markBurstExecuted(monitorDir, burst);
-            return;
-          }
-
-          burstInProgress = true;
-          console.log(`[approval-burst] Executing approved burst: job="${burst.job}", max-sessions=${burst.maxSessions}, max-cost=$${burst.maxCost}`);
-          await slack.dm(
-            `:rocket: *Burst mode triggered by approval:*\n` +
-            `Job: ${burst.job}, Sessions: ${burst.maxSessions}, Cost cap: $${burst.maxCost}` +
-            (burst.autofix ? `, Autofix: on (${burst.autofixRetries} retries)` : ""),
-          );
-
-          try {
-            const repoDir = job.payload.cwd ?? monitorDir;
-            const burstResult = await runBurst({
-              job,
-              maxSessions: burst.maxSessions,
-              maxCost: burst.maxCost,
-              execute: executeJob,
-              onSessionComplete: (num, sessionResult, totalCost) => {
-                const status = sessionResult.ok ? "ok" : "error";
-                const cost = sessionResult.costUsd?.toFixed(2) ?? "n/a";
-                console.log(`[approval-burst] Session ${num} complete: ${status}, cost=$${cost}, cumulative=$${totalCost.toFixed(2)}`);
-              },
-              ...(burst.autofix ? {
-                autofix: {
-                  maxRetries: burst.autofixRetries,
-                  diagnose: (diagOpts) => diagnoseSession({ ...diagOpts, repoDir }),
-                  repoDir,
-                },
-              } : {}),
-            });
-
-            await markBurstExecuted(monitorDir, burst);
-            const summary =
-              `:checkered_flag: *Burst complete:*\n` +
-              `Sessions: ${burstResult.sessionsRun}, Cost: $${burstResult.totalCost.toFixed(2)}, ` +
-              `Duration: ${Math.round(burstResult.totalDurationMs / 1000)}s, Stop reason: ${burstResult.stopReason}` +
-              (burstResult.autofixAttempts > 0 ? `, Autofix attempts: ${burstResult.autofixAttempts}` : "");
-            await slack.dm(summary);
-            console.log(`[approval-burst] Burst finished: ${burstResult.stopReason}`);
-          } catch (err) {
-            console.error(`[approval-burst] Burst failed:`, err);
-            await slack.dm(`:x: *Burst failed:* ${err instanceof Error ? err.message : String(err)}`);
-          } finally {
-            burstInProgress = false;
-          }
-        }).catch((err) => {
-          console.error(`[approval-burst] Error checking bursts: ${err}`);
-        });
-      }
-
-      // Scheduled reports (checked every tick, fires on matching cron)
-      const dailyCron = process.env.REPORT_DAILY_CRON;
-      const weeklyCron = process.env.REPORT_WEEKLY_CRON;
-      const now = new Date();
-      if (dailyCron && shouldRunReport(dailyCron, now)) {
-        runScheduledReport("operational", schedulerDir.replace(/\/infra\/scheduler$/, ""), slack.dmBlocks).catch(
-          (err) => console.error(`[scheduled-report] Daily failed: ${err}`),
-        );
-      }
-      if (weeklyCron && shouldRunReport(weeklyCron, now)) {
-        runScheduledReport("research", schedulerDir.replace(/\/infra\/scheduler$/, ""), slack.dmBlocks).catch(
-          (err) => console.error(`[scheduled-report] Weekly failed: ${err}`),
-        );
-      }
-
-      // Scheduled branch cleanup (weekly, default Monday 00:00 UTC)
-      const branchCleanupCron = process.env.BRANCH_CLEANUP_CRON || "Mon 00:00";
-      if (shouldRunReport(branchCleanupCron, now)) {
-        console.log("[branch-cleanup] Running scheduled branch cleanup...");
-        const repoDir = schedulerDir.replace(/\/infra\/scheduler$/, "");
-        runBranchCleanup(repoDir, { keepDays: 7, dryRun: false })
-          .then((result) => {
-            if (result.deleted.length > 0) {
-              console.log(`[branch-cleanup] Deleted ${result.deleted.length} branch(es)`);
-            } else {
-              console.log("[branch-cleanup] No branches to delete");
-            }
-          })
-          .catch((err) => console.error(`[branch-cleanup] Failed: ${err}`));
-      }
-
-      // Proactive recurring task generation (weekly, default Sunday 00:00 UTC)
-      // Generates maintenance tasks when fleet supply is low
-      const recurringCron = process.env.RECURRING_TASKS_CRON || "Sun 00:00";
-      if (shouldRunReport(recurringCron, now)) {
-        console.log("[recurring-tasks] Running scheduled recurring task generation...");
-        const repoDir = schedulerDir.replace(/\/infra\/scheduler$/, "");
-        runRecurringTasks({ cwd: repoDir })
-          .then((result) => {
-            if (result.injected > 0) {
-              console.log(`[recurring-tasks] ${result.reason}, injected ${result.injected} task(s)`);
-            } else {
-              console.log(`[recurring-tasks] ${result.reason}`);
-            }
-          })
-          .catch((err) => console.error(`[recurring-tasks] Failed: ${err}`));
-      }
-
-      // Health monitoring — runs every 6 hours (at 0, 6, 12, 18 UTC on minute 0)
-      // All three systems (watchdog, anomaly, escalation) run in parallel.
-      // After all complete, combined signals are evaluated for auto-diagnosis.
-      const monitoringRepoDir = schedulerDir.replace(/\/infra\/scheduler$/, "");
-      if (now.getUTCMinutes() === 0 && now.getUTCHours() % 6 === 0) {
-        const healthPromise = runHealthWatchdog({ limit: 20, repoDir: monitoringRepoDir })
-          .then(({ checks }) => {
-            if (checks.length > 0) {
-              const { summary, details } = formatHealthReport(checks);
-              console.log(`[health-watchdog] ${checks.length} issue(s) detected`);
-              slack.dm(summary).then((ts) => {
-                if (ts) slack.dmThread(ts, details);
-              }).catch((err) =>
-                console.error(`[health-watchdog] Slack notification failed: ${err}`),
-              );
-              createHealthTasks({ repoDir: monitoringRepoDir, healthChecks: checks }).then((n) => {
-                if (n > 0) console.log(`[health-tasks] ${n} task(s) created from health watchdog`);
-              }).catch((err) => console.error(`[health-tasks] Error: ${err}`));
-            } else {
-              console.log(`[health-watchdog] All clear`);
-            }
-            return checks;
-          })
-          .catch((err) => { console.error(`[health-watchdog] Error: ${err}`); return []; });
-
-        const anomalyPromise = runAnomalyDetection({ limit: 20 })
-          .then(({ anomalies }) => {
-            if (anomalies.length > 0) {
-              const { summary, details } = formatAnomalyReport(anomalies);
-              console.log(`[anomaly-detection] ${anomalies.length} outlier(s) detected`);
-              slack.dm(summary).then((ts) => {
-                if (ts) slack.dmThread(ts, details);
-              }).catch((err) =>
-                console.error(`[anomaly-detection] Slack notification failed: ${err}`),
-              );
-              createHealthTasks({ repoDir: monitoringRepoDir, anomalies }).then((n) => {
-                if (n > 0) console.log(`[health-tasks] ${n} task(s) created from anomaly detection`);
-              }).catch((err) => console.error(`[health-tasks] Error: ${err}`));
-            } else {
-              console.log(`[anomaly-detection] All clear`);
-            }
-            return anomalies;
-          })
-          .catch((err) => { console.error(`[anomaly-detection] Error: ${err}`); return []; });
-
-        const escalationPromise = runWarningEscalation({ limit: 20 })
-          .then(({ escalations }) => {
-            if (escalations.length > 0) {
-              const { summary, details } = formatEscalationReport(escalations);
-              console.log(`[warning-escalation] ${escalations.length} recurring warning(s) detected`);
-              slack.dm(summary).then((ts) => {
-                if (ts) slack.dmThread(ts, details);
-              }).catch((err) =>
-                console.error(`[warning-escalation] Slack notification failed: ${err}`),
-              );
-              createHealthTasks({ repoDir: monitoringRepoDir, escalations }).then((n) => {
-                if (n > 0) console.log(`[health-tasks] ${n} task(s) created from warning escalation`);
-              }).catch((err) => console.error(`[health-tasks] Error: ${err}`));
-            } else {
-              console.log(`[warning-escalation] All clear`);
-            }
-            return escalations;
-          })
-          .catch((err) => { console.error(`[warning-escalation] Error: ${err}`); return []; });
-
-        // After all monitoring completes, evaluate for auto-diagnosis
-        Promise.all([healthPromise, anomalyPromise, escalationPromise])
-          .then(async ([healthChecks, anomalies, escalations]) => {
-            const sessionId = await triggerAutoDiagnosis({
-              healthChecks,
-              anomalies,
-              escalations,
-              repoDir: monitoringRepoDir,
-            });
-            if (sessionId) {
-              console.log(`[auto-diagnose] Diagnosis session started: ${sessionId}`);
-            }
-          })
-          .catch((err) => console.error(`[auto-diagnose] Error: ${err}`));
-      }
-
-      // Interaction quality audit — runs every 12 hours (at 3, 15 UTC on minute 0)
-      // Offset from watchdog to spread load.
-      if (now.getUTCMinutes() === 0 && (now.getUTCHours() === 3 || now.getUTCHours() === 15)) {
-        // Analyze last 24h of interactions
-        const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-        runInteractionAudit({ since: since24h })
-          .then(({ checks, stats }) => {
-            if (checks.length > 0) {
-              const { summary, details } = formatInteractionReport(checks, stats);
-              console.log(`[interaction-audit] ${checks.length} issue(s) detected`);
-              slack.dm(summary).then((ts) => {
-                if (ts) slack.dmThread(ts, details);
-              }).catch((err) =>
-                console.error(`[interaction-audit] Slack notification failed: ${err}`),
-              );
-              createHealthTasks({ repoDir: monitoringRepoDir, interactionChecks: checks }).then((n) => {
-                if (n > 0) console.log(`[health-tasks] ${n} task(s) created from interaction audit`);
-              }).catch((err) => console.error(`[health-tasks] Error: ${err}`));
-            } else {
-              console.log(`[interaction-audit] All clear (${stats.totalRecords} interactions, ${stats.fulfillmentRate}% fulfilled)`);
-            }
-          })
-          .catch((err) => console.error(`[interaction-audit] Error: ${err}`));
-      }
+    onAfterRun: async (_job, _result) => {
+      // Notifications are sent by executeJob; this hook is reserved for future
+      // retained core metrics.
     },
   });
-  await service.start();
 
-  // Start Slack bot alongside scheduler.
-  // Derive repoDir: prefer any job's cwd, fall back to repo root (3 levels up from dist/cli.js).
-  const store = service.getStore();
-  const anyJob = store.list().find((j) => j.payload.cwd);
-  const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
-  const repoDir = anyJob?.payload.cwd ?? repoRoot;
-  console.log(`[startup] repoDir=${repoDir} (from ${anyJob ? "job config" : "computed repo root"})`);
-  await slack.startSlackBot({ repoDir, store });
-
-  await startApiServer({
-    repoDir,
-    getStatus: async () => {
-      const sessions: StatusSession[] = listSessions().map((s) => ({
-        id: s.id,
-        jobName: s.jobName,
-        startedAtMs: s.startedAtMs,
-        elapsedMs: Date.now() - s.startedAtMs,
-        costUsd: s.costUsd,
-        numTurns: s.numTurns,
-        modelUsage: s.modelUsage,
-        lastActivity: s.lastActivity,
-      }));
-
-      const experiments: StatusExperiment[] = (await listExperiments(repoDir)).map((e) => {
-        return toStatusExperiment(e);
-      });
-
-      const jobs: StatusJob[] = store.list().map((j) => ({
-        id: j.id,
-        name: j.name,
-        enabled: j.enabled,
-        schedule: j.schedule.kind === "cron" ? j.schedule.expr : `every ${j.schedule.everyMs}ms`,
-        nextRunAtMs: j.state.nextRunAtMs,
-        lastStatus: j.state.lastStatus,
-        lastRunAtMs: j.state.lastRunAtMs,
-        runCount: j.state.runCount,
-      }));
-
-      return getUnifiedStatus({ sessions, experiments, jobs, daemonState: "running" });
-    },
-    pushQueue,
-    executePush: async (req) => {
-      const result = await rebaseAndPush(req.cwd, req.sessionId);
-      return { ...result, sessionId: req.sessionId, waitMs: 0, queueDepth: 0 };
-    },
-    port: parseInt(process.env["SCHEDULER_PORT"] ?? "8420", 10),
-  });
-
-  // Recover interrupted deep work sessions from previous run
-  try {
-    const stale = await readPersistedSessions(persistBaseDir);
-    if (stale.length > 0) {
-      console.log(`[startup] Found ${stale.length} interrupted deep work session(s)`);
-      for (const s of stale) {
-        const [, threadTs] = s.threadKey.split(":");
-        const msg = `:warning: *Deep work session interrupted by restart.*\nTask: ${s.task}\nCheck recent git log for committed work.`;
-        if (threadTs) {
-          await slack.dmThread(threadTs, msg);
-        } else {
-          await slack.dm(msg);
-        }
-        console.log(`[startup] Notified thread ${s.threadKey} about interrupted session ${s.sessionId}`);
-      }
-      await clearPersistedSessions(persistBaseDir);
-    }
-  } catch (err) {
-    console.error(`[startup] Failed to recover persisted sessions: ${err}`);
-  }
-
-  const shutdown = async (signal: string) => {
-    console.log(`[shutdown] Received ${signal}, starting graceful drain...`);
-    await service.startDrain();
+  const shutdown = async () => {
     service.stop();
-    await stopApiServer();
-    await slack.stopSlackBot();
-    releaseLock(lockfilePath);
+    await stopApiServer().catch(() => {});
+    releaseLock(lockfile);
     process.exit(0);
   };
-  process.on("SIGINT", () => { shutdown("SIGINT"); });
-  process.on("SIGTERM", () => { shutdown("SIGTERM"); });
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 
-  // Keep alive
-  await new Promise(() => {});
+  await slack.startSlackBot({ repoDir: repoRoot }).catch((err) => {
+    console.error(`[slack] Failed to start: ${err}`);
+  });
+  const apiPort = await startApiServer({
+    getStatus: () => buildStatus("running"),
+  });
+  console.log(`[api] Listening on http://127.0.0.1:${apiPort}`);
+  await service.start();
+}
+
+export async function stopScheduler(): Promise<{ ok: boolean; message: string; pid?: number }> {
+  const lockfile = getSchedulerLockfilePath(schedulerStateDir);
+  if (!existsSync(lockfile)) return { ok: true, message: "Scheduler is not running" };
+  const pid = Number(readFileSync(lockfile, "utf-8").trim());
+  if (!Number.isFinite(pid) || !isPidAlive(pid)) {
+    releaseLock(lockfile);
+    return { ok: true, message: "Removed stale scheduler lockfile" };
+  }
+  process.kill(pid, "SIGTERM");
+  return { ok: true, message: `Sent SIGTERM to scheduler PID ${pid}`, pid };
 }
 
 async function cmdStop(): Promise<void> {
-  const persistBaseDir = new URL("../../../.scheduler", import.meta.url).pathname;
-  const lockfilePath = getSchedulerLockfilePath(persistBaseDir);
-  const result = await stopScheduler({ lockfilePath });
+  const result = await stopScheduler();
   console.log(result.message);
 }
 
 async function cmdAdd(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const name = getStringFlag(opts, "name");
-  const cwd = resolveAddCwd(opts);
-  let message: string;
-
-  if (!name) {
-    return fail("Error: --name is required.");
-  }
-  try {
-    message = resolveAddMessage(opts, cwd);
-  } catch (err) {
-    return fail(err instanceof Error ? err.message : String(err));
-  }
+  const opts = parseOptions(args);
+  const name = String(opts.name ?? "");
+  if (!name) fail("Error: --name required.");
 
   let schedule: Schedule;
-  try {
-    schedule = resolveAddSchedule(opts);
-  } catch (err) {
-    return fail(err instanceof Error ? err.message : String(err));
+  if (typeof opts.cron === "string") {
+    schedule = { kind: "cron", expr: opts.cron, ...(typeof opts.tz === "string" ? { tz: opts.tz } : {}) };
+  } else if (typeof opts.every === "string") {
+    schedule = { kind: "every", everyMs: Number(opts.every), anchorMs: Date.now() };
+  } else {
+    fail("Error: --cron or --every required.");
   }
 
-  const input: JobCreate = {
-    name,
-    schedule,
-    payload: {
-      message,
-      model: getStringFlag(opts, "model"),
-      cwd,
-    },
+  let message: string;
+  if (opts["message-default"] === true) message = defaultWorkCyclePrompt();
+  else if (typeof opts["message-project"] === "string") message = projectWorkCyclePrompt(opts["message-project"]);
+  else if (typeof opts.message === "string") message = opts.message;
+  else fail("Error: provide --message, --message-default, or --message-project.");
+
+  const payload = {
+    message,
+    ...(typeof opts.model === "string" ? { model: opts.model } : {}),
+    cwd: typeof opts.cwd === "string" ? resolve(opts.cwd) : repoRoot,
   };
-
+  const input: JobCreate = { name, schedule, payload };
   const store = new JobStore();
-  await store.load();
   const job = await store.add(input);
-
-  console.log(`Job added: ${job.name} (${job.id})`);
-  if (job.state.nextRunAtMs) {
-    console.log(`Next run: ${new Date(job.state.nextRunAtMs).toISOString()}`);
-  }
+  console.log(`Added job ${job.name} (${job.id})`);
 }
 
 async function cmdList(): Promise<void> {
   const store = new JobStore();
   await store.load();
-  const jobs = store.list();
-
-  if (jobs.length === 0) {
-    console.log("No jobs configured.");
-    return;
-  }
-
-  for (const job of jobs) {
-    const enabled = job.enabled ? "enabled" : "disabled";
-    const scheduleStr =
-      job.schedule.kind === "cron"
-        ? `cron: ${job.schedule.expr} (${job.schedule.tz ?? "UTC"})`
-        : `every: ${job.schedule.everyMs}ms`;
-    const nextRun = job.state.nextRunAtMs
-      ? new Date(job.state.nextRunAtMs).toISOString()
-      : "none";
-    const lastStatus = job.state.lastStatus ?? "never run";
-
-    console.log(`${job.id}  ${job.name}  [${enabled}]`);
-    console.log(`  Schedule: ${scheduleStr}`);
-    console.log(`  Next run: ${nextRun}`);
-    console.log(`  Last: ${lastStatus} (${job.state.runCount} runs)`);
-    console.log(`  Message: ${job.payload.message.slice(0, 80)}...`);
-    console.log();
+  for (const job of store.list()) {
+    const state = job.enabled ? "enabled" : "disabled";
+    console.log(`${job.id}\t${job.name}\t${state}\t${formatSchedule(job.schedule)}\tnext=${job.state.nextRunAtMs ?? "none"}`);
   }
 }
 
 async function cmdRemove(id: string): Promise<void> {
   const store = new JobStore();
-  await store.load();
-  const removed = await store.remove(id);
-  console.log(removed ? `Job ${id} removed.` : `Job ${id} not found.`);
+  const ok = await store.remove(id);
+  if (!ok) fail(`Job not found: ${id}`);
+  console.log(`Removed ${id}`);
 }
 
-async function cmdRun(id: string, extraArgs: string[]): Promise<void> {
+async function cmdRun(id: string, args: string[]): Promise<void> {
   const store = new JobStore();
   await store.load();
   const job = store.get(id);
-  if (!job) return fail(`Job ${id} not found.`);
-  const runOpts = {} as Record<string, string | boolean>;
-
-  // Optional manual-run overrides (not persisted to the job definition).
-  // This is primarily for fast E2E verification without waiting for the next
-  // cron tick or running a full-length work session.
-  //
-  // Supported flags:
-  //   --message <text>
-  //   --model <model>
-  //   --cwd <path>
-  //   --profile <AGENT_PROFILES key>
-  //   --max-duration-ms <ms>
-  //
-  // Note: flags are parsed from argv after the job ID: `akari run <id> --max-duration-ms 60000`
-  if (extraArgs.length > 0) Object.assign(runOpts, parseFlags(extraArgs));
-
-  const maxDurationMsOverrideRaw = runOpts["max-duration-ms"];
-  const maxDurationMsOverride = typeof maxDurationMsOverrideRaw === "string"
-    ? parseInt(maxDurationMsOverrideRaw, 10)
-    : undefined;
-  if (maxDurationMsOverrideRaw != null && (maxDurationMsOverride == null || isNaN(maxDurationMsOverride) || maxDurationMsOverride <= 0)) {
-    return fail("Error: --max-duration-ms must be a positive integer.");
-  }
-
-  const runJob = {
+  if (!job) fail(`Job not found: ${id}`);
+  const opts = parseOptions(args);
+  const runJob: Job = {
     ...job,
     payload: {
       ...job.payload,
-      message: typeof runOpts["message"] === "string" ? runOpts["message"] : job.payload.message,
-      model: typeof runOpts["model"] === "string" ? runOpts["model"] : job.payload.model,
-      cwd: typeof runOpts["cwd"] === "string" ? runOpts["cwd"] : job.payload.cwd,
-      profile: typeof runOpts["profile"] === "string" ? runOpts["profile"] : job.payload.profile,
-      maxDurationMs: maxDurationMsOverride ?? job.payload.maxDurationMs,
+      ...(typeof opts.message === "string" ? { message: opts.message } : {}),
+      ...(typeof opts.model === "string" ? { model: opts.model } : {}),
+      ...(typeof opts.cwd === "string" ? { cwd: resolve(opts.cwd) } : {}),
+      ...(typeof opts["max-duration-ms"] === "string" ? { maxDurationMs: Number(opts["max-duration-ms"]) } : {}),
     },
   };
-
-  // Start Slack bot so session notifications work for manual runs too
-  const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
-  const repoDir = runJob.payload.cwd ?? repoRoot;
-  if (slack.isConfigured()) {
-    await slack.startSlackBot({ repoDir, store });
-    console.log(`[run] Slack bot connected for notifications.`);
-  }
-
-  const overrideParts: string[] = [];
-  if (runJob.payload.message !== job.payload.message) overrideParts.push("message");
-  if (runJob.payload.model !== job.payload.model) overrideParts.push(`model=${runJob.payload.model}`);
-  if (runJob.payload.cwd !== job.payload.cwd) overrideParts.push(`cwd=${runJob.payload.cwd}`);
-  if (runJob.payload.profile !== job.payload.profile && runJob.payload.profile) overrideParts.push(`profile=${runJob.payload.profile}`);
-  if (runJob.payload.maxDurationMs !== job.payload.maxDurationMs && runJob.payload.maxDurationMs) overrideParts.push(`maxDurationMs=${runJob.payload.maxDurationMs}`);
-
-  console.log(`Running job: ${job.name} (${job.id})...${overrideParts.length ? ` (overrides: ${overrideParts.join(", ")})` : ""}`);
-  const headBeforeRaw = await getHeadCommit(repoDir).catch(() => null);
   const result = await executeJob(runJob, "manual");
-  console.log(
-    `\nResult: ${result.ok ? "ok" : "error"} (${Math.round(result.durationMs / 1000)}s)`,
-  );
-  if (result.error) {
-    console.log(`Error: ${result.error}`);
-  }
-  if (result.logFile) {
-    console.log(`Log: ${result.logFile}`);
-  }
-
-  await store.updateState(id, {
+  await store.updateState(job.id, {
     lastRunAtMs: Date.now(),
     lastStatus: result.ok ? "ok" : "error",
     lastError: result.error ?? null,
     lastDurationMs: result.durationMs,
     runCount: job.state.runCount + 1,
   });
-
-  // Manual runs should still record structured metrics so verification is
-  // visible in sessions.jsonl (enables E2E checks without waiting for cron).
-  await recordRunMetrics({ job: runJob as Job, result, headBeforeRaw });
-
-  await slack.stopSlackBot();
+  console.log(result.ok ? "ok" : "error");
+  if (result.logFile) console.log(`Log: ${result.logFile}`);
+  if (result.error) console.error(result.error);
 }
 
 async function cmdSetEnabled(id: string, enabled: boolean): Promise<void> {
   const store = new JobStore();
-  await store.load();
   await store.setEnabled(id, enabled);
-  console.log(`Job ${id} ${enabled ? "enabled" : "disabled"}.`);
+  console.log(`${enabled ? "Enabled" : "Disabled"} ${id}`);
 }
 
 async function cmdStatus(): Promise<void> {
-  const store = new JobStore();
-  await store.load();
-
-  const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
-  const persistBaseDir = new URL("../../../.scheduler", import.meta.url).pathname;
-  const lockfilePath = getSchedulerLockfilePath(persistBaseDir);
-  const daemonState = checkForExistingInstance(lockfilePath).canStart ? "stopped" : "running";
-
-  // Gather sessions (in-memory — only populated when scheduler is running)
-  const sessions: StatusSession[] = listSessions().map((s) => ({
-    id: s.id,
-    jobName: s.jobName,
-    startedAtMs: s.startedAtMs,
-    elapsedMs: s.elapsedMs,
-    costUsd: s.costUsd,
-    numTurns: s.numTurns,
-    modelUsage: s.modelUsage,
-    lastActivity: s.lastActivity,
-  }));
-
-  // Gather experiments from disk
-  const allExperiments = await listExperiments(repoRoot);
-  const experiments: StatusExperiment[] = allExperiments.map((e) => toStatusExperiment(e));
-
-  // Gather jobs
-  const jobs: StatusJob[] = store.list().map((j) => ({
-    id: j.id,
-    name: j.name,
-    enabled: j.enabled,
-    schedule: j.schedule.kind === "cron" ? j.schedule.expr : `every ${j.schedule.everyMs}ms`,
-    nextRunAtMs: j.state.nextRunAtMs,
-    lastStatus: j.state.lastStatus,
-    lastRunAtMs: j.state.lastRunAtMs,
-    runCount: j.state.runCount,
-  }));
-
-  const status = getUnifiedStatus({ sessions, experiments, jobs, daemonState });
-  console.log(formatUnifiedStatus(status));
+  console.log(formatUnifiedStatus(await buildStatus("stopped")));
 }
 
 async function cmdHeartbeat(): Promise<void> {
-  // Default to repo root (two levels up from infra/scheduler)
-  const repoDir = new URL("../../..", import.meta.url).pathname;
-  const approvals = await getPendingApprovals(repoDir);
-
+  const approvals = await getPendingApprovals(repoRoot);
   if (approvals.length === 0) {
     console.log("No pending approvals.");
-  } else {
-    console.log(`${approvals.length} pending approval(s):`);
-    for (const a of approvals) {
-      console.log(`  - [${a.date}] ${a.title} (${a.project}) [${a.type}]`);
-    }
-    await slack.notifyPendingApprovals(repoDir);
-    console.log("Slack notification sent (if configured).");
+    return;
   }
-
-  // Check for approved burst requests
-  const bursts = await getExecutableBursts(repoDir);
-  if (bursts.length > 0) {
-    console.log(`\n${bursts.length} approved burst(s) ready for execution:`);
-    for (const b of bursts) {
-      console.log(`  - [${b.date}] ${b.title}: job=${b.job}, max-sessions=${b.maxSessions}, max-cost=$${b.maxCost}${b.autofix ? " (autofix)" : ""}`);
-    }
-    console.log("Burst(s) will auto-launch on next scheduler tick.");
-  }
-}
-
-async function cmdWatchdog(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const limit = parseInt(getStringFlag(opts, "limit") ?? "20", 10);
-  const notify = args.includes("--notify");
-
-  const { checks, sessionsAnalyzed } = await runHealthWatchdog({ limit });
-  const { summary, details } = formatHealthReport(checks);
-
-  console.log(`Analyzed ${sessionsAnalyzed} sessions.`);
-  console.log(details);
-
-  if (checks.length > 0 && notify && slack.isConfigured()) {
-    const ts = await slack.dm(summary);
-    if (ts) await slack.dmThread(ts, details);
-    console.log("Slack notification sent.");
-  }
-}
-
-async function cmdDetectAnomalies(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const limit = parseInt(getStringFlag(opts, "limit") ?? "20", 10);
-  const notify = args.includes("--notify");
-
-  const { anomalies, sessionsAnalyzed } = await runAnomalyDetection({ limit });
-  const { summary, details } = formatAnomalyReport(anomalies);
-
-  console.log(`Analyzed ${sessionsAnalyzed} sessions.`);
-  console.log(details);
-
-  if (anomalies.length > 0 && notify && slack.isConfigured()) {
-    const ts = await slack.dm(summary);
-    if (ts) await slack.dmThread(ts, details);
-    console.log("Slack notification sent.");
-  }
-}
-
-async function cmdEscalateWarnings(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const limit = parseInt(getStringFlag(opts, "limit") ?? "20", 10);
-  const notify = args.includes("--notify");
-
-  const { escalations, sessionsAnalyzed } = await runWarningEscalation({ limit });
-  const { summary, details } = formatEscalationReport(escalations);
-
-  console.log(`Analyzed ${sessionsAnalyzed} sessions.`);
-  console.log(details);
-
-  if (escalations.length > 0 && notify && slack.isConfigured()) {
-    const ts = await slack.dm(summary);
-    if (ts) await slack.dmThread(ts, details);
-    console.log("Slack notification sent.");
-  }
-}
-
-async function cmdAuditInteractions(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const since = getStringFlag(opts, "since");
-  const notify = args.includes("--notify");
-
-  const { checks, stats } = await runInteractionAudit({ since });
-  const { summary, details } = formatInteractionReport(checks, stats);
-
-  console.log(`Analyzed ${stats.totalRecords} interactions.`);
-  console.log(details);
-
-  if (checks.length > 0 && notify && slack.isConfigured()) {
-    const ts = await slack.dm(summary);
-    if (ts) await slack.dmThread(ts, details);
-    console.log("Slack notification sent.");
-  }
-}
-
-interface HealthCheckState {
-  consecutiveFailures: number;
-  lastFailureTime: string | null;
-  lastSuccessTime: string | null;
-  alertSent: boolean;
-}
-
-async function cmdCheckHealth(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const url = getStringFlag(opts, "url") ?? "http://localhost:8420";
-  const timeout = parseInt(getStringFlag(opts, "timeout") ?? "5000", 10);
-  const stateFile = getStringFlag(opts, "state-file") ?? "/tmp/akari-health-state.json";
-  const notify = args.includes("--notify");
-
-  const result = await runHealthCheck({ url, timeout, stateFile, notify });
-
-  if (!result.healthy && result.consecutiveFailures >= 2) {
-    process.exit(1);
-  }
-}
-
-export interface HealthCheckResult {
-  healthy: boolean;
-  consecutiveFailures: number;
-  errorMessage: string | null;
-  alertSent: boolean;
-  recoverySent: boolean;
+  const msg = `${approvals.length} pending approval item(s) in APPROVAL_QUEUE.md`;
+  console.log(msg);
+  await slack.notifyPendingApprovals(repoRoot).catch((err) => {
+    console.error(`[slack] Failed to notify: ${err}`);
+  });
 }
 
 export interface HealthCheckOptions {
-  url: string;
-  timeout: number;
-  stateFile: string;
-  notify: boolean;
-  fetchImpl?: typeof fetch;
-  slackImpl?: typeof slack;
+  url?: string;
+  timeoutMs?: number;
 }
 
-export async function runHealthCheck(opts: HealthCheckOptions): Promise<HealthCheckResult> {
-  const { url, timeout, stateFile, notify, fetchImpl = fetch, slackImpl = slack } = opts;
-  const statusUrl = `${url}/api/status`;
-  const now = new Date().toISOString();
-
-  let state: HealthCheckState = {
-    consecutiveFailures: 0,
-    lastFailureTime: null,
-    lastSuccessTime: null,
-    alertSent: false,
-  };
-
+export async function runHealthCheck(opts: HealthCheckOptions = {}): Promise<{ ok: boolean; status?: number; error?: string }> {
+  const url = opts.url ?? "http://localhost:8420/api/status";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 5000);
   try {
-    const raw = readFileSync(stateFile, "utf-8");
-    state = JSON.parse(raw);
-  } catch {
-    // State file doesn't exist or invalid, use defaults
-  }
-
-  let isHealthy = false;
-  let errorMessage: string | null = null;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    const response = await fetchImpl(statusUrl, {
-      method: "GET",
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      isHealthy = true;
-    } else {
-      errorMessage = `HTTP ${response.status} ${response.statusText}`;
-    }
+    const res = await fetch(url, { signal: controller.signal });
+    return { ok: res.ok, status: res.status };
   } catch (err) {
-    if (err instanceof Error) {
-      if (err.name === "AbortError") {
-        errorMessage = `Timeout after ${timeout}ms`;
-      } else {
-        errorMessage = err.message;
-      }
-    } else {
-      errorMessage = String(err);
-    }
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    clearTimeout(timer);
   }
-
-  let alertSent = false;
-  let recoverySent = false;
-
-  if (isHealthy) {
-    const wasDown = state.consecutiveFailures > 0;
-    state = {
-      consecutiveFailures: 0,
-      lastFailureTime: state.lastFailureTime,
-      lastSuccessTime: now,
-      alertSent: false,
-    };
-
-    console.log(`[health] OK — scheduler responding at ${url}`);
-
-    if (wasDown && notify && slackImpl.isConfigured()) {
-      const downtime = state.lastFailureTime
-        ? Math.round((new Date(now).getTime() - new Date(state.lastFailureTime).getTime()) / 1000 / 60)
-        : 0;
-      const msg = `:white_check_mark: *Scheduler recovered*\n` +
-        `URL: ${url}\n` +
-        `Downtime: ~${downtime} minutes\n` +
-        `Recovered at: ${now}`;
-      await slackImpl.dm(msg);
-      console.log("[health] Recovery notification sent to Slack");
-      recoverySent = true;
-    }
-  } else {
-    state.consecutiveFailures++;
-    state.lastFailureTime = now;
-
-    console.error(`[health] FAIL (${state.consecutiveFailures} consecutive) — ${errorMessage}`);
-
-    if (state.consecutiveFailures >= 2 && !state.alertSent && notify && slackImpl.isConfigured()) {
-      state.alertSent = true;
-      alertSent = true;
-      const msg = `:rotating_light: *Scheduler health check failed*\n` +
-        `URL: ${statusUrl}\n` +
-        `Error: ${errorMessage}\n` +
-        `Consecutive failures: ${state.consecutiveFailures}\n` +
-        `Time: ${now}\n\n` +
-        `_Run \`pm2 logs akari\` or check \`systemctl status akari\` for details._`;
-      await slackImpl.dm(msg);
-      console.log("[health] Alert sent to Slack");
-    }
-  }
-
-  try {
-    writeFileSync(stateFile, JSON.stringify(state, null, 2));
-  } catch (err) {
-    console.error(`[health] Failed to write state file: ${err}`);
-  }
-
-  return {
-    healthy: isHealthy,
-    consecutiveFailures: state.consecutiveFailures,
-    errorMessage,
-    alertSent,
-    recoverySent,
-  };
 }
 
-async function cmdBurst(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const jobName = getStringFlag(opts, "job");
-  if (!jobName) return fail("Error: --job <name> is required for burst mode.");
-
-  const maxSessions = parseInt(getStringFlag(opts, "max-sessions") ?? "10", 10);
-  const maxCost = parseFloat(getStringFlag(opts, "max-cost") ?? "50");
-  const autofixEnabled = args.includes("--autofix");
-  const autofixRetries = parseInt(getStringFlag(opts, "autofix-retries") ?? "3", 10);
-
-  if (isNaN(maxSessions) || maxSessions < 0) return fail("Error: --max-sessions must be a non-negative integer.");
-  if (isNaN(maxCost) || maxCost < 0) return fail("Error: --max-cost must be a non-negative number.");
-
-  const store = new JobStore();
-  await store.load();
-  const job = store.list().find((j) => j.name === jobName);
-  if (!job) return fail(`Error: no job with name "${jobName}" found.`);
-
-  // Start Slack bot so session notifications work
-  const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
-  const repoDir = job.payload.cwd ?? repoRoot;
-  if (slack.isConfigured()) {
-    await slack.startSlackBot({ repoDir, store });
-    console.log(`[burst] Slack bot connected for notifications.`);
-  }
-
-  const autofixLabel = autofixEnabled ? `, autofix=on (max ${autofixRetries} retries)` : "";
-  console.log(`[burst] Starting burst mode: job="${job.name}", max-sessions=${maxSessions}, max-cost=$${maxCost}${autofixLabel}`);
-
-  const result = await runBurst({
-    job,
-    maxSessions,
-    maxCost,
-    execute: executeJob,
-    onSessionComplete: (num, sessionResult, totalCost) => {
-      const status = sessionResult.ok ? "ok" : "error";
-      const cost = sessionResult.costUsd?.toFixed(2) ?? "n/a";
-      console.log(`[burst] Session ${num} complete: ${status}, cost=$${cost}, cumulative=$${totalCost.toFixed(2)}`);
-    },
-    ...(autofixEnabled ? {
-      autofix: {
-        maxRetries: autofixRetries,
-        diagnose: (diagOpts) => diagnoseSession({ ...diagOpts, repoDir }),
-        repoDir,
-      },
-      onAutofix: (attempt, fixResult) => {
-        console.log(`[burst] Autofix attempt ${attempt}: verdict=${fixResult.verdict}, cost=$${fixResult.costUsd.toFixed(2)}`);
-        console.log(`[burst] ${fixResult.summary.slice(0, 200)}`);
-      },
-    } : {}),
+async function cmdCheckHealth(args: string[]): Promise<void> {
+  const opts = parseOptions(args);
+  const result = await runHealthCheck({
+    url: typeof opts.url === "string" ? opts.url : undefined,
+    timeoutMs: typeof opts.timeout === "string" ? Number(opts.timeout) : undefined,
   });
-
-  console.log(`\n[burst] Burst complete.`);
-  console.log(`  Sessions run: ${result.sessionsRun}`);
-  console.log(`  Total cost: $${result.totalCost.toFixed(2)}`);
-  console.log(`  Total duration: ${Math.round(result.totalDurationMs / 1000)}s`);
-  console.log(`  Stop reason: ${result.stopReason}`);
-  if (result.autofixAttempts > 0) {
-    console.log(`  Autofix attempts: ${result.autofixAttempts}`);
+  if (result.ok) {
+    console.log(`Health check ok (${result.status})`);
+    return;
   }
-
-  await slack.stopSlackBot();
-}
-
-async function cmdCleanupBranches(args: string[]): Promise<void> {
-  const opts = parseFlags(args);
-  const keepDays = parseInt(getStringFlag(opts, "keep-days") ?? "7", 10);
-  const dryRun = args.includes("--dry-run");
-  const notify = args.includes("--notify");
-
-  if (isNaN(keepDays) || keepDays < 0) return fail("Error: --keep-days must be a non-negative integer.");
-
-  const repoRoot = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
-  
-  console.log(`[branch-cleanup] Running cleanup: keepDays=${keepDays}, dryRun=${dryRun}`);
-  
-  const result = await runBranchCleanup(repoRoot, { keepDays, dryRun });
-  const report = formatCleanupReport(result);
-
-  console.log(report);
-
-  if (notify && slack.isConfigured()) {
-    await slack.dm(report);
-    console.log("Slack notification sent.");
-  }
-}
-
-export function parseFlags(args: string[]): Record<string, string | boolean> {
-  const flags: Record<string, string | boolean> = {};
-  for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith("--")) {
-      if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
-        flags[args[i].slice(2)] = args[i + 1];
-        i++;
-      } else {
-        flags[args[i].slice(2)] = true;
-      }
-    }
-  }
-  return flags;
-}
-
-function getStringFlag(
-  flags: Record<string, string | boolean>,
-  key: string,
-): string | undefined {
-  const value = flags[key];
-  return typeof value === "string" ? value : undefined;
+  const msg = `Health check failed${result.status ? ` (${result.status})` : ""}: ${result.error ?? "unhealthy response"}`;
+  console.error(msg);
+  if (opts.notify === true) await slack.dm(`:warning: ${msg}`).catch(() => {});
+  process.exitCode = 1;
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(err instanceof Error ? err.stack ?? err.message : String(err));
   process.exit(1);
 });

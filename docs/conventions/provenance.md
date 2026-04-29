@@ -1,25 +1,12 @@
 # Provenance
 
-Goal: keep claims reproducible and trustworthy across sessions.
+Claims that affect project direction need a source.
 
-## General rule
+Use one of:
 
-Every numerical claim in a **Findings** section must include provenance:
+- a file path in this repo
+- a command and exact output summary
+- an experiment record
+- a URL when external evidence is required
 
-- (a) a script + data file that produces it, or
-- (b) inline arithmetic from referenced data (e.g., `96/242 = 39.7%`).
-
-## Verification logging
-
-When you verify something, record:
-
-- exact command(s) run,
-- the key output (or a snippet),
-- and where the output artifact lives.
-
-## Provisional data (Decision 0050)
-
-Experiments may be `verified` or `provisional` (see `decisions/0050-provisional-data-tagging.md` and `docs/schemas/experiment.md`).
-
-When citing results from provisional experiments, include an explicit warning in the citing document.
-
+Numerical findings in experiment reports must include enough provenance to reproduce the number: script, data file, or inline arithmetic.

@@ -63,7 +63,7 @@ export function detectSleepViolation(command: string): number | null {
 export function checkMessageForSleepViolation(
   msg: SDKMessage,
 ): { command: string; seconds: number } | null {
-  // Cursor/opencode-style summaries (and Codex CLI mapped summaries).
+  // Codex-style summaries (and Codex CLI mapped summaries).
   if (msg.type === "tool_use_summary" && typeof msg.summary === "string") {
     const match = msg.summary.match(/^(?:Shell|Bash|bash)\s+`(.*)`$/);
     if (match) {

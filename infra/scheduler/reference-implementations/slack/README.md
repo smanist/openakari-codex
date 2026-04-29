@@ -1,23 +1,20 @@
-Slack integration (reference only)
+# Full Slack Reference
 
-These files are included as a reference implementation for agents to read and adapt.
-They are NOT intended to work out of the box in openakari.
+This folder keeps the fuller Slack interface as a runnable reference for teams that want more than the active DM-only scheduler integration.
 
-Why it is a reference:
+It includes:
 
-- Slack apps require workspace-specific configuration, tokens, and security review.
-- The transport and UI details are not core to the scheduling + autonomy patterns.
-- The core openakari scheduler is designed to run without Slack.
+- multi-channel Slack wiring
+- living message helpers
+- file upload helpers
+- an example Slack app manifest
+- compatibility shims that point at the trimmed scheduler core
 
-If you want a working Slack bot:
+The reference compiles with:
 
-- Read these files to understand the design (living messages, action tags, approval UX).
-- Copy them into your own repo and wire them to your environment.
-- Treat them as a starting point, not a supported package.
+```bash
+cd infra/scheduler
+npm run test:slack-reference
+```
 
-Contents:
-
-- `slack.ts`: Slack bot wiring and notifications
-- `slack-files.ts`: file/image upload helpers
-- `living-message*.ts`: "living message" persistence/update mechanism
-- `slack-app-manifest.yaml`: example app manifest (reference)
+Workspace-specific tokens, app review, and product policy are still deployment responsibilities. Fleet execution is not part of OpenAkari Core; fleet-related Slack status functions degrade to explanatory placeholders.

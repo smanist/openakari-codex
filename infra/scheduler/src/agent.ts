@@ -34,23 +34,13 @@ export const AGENT_PROFILES = {
   autofix: { model: "opus", maxTurns: 32, maxDurationMs: 600_000, label: "autofix" },
   deepWork: { model: "opus", maxTurns: 256, maxDurationMs: 3_600_000, label: "deep-work" },
   skillCycle: { model: "sonnet", maxTurns: 48, maxDurationMs: 900_000, label: "skill-cycle" },
-  fleetWorker: { model: "opus", maxTurns: 64, maxDurationMs: 900_000, label: "fleet-worker" },
 } as const satisfies Record<string, AgentProfile>;
 
 // ── Backend-specific profile overrides ──────────────────────────────────────
-// Weaker backends (e.g. opencode/GLM-5) need tighter limits to prevent
-// convention non-compliance cascades. See feedback-frequent-human-interventions-root-cause-2026-02-27.
 
 type ProfileOverrides = Partial<Pick<AgentProfile, "maxTurns" | "maxDurationMs">>;
 
 export const BACKEND_PROFILE_OVERRIDES: Record<string, Record<string, ProfileOverrides>> = {
-  opencode: {
-    "work-session":      { maxTurns: 64,  maxDurationMs: 900_000 },   // 15 min (was 30 min unlimited turns)
-    "deep-work":         { maxTurns: 256, maxDurationMs: 3_600_000 }, // 60 min
-    "skill-cycle":       { maxTurns: 64,  maxDurationMs: 600_000 },   // 10 min (was 15 min 48 turns)
-    "team-work-session": { maxTurns: 128, maxDurationMs: 3_600_000 }, // 60 min (was 120 min 256 turns)
-    "fleet-worker":      { maxTurns: 64,  maxDurationMs: 900_000 },   // 15 min (fleet workers, ADR 0042-v2)
-  },
 };
 
 /** Apply backend-specific overrides to a resolved profile.

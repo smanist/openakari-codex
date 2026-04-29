@@ -370,7 +370,7 @@ def consumption_audit(
             f"No ledger entry for {experiment_dir.name}: "
             f"CSV-derived consumption is {csv_derived_calls} {resource} "
             f"({total_rows} rows × {n_runs} n_runs). "
-            f"Run `python infra/budget-verify/auto-ledger.py --yaml {experiment_dir}` to generate."
+            f"Add a matching entry to {ledger_path} if this consumption should be reported."
         )
     elif csv_derived_calls != ledger_amount:
         diff = csv_derived_calls - ledger_amount
@@ -379,8 +379,7 @@ def consumption_audit(
         audit["difference"] = diff
         audit["message"] = (
             f"Ledger {direction} by {abs(diff)} {resource}: "
-            f"CSV-derived={csv_derived_calls}, ledger={ledger_amount}. "
-            f"Run `python infra/budget-verify/auto-ledger.py {project_dir} --audit` for details."
+            f"CSV-derived={csv_derived_calls}, ledger={ledger_amount}."
         )
     else:
         audit["status"] = "ok"

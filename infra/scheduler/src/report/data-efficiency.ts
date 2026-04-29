@@ -1,8 +1,9 @@
 /** Efficiency data aggregation — compute findings-per-dollar, waste rate, and trends from session data. */
 
 import type { SessionMetrics, KnowledgeMetrics } from "../metrics.js";
-import type { EfficiencySummary, EfficiencyDaySummary, FleetEfficiencySummary } from "./types.js";
-import { computeContextUtilization, CONTEXT_UTILIZATION_WARNING_THRESHOLD } from "../anomaly-detection.js";
+import type { EfficiencySummary, EfficiencyDaySummary } from "./types.js";
+
+const CONTEXT_UTILIZATION_WARNING_THRESHOLD = 0.80;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -34,10 +35,9 @@ function isZeroKnowledge(k: KnowledgeMetrics): boolean {
 
 /**
  * Check if a session is genuine waste: zero knowledge, no orphan management,
- * low file changes, and deep-work runtime (non-fleet). See zero-knowledge-session-analysis.md.
+ * low file changes.
  */
 function isGenuineWaste(s: SessionMetrics): boolean {
-  if (s.runtime === "opencode_local") return false;
   if (!s.knowledge) return false;
   if (!isZeroKnowledge(s.knowledge)) return false;
   if (s.verification) {
@@ -54,54 +54,15 @@ function hasAnyKnowledge(k: KnowledgeMetrics): boolean {
   return !isZeroKnowledge(k);
 }
 
-/** Aggregate fleet-specific efficiency metrics. */
-function aggregateFleetEfficiency(sessions: SessionMetrics[]): FleetEfficiencySummary | null {
-  const fleetSessions = sessions.filter((s) => s.runtime === "opencode_local");
-  if (fleetSessions.length === 0) return null;
-
-  const total = fleetSessions.length;
-
-  // Task completion rate: sessions with commits (did work)
-  const sessionsWithCommit = fleetSessions.filter(
-    (s) => s.verification?.hasCommit === true
-  ).length;
-
-  // Verification pass rate: sessions with both commit AND log entry
-  const sessionsPassed = fleetSessions.filter(
-    (s) => s.verification?.hasCommit === true && s.verification?.hasLogEntry === true
-  ).length;
-
-  // Log entry rate: sessions with a log entry
-  const sessionsWithLogEntry = fleetSessions.filter(
-    (s) => s.verification?.hasLogEntry === true
-  ).length;
-
-  // Average commits per session (among all fleet sessions, not just those with commits)
-  const totalCommits = fleetSessions.reduce(
-    (sum, s) => sum + (s.verification?.agentCommitCount ?? 0),
-    0,
-  );
-
-  // Knowledge production rate
-  const sessionsWithKnowledgeOutput = fleetSessions.filter(
-    (s) => s.knowledge != null && hasAnyKnowledge(s.knowledge)
-  ).length;
-
-  // Average files changed
-  const totalFilesChanged = fleetSessions.reduce(
-    (sum, s) => sum + (s.verification?.filesChanged ?? 0),
-    0,
-  );
-
-  return {
-    totalSessions: total,
-    taskCompletionRate: sessionsWithCommit / total,
-    verificationPassRate: sessionsPassed / total,
-    logEntryRate: sessionsWithLogEntry / total,
-    avgCommitsPerSession: totalCommits / total,
-    knowledgeProductionRate: sessionsWithKnowledgeOutput / total,
-    avgFilesChanged: totalFilesChanged / total,
-  };
+function computeContextUtilization(session: SessionMetrics): number | null {
+  if (!session.modelUsage) return null;
+  let maxUtilization = 0;
+  for (const model of Object.values(session.modelUsage)) {
+    if (model.contextWindow && model.contextWindow > 0) {
+      maxUtilization = Math.max(maxUtilization, model.inputTokens / model.contextWindow);
+    }
+  }
+  return maxUtilization > 0 ? maxUtilization : null;
 }
 
 // ── Main aggregator ────────────────────────────────────────────────────────
@@ -146,12 +107,9 @@ export function aggregateEfficiency(sessions: SessionMetrics[]): EfficiencySumma
     }
   }
 
-  // Zero-knowledge rate: exclude fleet workers (runtime === opencode_local)
-  // Fleet sessions have different goals/cost structure and should not influence deep-work rates.
-  const deepWorkSessionsWithKnowledge = withKnowledge.filter((s) => s.runtime !== "opencode_local");
-  const zeroKCount = deepWorkSessionsWithKnowledge.filter((s) => isZeroKnowledge(s.knowledge!)).length;
-  const zeroKnowledgeRate = deepWorkSessionsWithKnowledge.length > 0
-    ? zeroKCount / deepWorkSessionsWithKnowledge.length
+  const zeroKCount = withKnowledge.filter((s) => isZeroKnowledge(s.knowledge!)).length;
+  const zeroKnowledgeRate = withKnowledge.length > 0
+    ? zeroKCount / withKnowledge.length
     : 0;
 
   // Genuine waste rate
@@ -165,9 +123,6 @@ export function aggregateEfficiency(sessions: SessionMetrics[]): EfficiencySumma
   const highContextCount = contextUtilizations.filter((u) => u >= CONTEXT_UTILIZATION_WARNING_THRESHOLD).length;
   const highContextUtilizationRate = contextUtilizations.length > 0 ? highContextCount / contextUtilizations.length : 0;
   const maxContextUtilization = contextUtilizations.length > 0 ? Math.max(...contextUtilizations) : 0;
-
-  // Fleet-specific metrics
-  const fleet = aggregateFleetEfficiency(sessions);
 
   // Group by day
   const dayMap = new Map<string, SessionMetrics[]>();
@@ -206,6 +161,6 @@ export function aggregateEfficiency(sessions: SessionMetrics[]): EfficiencySumma
     highContextUtilizationRate,
     maxContextUtilization,
     byDay,
-    fleet,
+    fleet: null,
   };
 }

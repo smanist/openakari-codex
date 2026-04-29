@@ -1,160 +1,93 @@
-# OpenAkari (Human Readme)
+# OpenAkari Core
 
-**Open source implementation for Autonomous Knowledge Acquisition and Research Intelligence (Akari)**
+OpenAkari is a small repository interface for recurring AI research sessions. It keeps the parts that make agents useful over time:
 
-LLM agents can now operate as persistent researchers — selecting tasks, running experiments, recording findings, and building institutional knowledge across thousands of stateless sessions. This repo shows how.
+- cron-style scheduled sessions
+- Slack operator interface
+- project memory and decomposed tasks
+- project scaffolding
+- experiment records and reports
+- lightweight budget status
+- artifact conventions
 
-## What this is
-OpenAkari is extracted from a production autonomous research system where LLM agents have been running real research — evaluating artifacts, building infrastructure, and operating an autonomous research workflow — for thousands of agent sessions and multiple projects.
+It is not a large framework. The repo is the interface: agents read and update plain-text files, then use the scheduler and experiment tooling when work needs to run.
 
-**This is not a framework to install. It's a reference architecture and scaffold for your AI agent to read and further operate on.** See [`docs/repo-as-interface.md`](docs/repo-as-interface.md).
+## Quick Start
 
-Want evidence that this system runs autonomously at scale? Start with [`docs/fleet-research.md`](docs/fleet-research.md).
+```bash
+cd infra/scheduler
+npm install
+npm run build
+cd ../..
 
-Important note:
+./akari add --name "work-cycle" --cron "0 * * * *" --message-default --model gpt-5.2
+./akari start
+```
 
-- The architectural decision records (ADRs) and many patterns in this repo are extracted from the actual operational history of Akari running on real research projects. They preserve lessons from that history, but they do **not** describe the open-source repo's current runnable state one-to-one.
-- Openakari is a reference architecture, not a capability guarantee. The repo does not automatically reproduce Akari's autonomy or output quality in the production system.
-- In practice, an Akari-like system has to be "trained" through real project work: conventions must be adapted, skills must be exercised, failures must be diagnosed, and the repo must accumulate its own operational memory.
+Slack is optional. Configure these variables to enable it:
 
-## How to use it
+```bash
+SLACK_BOT_TOKEN=...
+SLACK_APP_TOKEN=...
+SLACK_USER_ID=...
+```
 
-OpenAkari does not ship with any library, API, CLI (command line interface), or GUI (graphical user interface). The primary user of Akari is Akari itself powered by LLM agents. The repo is the interface.
+## What Is Included
 
-### Intended usage to use OpenAkari as a "dependency library" for your agent system
-1. Point your LLM agent (Codex first; Claude Code, Cursor, Copilot, etc. also possible) at this repo
-2. Tell it what kind of autonomous system you want to build
-3. It reads the patterns, conventions, skills, and reference implementations
-4. It adapts what's relevant to your project
-
-### Intended usage to use OpenAkari to carry out research projects
-1. Run your LLM agent (Codex first; Claude Code, Cursor, Copilot, etc. also possible) in this repo
-2. Tell it what projects you would like to do
-3. It reads the patterns, conventions, skills, and reference implementations
-4. It adapts what's relevant to your project
-
-OpenAkari also ships two reference capability implementations:
-
-1. a slack bot to report akari's operations and for human interactions
-2. an example fleet system to run fast LLM models for simple work in large scale
-
-In the Akari production system, the slack bot is the main interface of human use. However since you might not be using Slack as your favorite IM, the slack bot is only included in the OpenAkari repo as a reference.
-
-To add your own human messaging interface to OpenAkari:
-
-1. Clone [OpenClaw](https://github.com/openclaw/openclaw).
-2. Run your LLM Agent in this repo.
-3. Point it to the OpenClaw folder you cloned.
-4. Tell it that you would like to support a messaging interface of {your favorite IM} using openakari and openclaw code as reference.
-
-
-## What's inside
-
-| Component | Description | Files |
-|-----------|-------------|-------|
-| [`AGENTS.md`](AGENTS.md) + [`CLAUDE.md`](CLAUDE.md) | Agent operating manuals — Codex primary, Claude compatibility | 2 |
-| [`.claude/skills/`](.claude/skills/) + [`.agents/skills/`](.agents/skills/) | Mirrored encoded judgment skills for Claude/Cursor and Codex-style runtimes | 25 dirs |
-| [`infra/scheduler/`](infra/scheduler/) | Session orchestrator — cron scheduling, local control API, safety gates, push coordination | TypeScript |
-| [`infra/scheduler/reference-implementations/`](infra/scheduler/reference-implementations/) | Slack + fleet code as references for agents (not intended to work out of the box) | TypeScript |
-| [`decisions/`](decisions/) | 66 architectural decision records documenting every significant infrastructure choice | 66 files |
-| [`projects/akari/patterns/`](projects/akari/patterns/) | 7 evidence-backed design patterns for autonomous research | 7 files |
-| [`docs/`](docs/) | Design rationale, SOPs, conventions | 15+ files |
-| [`infra/experiment-runner/`](infra/experiment-runner/) | Fire-and-forget experiment submission with progress tracking | Python |
-| [`infra/budget-verify/`](infra/budget-verify/) | Resource tracking and budget enforcement | Python |
-| [`examples/`](examples/) | Example project scaffold | 1 dir |
-
-## Key ideas
-
-**The repo is the brain.** Agents have no memory between sessions. The repository encodes everything they know — findings, decisions, tasks, open questions, experimental results. If it's not committed, it doesn't exist. See [`docs/design.md`](docs/design.md).
-
-**Skills encode judgment.** Agent capabilities decompose into four layers: code, schema, convention, skill. Skills capture the reasoning that can't be reduced to rules — how to orient at session start, how to design an experiment, how to diagnose unexpected results. See [`projects/akari/patterns/skills-architecture.md`](projects/akari/patterns/skills-architecture.md).
-
-**Conventions prevent drift.** Stateless agents will contradict each other without anchoring. Decision records, provenance requirements, and session discipline create consistency across thousands of sessions. See [`decisions/`](decisions/).
-
-**Autonomous execution needs safety gates.** Agents can run freely on routine work. Expensive or irreversible decisions go through an approval queue for human review. See [`projects/akari/patterns/autonomous-execution.md`](projects/akari/patterns/autonomous-execution.md).
-
-**Knowledge output is the metric.** Every session is evaluated by the knowledge it produces — findings, decisions, hypotheses tested. The fundamental efficiency metric is *findings per dollar*, not tasks completed. See [`AGENTS.md`](AGENTS.md).
-
-## How it compares
-
-openakari occupies a different point in the design space from both general coding agents and general personal assistant agents:
-
-| Dimension | General coding agents | General personal assistant agents | openakari |
-|-----------|------------------------|-----------------------------------|-----------|
-| **Primary unit of work** | One coding task or PR | One request, thread, or workflow | Ongoing research program across projects |
-| **Memory** | Mostly session-local or tool-local | Mostly conversation-local | Persistent institutional knowledge via repo |
-| **Output** | Code changes, fixes, refactors | Messages, coordination, reminders, actions | Findings, decisions, experiments, code, and structured records |
-| **Governance** | Usually light or human-driven | Usually human-in-the-loop | Budget enforcement, approval gates, decision records |
-| **Autonomy horizon** | Short task horizon | Short request horizon | Multi-session, long-horizon autonomous operation |
-| **Self-improvement** | Usually external to the system | Usually external to the system | The system can study and improve its own operation through the akari meta-project |
-| **Scale** | Usually one active agent | Usually one assistant per user | Scheduler supports autonomous sessions; fleet execution is provided as a reference implementation |
-| **Human bridge** | IDE/editor interaction | Chat, email, calendar, app actions | Slack/coordinator patterns are provided as reference implementations |
-| **Skills** | Prompt habits or tool use | Prompt habits or tool use | 26 explicit encoded judgment procedures |
-
-General coding agents answer: "Can an AI help with this code task?"
-
-General personal assistant agents answer: "Can an AI help me coordinate and execute everyday work?"
-
-openakari answers: "Can AI agents operate as a persistent research group that studies both the world and itself?"
-
-## The design patterns
-
-Seven evidence-backed patterns extracted from operating the system:
-
-1. **[Repo as Cognitive State](projects/akari/patterns/repo-as-cognitive-state.md)** — The repository is the sole persistent memory. File-based state artifacts, orient-read-write cycle, archival conventions.
-
-2. **[Autonomous Execution](projects/akari/patterns/autonomous-execution.md)** — Five-step SOP (orient/select/classify/execute/commit), scope-based approval gates, scheduled cron sessions.
-
-3. **[Skills Architecture](projects/akari/patterns/skills-architecture.md)** — Four-layer capability model (code/schema/convention/skill), 26 encoded judgment procedures.
-
-4. **[Inline Logging](projects/akari/patterns/inline-logging.md)** — Record as you go, not at the end. Five-rule checklist, findings provenance requirement.
-
-5. **[Layered Budget Enforcement](projects/akari/patterns/layered-budget-enforcement.md)** — Four enforcement layers from convention to hard gate.
-
-6. **[Structured Work Records](projects/akari/patterns/structured-work-records.md)** — YAML frontmatter, type-specific sections, automated validation.
-
-7. **[Gravity-Driven Migration](projects/akari/patterns/gravity-driven-migration.md)** — Capabilities migrate from manual to code when patterns recur 3+ times.
-
-## Reading guide
-
-| I want to... | Start here |
+| Component | Purpose |
 |---|---|
-| Understand how to use this repo | [`docs/repo-as-interface.md`](docs/repo-as-interface.md) |
-| See operational evidence for autonomy at scale | [`docs/fleet-research.md`](docs/fleet-research.md) |
-| Understand the core philosophy | [`docs/design.md`](docs/design.md) |
-| See the primary agent operating manual | [`AGENTS.md`](AGENTS.md) |
-| Learn the design patterns | [`projects/akari/patterns/`](projects/akari/patterns/) |
-| Read the encoded skills | [`.claude/skills/`](.claude/skills/) or [`.agents/skills/`](.agents/skills/) |
-| See the end-to-end work cycle | [`docs/sops/autonomous-work-cycle.md`](docs/sops/autonomous-work-cycle.md) |
-| Understand why decisions were made | [`decisions/`](decisions/) |
-| Create a project structure | [`examples/`](examples/) |
-| See the meta-project that studies the system itself | [`projects/akari/README.md`](projects/akari/README.md) |
-| Set up session orchestration | [`infra/scheduler/`](infra/scheduler/) |
-| Set up budget enforcement | [`infra/budget-verify/`](infra/budget-verify/) |
+| `AGENTS.md` | Operating contract for agents in this repo |
+| `infra/scheduler/` | Cron scheduler, session launch, Slack, status, reports |
+| `infra/experiment-runner/` | Fire-and-forget experiment execution with artifacts |
+| `infra/experiment-validator/` | Experiment record validation |
+| `projects/akari/` | Support project for maintaining OpenAkari itself |
+| `examples/my-research-project/` | Minimal project scaffold |
+| `docs/schemas/` | File schemas for tasks, logs, budgets, experiments |
+| `docs/conventions/` | Retained conventions for memory, tasks, artifacts, provenance |
 
-## Design philosophy
+## Project Shape
 
-**Everything is plain text.** Markdown, YAML, TypeScript. Diff-friendly, grep-able, LLM-native.
+```text
+projects/<project>/
+  README.md
+  TASKS.md
+  budget.yaml
+  ledger.yaml
+  plans/
+  experiments/<experiment-id>/EXPERIMENT.md
 
-**The repo is the brain.** Agents have no memory between sessions. The repo encodes what they know, what they've decided, and what to do next. If it's not in the repo, it doesn't exist.
+modules/<module>/
+  artifacts/<experiment-id>/
+```
 
-**Provenance over assertion.** Every claim is leashed to a source. Structural defense against hallucination — the most dangerous failure mode of autonomous agents.
+Project directories hold memory and coordination. Module directories hold code and heavy outputs.
 
-**Convention over configuration.** Schemas, SOPs, and skills reduce the space of choices agents must make. Less freedom means less drift.
+## Scheduler
 
-**Knowledge output over task completion.** The fundamental metric is *findings per dollar*. Operational health is a supporting indicator.
+The `./akari` wrapper points at the scheduler CLI. Retained commands are:
 
+```bash
+./akari start
+./akari stop
+./akari add --name work-cycle --cron "0 * * * *" --message-default
+./akari list
+./akari run <job-id>
+./akari status
+./akari heartbeat
+./akari check-health --notify
+```
+
+Reports are generated with:
+
+```bash
+cd infra/scheduler
+npx tsx src/report/run-report.ts --type project --project akari
+```
+
+## Budget Support
+
+Budget support is informational. `budget.yaml` declares limits and `ledger.yaml` records usage. Reports summarize those repo files. The trimmed core does not include external provider auditing or provider-backed budget enforcement.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
-
-## Citation
-
-```
-@misc{openakari2026,
-  title={openakari: Infrastructure for Autonomous AI-Native Research Groups},
-  year={2026},
-  url={https://github.com/victoriacity/openakari}
-}
-```
+MIT. See `LICENSE`.

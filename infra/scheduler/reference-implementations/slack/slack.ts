@@ -1332,7 +1332,7 @@ export async function notifyFleetDrain(
   }
 }
 
-/** Post a fleet starvation alert when no tasks are available (ADR 0047, ADR 0053).
+/** Post a fleet starvation alert when no tasks are available (core task supply, ADR 0053).
  *  Throttled by the caller (FleetScheduler) to once per 30 minutes.
  *  Includes decomposable task suggestions when available. */
 export async function notifyFleetStarvation(
@@ -1343,14 +1343,14 @@ export async function notifyFleetStarvation(
   if (!app) return;
 
   const lines = [
-    `:blue_car: :warning: *Fleet starvation* — 0 fleet-eligible tasks available`,
-    `Fleet size: ${fleetSize} workers (using idle exploration — ADR 0048)`,
+    `:blue_car: :warning: *Fleet starvation* — 0 decomposed tasks available`,
+    `Fleet size: ${fleetSize} workers (using idle exploration — idle fallback)`,
     `Tasks scanned: ${totalTasksScanned} (all blocked, in-progress, or requires-frontier)`,
   ];
 
   if (decomposableTasks && decomposableTasks.length > 0) {
     lines.push("");
-    lines.push(`*${decomposableTasks.length} requires-frontier task(s) could be decomposed into fleet-eligible subtasks:*`);
+    lines.push(`*${decomposableTasks.length} requires-frontier task(s) could be decomposed into decomposed subtasks:*`);
     for (const t of decomposableTasks.slice(0, 5)) {
       const truncated = t.text.length > 70 ? t.text.slice(0, 67) + "..." : t.text;
       lines.push(`  • \`${t.project}\`: ${truncated} _(${t.trigger})_`);
@@ -1358,7 +1358,7 @@ export async function notifyFleetStarvation(
     lines.push(`_Next Opus session: decompose these tasks per ADR 0053._`);
   } else {
     lines.push(`Workers are running idle exploration (horizon scans, audits, open questions) until new tasks are available.`);
-    lines.push(`_Create fleet-eligible tasks to resume directed work — see ADR 0047._`);
+    lines.push(`_Create decomposed tasks to resume directed work — see core task supply._`);
   }
 
   await dm(lines.join("\n"));
@@ -1376,7 +1376,7 @@ export async function notifyFleetLowUtilization(
 
   const percent = (utilization * 100).toFixed(1);
   const reasonDescriptions: Record<string, string> = {
-    "no-tasks": "No fleet-eligible tasks available",
+    "no-tasks": "No decomposed tasks available",
     "all-claimed": "All available tasks already claimed by active workers",
     "all-on-cooldown": "All candidate tasks on cooldown (zero-output or failure)",
   };

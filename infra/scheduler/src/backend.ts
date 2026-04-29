@@ -11,7 +11,7 @@ export type BackendCapability =
   | "subagents"
   | "native_system_prompt";
 
-export type BackendName = "codex" | "openai" | "opencode";
+export type BackendName = "codex" | "openai";
 export type RuntimeHint = BackendName | "auto";
 
 export interface ResolveBackendOpts {
@@ -85,17 +85,11 @@ async function materializeUserInput(input: AsyncIterable<UserInputMessage>): Pro
 }
 
 export const CODEX_DEFAULT_MODEL = DEFAULT_MODEL_BY_TIER.strong;
-export const OPENCODE_MODEL = "glm5/zai-org/GLM-5-FP8";
 
 export function resolveModelForBackend(
   backendName: BackendName,
   model?: string,
 ): string {
-  if (backendName === "opencode") {
-    const requested = model?.trim();
-    return requested || OPENCODE_MODEL;
-  }
-
   return computeEffectiveModel(model);
 }
 
@@ -567,179 +561,6 @@ class OpenAIBackend extends BaseCodexBackend {
   readonly capabilities = capabilitySet("interactive_input", "session_interrupt", "subagents", "native_system_prompt");
 }
 
-export function parseOpenCodeMessage(line: string): SDKMessage | null {
-  try {
-    const msg = JSON.parse(line);
-    if (msg.type === "error") {
-      const errMsg = msg.error?.data?.message ?? msg.error?.name ?? "Unknown error";
-      return { type: "result", subtype: "error", is_error: true, result: errMsg, session_id: msg.sessionID ?? "", total_cost_usd: 0, num_turns: 0, duration_ms: 0 };
-    }
-    if (msg.type === "text" && msg.part?.text) {
-      return { type: "assistant", message: { content: [{ type: "text", text: msg.part.text }] } };
-    }
-    if (msg.type === "assistant" && msg.message?.content) {
-      return msg as SDKMessage;
-    }
-    if (msg.type === "result") {
-      return {
-        type: "result",
-        subtype: msg.subtype,
-        duration_ms: msg.duration_ms ?? 0,
-        is_error: msg.is_error ?? false,
-        result: msg.result ?? "",
-        session_id: msg.session_id ?? msg.sessionID ?? "",
-        total_cost_usd: msg.total_cost_usd ?? 0,
-        num_turns: msg.num_turns ?? 0,
-      };
-    }
-    if (msg.type === "tool_use") {
-      const toolName = msg.part?.tool ?? msg.name ?? "tool";
-      const input = msg.part?.state?.input as Record<string, unknown> | undefined;
-      let detail = "";
-      if (input?.command) detail = ` ${String(input.command)}`;
-      else if (input?.file_path) detail = ` ${String(input.file_path)}`;
-      else if (input?.path) detail = ` ${String(input.path)}`;
-      else if (input?.pattern) detail = ` ${String(input.pattern)}`;
-      else if (input?.url) detail = ` ${String(input.url)}`;
-      return { type: "tool_use_summary", summary: `${toolName}${detail}` };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-class OpenCodeBackend implements AgentBackend {
-  readonly name = "opencode" as const;
-  readonly capabilities = capabilitySet("session_interrupt");
-
-  private buildPrompt(opts: BackendQueryOpts): string {
-    if (opts.systemPromptText) {
-      return `<system_instructions>\n${opts.systemPromptText}\n</system_instructions>\n\n${opts.prompt}`;
-    }
-    return opts.prompt;
-  }
-
-  private buildArgs(opts: BackendQueryOpts): string[] {
-    const prompt = this.buildPrompt(opts);
-    return [
-      "run",
-      "--format", "json",
-      "--dir", opts.cwd,
-      "--model", OPENCODE_MODEL,
-      "--title", "fleet",
-      prompt,
-    ];
-  }
-
-  private spawnAgent(
-    opts: BackendQueryOpts,
-    onMessage?: (msg: SDKMessage) => void | Promise<void>,
-  ): { proc: ChildProcess; result: Promise<QueryResult> } {
-    const start = Date.now();
-    const args = this.buildArgs(opts);
-    const proc = spawn(process.env.OPENCODE_BIN || "/home/user/.opencode/bin/opencode", args, {
-      cwd: opts.cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        ...(opts.extraEnv ?? {}),
-        OPENCODE_PERMISSION: '{"*":"allow"}',
-        GIT_CONFIG_COUNT: "1",
-        GIT_CONFIG_KEY_0: "gc.auto",
-        GIT_CONFIG_VALUE_0: "0",
-      },
-    });
-
-    const result = new Promise<QueryResult>((resolve, reject) => {
-      let text = "";
-      let sessionId: string | undefined;
-      let numTurns = 0;
-      let isError = false;
-      let costUsd: number | undefined;
-      let stderr = "";
-
-      if (proc.stdout) {
-        const rl = createInterface({ input: proc.stdout });
-        rl.on("line", async (line) => {
-          const msg = parseOpenCodeMessage(line);
-          if (!msg) return;
-          if (onMessage) {
-            try { await onMessage(msg); } catch { /* best effort */ }
-          }
-
-          if (msg.type === "result") {
-            const resultMsg = msg as Extract<SDKMessage, { type: "result" }>;
-            if (resultMsg.result) text = resultMsg.result;
-            if (resultMsg.is_error) isError = true;
-            if (resultMsg.session_id) sessionId = resultMsg.session_id;
-            if (typeof resultMsg.total_cost_usd === "number") costUsd = resultMsg.total_cost_usd;
-            if (typeof resultMsg.num_turns === "number") numTurns = resultMsg.num_turns;
-          }
-
-          if (msg.type === "assistant") {
-            numTurns++;
-            const content = msg.message?.content;
-            if (content) {
-              for (const block of content) {
-                if ((block as { type?: string }).type === "text" && typeof (block as { text?: unknown }).text === "string") {
-                  text = (block as { text: string }).text;
-                }
-              }
-            }
-          }
-        });
-      }
-
-      if (proc.stderr) {
-        proc.stderr.on("data", (chunk: Buffer) => {
-          stderr += chunk.toString();
-        });
-      }
-
-      proc.on("error", (err) => reject(new Error(`opencode failed to start: ${err.message}`)));
-      proc.on("close", (code) => {
-        const durationMs = Date.now() - start;
-        if (code !== 0 && !text) {
-          reject(new Error(`opencode exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`));
-          return;
-        }
-        resolve({
-          text,
-          ok: !isError,
-          sessionId,
-          costUsd,
-          numTurns,
-          durationMs,
-        });
-      });
-    });
-
-    return { proc, result };
-  }
-
-  async runQuery(opts: BackendQueryOpts): Promise<QueryResult> {
-    return this.spawnAgent(opts, opts.onMessage).result;
-  }
-
-  runSupervised(opts: BackendQueryOpts): SupervisedResult {
-    const { proc, result } = this.spawnAgent(opts, opts.onMessage);
-    return {
-      handle: makeHandle(
-        "opencode",
-        this.capabilities,
-        async () => {
-          if (!proc.killed) {
-            proc.kill("SIGTERM");
-            setTimeout(() => { if (!proc.killed) proc.kill("SIGKILL"); }, 5000);
-          }
-        },
-      ),
-      result,
-    };
-  }
-}
-
 export function isRateLimitError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return /rate.?limit|overloaded|usage.?limit|too many requests|429|quota|capacity/.test(msg);
@@ -761,14 +582,10 @@ export function backendSupportsCapabilities(
 
 const codexBackend = new CodexBackend();
 const openaiBackend = new OpenAIBackend();
-const opencodeBackend = new OpenCodeBackend();
 
 function runtimeHintForModel(model?: string): RuntimeHint {
   const normalized = model?.trim().toLowerCase();
   if (!normalized) return "auto";
-  if (normalized.includes("glm5") || normalized.includes("glm-5") || normalized.includes("zai-org/glm")) {
-    return "opencode";
-  }
   return "auto";
 }
 
@@ -779,11 +596,8 @@ export function resolveBackend(opts: ResolveBackendOpts = {}): AgentBackend {
       return codexBackend;
     case "openai":
       return openaiBackend;
-    case "opencode":
-      return opencodeBackend;
     case "auto":
     default:
-      if (runtimeHintForModel(opts.model) === "opencode") return opencodeBackend;
       if (backendSupportsCapabilities("codex", opts.requiredCapabilities)) return codexBackend;
       if (backendSupportsCapabilities("openai", opts.requiredCapabilities)) return openaiBackend;
       return codexBackend;
@@ -796,8 +610,6 @@ export function getBackend(name: BackendName): AgentBackend {
       return codexBackend;
     case "openai":
       return openaiBackend;
-    case "opencode":
-      return opencodeBackend;
   }
 }
 

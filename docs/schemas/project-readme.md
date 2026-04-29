@@ -1,24 +1,24 @@
-# Schema: project README
+# Project README Schema
 
-Project READMEs live at `projects/<project>/README.md`.
+```markdown
+# Project name
 
-## Minimal structure
-
-```md
-# <Project title>
-
-Status: active | paused | completed
-Mission: <one sentence>
-Done when: <completion criteria>
+Status: active
+Priority: medium
+Mission: One sentence.
+Done when: Verifiable completion condition.
 
 ## Context
-...
+
+Background the next session needs.
 
 ## Log
-### YYYY-MM-DD (Title)
-...
+
+### YYYY-MM-DD (Entry)
+
+What changed.
 
 ## Open questions
-- ...
-```
 
+- Question that affects future work.
+```

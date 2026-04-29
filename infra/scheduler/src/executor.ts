@@ -1,144 +1,21 @@
-/** Executes an autonomous agent session via the unified agent spawner. */
+/** Executes a scheduled agent session. */
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Job } from "./types.js";
-import { resolveBackend } from "./backend.js";
-import { runtimeRouteForBackend, type RuntimeRoute } from "./runtime.js";
-import { spawnAgent, AGENT_PROFILES, generateSessionId, resolveProfileForBackend } from "./agent.js";
-import type { SDKMessage, ModelUsageStats } from "./sdk.js";
-import { notifySessionStarted, notifySessionComplete } from "./slack.js";
-import { getPendingApprovals } from "./notify.js";
-import { countMetrics } from "./metrics.js";
-import { autoCommitOrphanedFiles } from "./auto-commit.js";
-import { findActiveExperimentDirs, getHeadCommit, classifyUncommittedFiles } from "./verify.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+import type { Job } from "./types.js";
+import { resolveBackend } from "./backend.js";
+import { runtimeRouteForBackend, type RuntimeRoute } from "./runtime.js";
+import { spawnAgent, AGENT_PROFILES, resolveProfileForBackend } from "./agent.js";
+import type { ModelUsageStats } from "./sdk.js";
+import { notifySessionStarted, notifySessionComplete } from "./slack.js";
+import { getPendingApprovals } from "./notify.js";
+
 const exec = promisify(execFile);
-
-/** Uncommitted file threshold above which a warning is logged at session start. */
-export const UNCOMMITTED_FILE_WARNING_THRESHOLD = 50;
-
-/**
- * Checks uncommitted file count and logs a warning if threshold is exceeded.
- * Extracted for testability.
- */
-export async function checkUncommittedFileThreshold(cwd: string): Promise<void> {
-  try {
-    const { stdout: statusOutput } = await exec("git", ["status", "--porcelain"], { cwd });
-    const uncommittedLines = statusOutput.split("\n").filter((line) => line.trim() !== "");
-    if (uncommittedLines.length > UNCOMMITTED_FILE_WARNING_THRESHOLD) {
-      console.warn(
-        `[executor] WARNING: ${uncommittedLines.length} uncommitted files detected (threshold: ${UNCOMMITTED_FILE_WARNING_THRESHOLD}). ` +
-          `Consider committing or cleaning up before starting a session.`
-      );
-    }
-  } catch (err) {
-    // Best-effort check — errors do not block the session
-    console.error("[executor] Failed to check uncommitted file count:", err);
-  }
-}
-import { decideTiers, injectTierDirectives, wasFullOrient } from "./orient-tier.js";
-import { injectConventionModules } from "./convention-modules.js";
-import { enqueuePushAndWait } from "./rebase-push.js";
-import { shouldUseIsolatedModuleWorkflow } from "./isolated-workflow.js";
-import { runIsolatedTaskWorkflow } from "./isolated-executor.js";
-
 const LOGS_DIR = new URL("../../../.scheduler/logs", import.meta.url).pathname;
-
-function formatTokenCount(n: number): string {
-  return n.toLocaleString("en-US");
-}
-
-export function formatExecutionSummary(agentResult: {
-  durationMs: number;
-  costUsd: number;
-  numTurns: number;
-  modelUsage?: Record<string, ModelUsageStats>;
-}): string {
-  let line = `# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}`;
-  if (agentResult.modelUsage) {
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let cachedInputTokens = 0;
-    let uncachedInputTokens = 0;
-    let lastTotalTokens = 0;
-    for (const usage of Object.values(agentResult.modelUsage)) {
-      inputTokens += usage.inputTokens ?? 0;
-      outputTokens += usage.outputTokens ?? 0;
-      cachedInputTokens += usage.cacheReadInputTokens ?? 0;
-      uncachedInputTokens += usage.uncachedInputTokens ?? Math.max(0, (usage.inputTokens ?? 0) - (usage.cacheReadInputTokens ?? 0));
-      lastTotalTokens += usage.lastTotalTokens ?? (
-        (usage.lastInputTokens ?? 0) + (usage.lastOutputTokens ?? 0)
-      );
-    }
-    if (inputTokens > 0 || outputTokens > 0 || cachedInputTokens > 0) {
-      line += `, Tokens: ${formatTokenCount(inputTokens + outputTokens)} total (${formatTokenCount(inputTokens)} in, ${formatTokenCount(outputTokens)} out`;
-      if (cachedInputTokens > 0) {
-        line += `, ${formatTokenCount(cachedInputTokens)} cached`;
-      }
-      line += `, ${formatTokenCount(uncachedInputTokens)} uncached in`;
-      if (lastTotalTokens > 0) {
-        line += `, ${formatTokenCount(lastTotalTokens)} last-step`;
-      }
-      line += `)`;
-    }
-  }
-  return line;
-}
-
-function buildLogFilePath(jobName: string): string {
-  const ts = new Date().toISOString().replace(/[:.]/g, "-");
-  return join(LOGS_DIR, `${jobName}-${ts}.log`);
-}
-
-async function writeExecutionLog(opts: {
-  jobName: string;
-  runtime: RuntimeRoute;
-  summary: {
-    durationMs: number;
-    costUsd: number;
-    numTurns: number;
-    modelUsage?: Record<string, ModelUsageStats>;
-  };
-  output: string;
-  metadata?: string[];
-}): Promise<string> {
-  const logFile = buildLogFilePath(opts.jobName);
-  try {
-    await mkdir(LOGS_DIR, { recursive: true });
-    const metadataBlock = opts.metadata && opts.metadata.length > 0
-      ? `${opts.metadata.join("\n")}\n`
-      : "";
-    await writeFile(
-      logFile,
-      `# ${opts.jobName} — ${new Date().toISOString()}\n# Runtime: ${opts.runtime}\n${metadataBlock}${formatExecutionSummary(opts.summary)}\n\n## output\n${opts.output}\n`,
-    );
-  } catch {
-    // Best-effort logging.
-  }
-  return logFile;
-}
-
-async function writeErrorLog(opts: {
-  jobName: string;
-  runtime: RuntimeRoute;
-  durationMs: number;
-  error: string;
-}): Promise<string> {
-  const logFile = buildLogFilePath(opts.jobName);
-  try {
-    await mkdir(LOGS_DIR, { recursive: true });
-    await writeFile(
-      logFile,
-      `# ${opts.jobName} — ${new Date().toISOString()}\n# Runtime: ${opts.runtime}\n# Duration: ${Math.round(opts.durationMs / 1000)}s, ERROR\n\n## error\n${opts.error}\n`,
-    );
-  } catch {
-    // Best-effort logging.
-  }
-  return logFile;
-}
+export const UNCOMMITTED_FILE_WARNING_THRESHOLD = 50;
 
 export interface ExecutionResult {
   ok: boolean;
@@ -156,23 +33,89 @@ export interface ExecutionResult {
   modelUsage?: Record<string, ModelUsageStats>;
   toolCounts?: Record<string, number>;
   orientTurns?: number;
-  ranFullOrient?: boolean;
-  injectedOrientTier?: "fast" | "full";
-  injectedCompoundTier?: "fast" | "full";
-  injectedRole?: string | null;
-  headAfterAutoCommit?: string | null;
   sleepViolation?: string;
   stallViolation?: string;
-  pushQueueResult?: "queued-success" | "queued-rebase-failed" | "direct-push" | "no-push-needed";
-  executionMode?: "shared" | "isolated-module";
-  taskRunId?: string;
-  reviewRounds?: number;
-  integrationStatus?: "integrated" | "manual" | "conflict" | "review_failed";
+}
+
+function formatTokenCount(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+export function formatExecutionSummary(agentResult: {
+  durationMs: number;
+  costUsd: number;
+  numTurns: number;
+  modelUsage?: Record<string, ModelUsageStats>;
+}): string {
+  let line = `# Duration: ${Math.round(agentResult.durationMs / 1000)}s, Cost: $${agentResult.costUsd.toFixed(4)}, Turns: ${agentResult.numTurns}`;
+  if (agentResult.modelUsage) {
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cachedInputTokens = 0;
+    for (const usage of Object.values(agentResult.modelUsage)) {
+      inputTokens += usage.inputTokens ?? 0;
+      outputTokens += usage.outputTokens ?? 0;
+      cachedInputTokens += usage.cacheReadInputTokens ?? 0;
+    }
+    if (inputTokens > 0 || outputTokens > 0 || cachedInputTokens > 0) {
+      line += `, Tokens: ${formatTokenCount(inputTokens + outputTokens)} total (${formatTokenCount(inputTokens)} in, ${formatTokenCount(outputTokens)} out`;
+      if (cachedInputTokens > 0) line += `, ${formatTokenCount(cachedInputTokens)} cached`;
+      line += ")";
+    }
+  }
+  return line;
+}
+
+function buildLogFilePath(jobName: string): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  return join(LOGS_DIR, `${jobName}-${ts}.log`);
+}
+
+async function writeExecutionLog(opts: {
+  jobName: string;
+  runtime: RuntimeRoute;
+  summary: { durationMs: number; costUsd: number; numTurns: number; modelUsage?: Record<string, ModelUsageStats> };
+  output: string;
+}): Promise<string> {
+  const logFile = buildLogFilePath(opts.jobName);
+  await mkdir(LOGS_DIR, { recursive: true });
+  await writeFile(
+    logFile,
+    `# ${opts.jobName} — ${new Date().toISOString()}\n# Runtime: ${opts.runtime}\n${formatExecutionSummary(opts.summary)}\n\n## output\n${opts.output}\n`,
+  );
+  return logFile;
+}
+
+async function writeErrorLog(opts: {
+  jobName: string;
+  runtime: RuntimeRoute;
+  durationMs: number;
+  error: string;
+}): Promise<string> {
+  const logFile = buildLogFilePath(opts.jobName);
+  await mkdir(LOGS_DIR, { recursive: true });
+  await writeFile(
+    logFile,
+    `# ${opts.jobName} — ${new Date().toISOString()}\n# Runtime: ${opts.runtime}\n# Duration: ${Math.round(opts.durationMs / 1000)}s, ERROR\n\n## error\n${opts.error}\n`,
+  );
+  return logFile;
+}
+
+export async function checkUncommittedFileThreshold(cwd: string): Promise<void> {
+  try {
+    const { stdout } = await exec("git", ["status", "--porcelain"], { cwd });
+    const count = stdout.split("\n").filter((line) => line.trim() !== "").length;
+    if (count > UNCOMMITTED_FILE_WARNING_THRESHOLD) {
+      console.warn(`[executor] WARNING: ${count} uncommitted files detected (threshold: ${UNCOMMITTED_FILE_WARNING_THRESHOLD}).`);
+    }
+  } catch (err) {
+    console.error("[executor] Failed to check uncommitted file count:", err);
+  }
 }
 
 export async function executeJob(
   job: Job,
-  triggerSource?: "scheduler" | "slack" | "manual",
+  triggerSource: "scheduler" | "slack" | "manual" = "scheduler",
 ): Promise<ExecutionResult> {
   const start = Date.now();
   const cwd = job.payload.cwd ?? process.cwd();
@@ -181,233 +124,69 @@ export async function executeJob(
     requiredCapabilities: job.payload.requiredCapabilities,
   });
   const runtime = runtimeRouteForBackend(backend.name);
+  const baseProfile = AGENT_PROFILES.workSession;
+  const profile = resolveProfileForBackend({
+    ...baseProfile,
+    model: job.payload.model ?? baseProfile.model,
+    maxDurationMs: job.payload.maxDurationMs ?? baseProfile.maxDurationMs,
+  }, backend.name);
 
-  let threadInfo: { channel: string; threadTs: string } | null = null;
-
-  console.log(`[executor] Running job ${job.name} with ${runtime} runtime`);
-
-  if (shouldUseIsolatedModuleWorkflow(job)) {
-    const isolated = await runIsolatedTaskWorkflow({
-      job,
-      runtime,
-      triggerSource: triggerSource ?? "scheduler",
-    });
-    if (isolated) {
-      const logFile = await writeExecutionLog({
-        jobName: job.name,
-        runtime,
-        summary: {
-          durationMs: isolated.durationMs,
-          costUsd: isolated.costUsd ?? 0,
-          numTurns: isolated.numTurns ?? 0,
-        },
-        output: isolated.stdout,
-        metadata: [
-          "# Execution mode: isolated-module",
-          `# Task run: ${isolated.taskRunId}`,
-          `# Review rounds: ${isolated.reviewRounds}`,
-          `# Integration status: ${isolated.integrationStatus}`,
-        ],
-      });
-      return {
-        ok: isolated.ok,
-        durationMs: isolated.durationMs,
-        exitCode: isolated.ok ? 0 : 1,
-        stdout: isolated.stdout,
-        logFile,
-        error: isolated.error,
-        costUsd: isolated.costUsd,
-        numTurns: isolated.numTurns,
-        runtime: isolated.runtime,
-        timedOut: isolated.timedOut,
-        sessionId: isolated.sessionId,
-        triggerSource: isolated.triggerSource,
-        executionMode: isolated.executionMode,
-        taskRunId: isolated.taskRunId,
-        reviewRounds: isolated.reviewRounds,
-        integrationStatus: isolated.integrationStatus,
-        headAfterAutoCommit: null,
-      };
-    }
-  }
-
-  // Pre-session: auto-commit orphaned artifacts so the agent starts with a clean working tree.
-  // Best-effort — errors are logged but do not block the session.
-  // Discover running experiments so their output files are not committed prematurely.
-  const activeExpDirs = await findActiveExperimentDirs(cwd).catch(() => [] as string[]);
-  await autoCommitOrphanedFiles(cwd, activeExpDirs);
-
-  // Check uncommitted file count and warn if threshold exceeded
   await checkUncommittedFileThreshold(cwd);
-
-  // Capture HEAD after auto-commit so verification attributes only the agent's work,
-  // not orphaned files from prior sessions (fixes attribution misalignment per
-  // diagnosis-work-cycle-report-attribution-2026-02-23.md).
-  const headAfterAutoCommit = await getHeadCommit(cwd);
+  const threadInfo = await notifySessionStarted(job.name, job.id).catch(() => null);
 
   try {
-    // Resolve agent profile: use payload.profile key if specified, else workSession
-    const baseProfileKey = job.payload.profile as keyof typeof AGENT_PROFILES | undefined;
-    const baseProfile = (baseProfileKey && AGENT_PROFILES[baseProfileKey]) ?? AGENT_PROFILES.workSession;
-    // Apply backend-specific overrides (e.g. tighter limits for opencode/GLM-5)
-    const backendAdjusted = resolveProfileForBackend(baseProfile, backend.name);
-    const profile = {
-      ...backendAdjusted,
-      model: job.payload.model ?? backendAdjusted.model,
-      maxDurationMs: job.payload.maxDurationMs ?? backendAdjusted.maxDurationMs,
-    };
-
-    let prompt = job.payload.message;
-
-    // Pre-generate session ID so it can be injected into the prompt for task claiming
-    const sessionId = generateSessionId(profile.label);
-
-    // Orient/compound tier decision based on scheduler-tracked timestamps (ADR 0030)
-    const tierDecision = decideTiers({
-      lastFullOrientAt: job.state.lastFullOrientAt ?? null,
-      lastFullCompoundAt: job.state.lastFullCompoundAt ?? null,
-    });
-    prompt = injectTierDirectives(prompt, tierDecision);
-
-    // Inject convention modules based on task type
-    prompt = injectConventionModules(prompt, job.payload.taskType);
-    if (job.payload.taskType) {
-      console.log(`[executor] Convention modules injected for task type: ${job.payload.taskType}`);
-    }
-
-    // Inject session ID so the agent can claim tasks via the scheduler API
-    prompt = `SCHEDULER DIRECTIVE: SESSION_ID=${sessionId}\n` + prompt;
-
-    // Inject specialist role directive if configured on the job
-    const injectedRole = job.payload.role ?? null;
-    if (injectedRole) {
-      const roleProject = job.payload.roleProject;
-      const roleDirective = roleProject
-        ? `SCHEDULER DIRECTIVE: ROLE=${injectedRole} PROJECT=${roleProject}. Use /orient ${roleProject}`
-        : `SCHEDULER DIRECTIVE: ROLE=${injectedRole}`;
-      prompt = roleDirective + "\n" + prompt;
-      console.log(`[executor] Role directive: ${injectedRole}${roleProject ? ` (project: ${roleProject})` : ""}`);
-    }
-
-    const { result } = spawnAgent({
+    const { sessionId, result } = spawnAgent({
       profile,
-      prompt,
+      prompt: job.payload.message,
       cwd,
-      sessionId,
       requiredCapabilities: job.payload.requiredCapabilities,
       jobId: job.id,
       jobName: job.name,
-      onMessage: (msg) => {
-        // Stream assistant text to stdout for live monitoring
-        if (msg.type === "assistant") {
-          const content = msg.message;
-          if (content?.content) {
-            for (const block of content.content) {
-              if (block.type === "text" && block.text) process.stdout.write(block.text);
-            }
-          }
-        }
-      },
     });
-
-    threadInfo = await notifySessionStarted(job.name, sessionId);
-
     const agentResult = await result;
-
-    // Write log file
     const logFile = await writeExecutionLog({
       jobName: job.name,
       runtime,
       summary: agentResult,
       output: agentResult.text,
-      metadata: ["# Execution mode: shared"],
     });
-
-    // Post-session: auto-commit any orphaned files before push.
-    // Sessions that timeout or exit without committing leave orphaned files.
-    // This ensures files reach origin even when agent forgets or times out.
-    const postSessionActiveDirs = await findActiveExperimentDirs(cwd);
-    const postAutoCommit = await autoCommitOrphanedFiles(cwd, postSessionActiveDirs);
-    if (postAutoCommit) {
-      console.log(`[auto-commit] Post-session committed ${postAutoCommit.filesCommitted} orphaned file(s)`);
-    }
-
-    // Post-session: rebase and push any unpushed commits.
-    // The agent may have committed but failed to push (timeout, conflict).
-    // This ensures work reaches origin even under concurrent sessions.
-    // See architecture/concurrency-safety.md §3 Race 3.
-    const pushResult = await enqueuePushAndWait(cwd, sessionId, { priority: "opus" });
-    if (pushResult.status === "branch-fallback") {
-      console.log(`[rebase-push] Conflict detected — pushed to branch ${pushResult.branch}`);
-    } else if (pushResult.status === "error") {
-      console.error(`[rebase-push] Error: ${pushResult.error}`);
-    } else if (pushResult.status === "pushed") {
-      console.log(`[rebase-push] Successfully rebased and pushed to origin`);
-    }
-
-    const hasViolation = !!(agentResult.sleepViolation || agentResult.stallViolation);
-    const execResult: ExecutionResult = {
-      ok: !hasViolation,
+    const execution: ExecutionResult = {
+      ok: !agentResult.timedOut && !agentResult.sleepViolation && !agentResult.stallViolation,
       durationMs: agentResult.durationMs,
-      exitCode: hasViolation ? 1 : 0,
+      exitCode: agentResult.timedOut ? 124 : 0,
       stdout: agentResult.text,
-      error: agentResult.sleepViolation
-        ? `Sleep violation: ${agentResult.sleepViolation.slice(0, 200)}`
-        : agentResult.stallViolation
-          ? `Stall violation: shell tool call >120s: ${agentResult.stallViolation.slice(0, 200)}`
-          : undefined,
       logFile,
       costUsd: agentResult.costUsd,
       numTurns: agentResult.numTurns,
       runtime,
       timedOut: agentResult.timedOut,
       sessionId,
+      triggerSource,
       modelUsage: agentResult.modelUsage,
       toolCounts: agentResult.toolCounts,
       orientTurns: agentResult.orientTurns,
-      ranFullOrient: wasFullOrient(agentResult.orientTurns),
-      injectedOrientTier: tierDecision.orientTier,
-      injectedCompoundTier: tierDecision.compoundTier,
-      injectedRole,
-      headAfterAutoCommit,
       sleepViolation: agentResult.sleepViolation,
       stallViolation: agentResult.stallViolation,
-      triggerSource: triggerSource ?? "scheduler",
-      pushQueueResult: pushResult.pushQueueResult,
-      executionMode: "shared",
     };
-
-    const approvals = await getPendingApprovals(cwd).catch(() => [] as never[]);
-    await notifySessionComplete(job, execResult, approvals, threadInfo?.threadTs);
-
-    return execResult;
+    const approvals = await getPendingApprovals(cwd).catch(() => []);
+    await notifySessionComplete(job, execution, approvals, threadInfo?.threadTs).catch(() => {});
+    return execution;
   } catch (err) {
     const durationMs = Date.now() - start;
-
-    // Best-effort error log
-    const errMsg = err instanceof Error ? err.message : String(err);
-    const logFile = await writeErrorLog({
-      jobName: job.name,
-      runtime,
-      durationMs,
-      error: errMsg,
-    });
-
-    const execResult: ExecutionResult = {
+    const error = err instanceof Error ? err.message : String(err);
+    const logFile = await writeErrorLog({ jobName: job.name, runtime, durationMs, error });
+    const execution: ExecutionResult = {
       ok: false,
       durationMs,
       exitCode: 1,
       stdout: "",
-      error: errMsg,
+      error,
       logFile,
       runtime,
-      headAfterAutoCommit,
-      triggerSource: triggerSource ?? "scheduler",
+      triggerSource,
     };
-
-    const approvals = await getPendingApprovals(cwd).catch(() => [] as never[]);
-    await notifySessionComplete(job, execResult, approvals, threadInfo?.threadTs);
-
-    return execResult;
+    const approvals = await getPendingApprovals(cwd).catch(() => []);
+    await notifySessionComplete(job, execution, approvals, threadInfo?.threadTs).catch(() => {});
+    return execution;
   }
 }

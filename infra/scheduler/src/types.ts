@@ -1,8 +1,6 @@
 /** Type definitions for the akari scheduler. Minimal extraction from OpenClaw cron types. */
 
 import type { BackendCapability } from "./backend.js";
-import type { RuntimeRoute } from "./runtime.js";
-import type { ModelUsageStats } from "./sdk.js";
 
 export interface CronSchedule {
   kind: "cron";
@@ -80,103 +78,4 @@ export interface JobCreate {
 export interface Store {
   version: 1;
   jobs: Job[];
-}
-
-// ── Fleet types (ADR 0042-v2) ────────────────────────────────────────────────
-
-/** Fleet worker configuration. */
-export interface FleetWorkerConfig {
-  /** Maximum concurrent fleet workers. 0 = fleet disabled. */
-  maxWorkers: number;
-  /** Per-project concurrency limit. */
-  maxWorkersPerProject: number;
-  /** Fleet poll interval in ms. Default: 30000 (30s). */
-  pollIntervalMs: number;
-}
-
-/** A task scanned from TASKS.md, ready for fleet assignment. */
-export interface FleetTask {
-  /** Stable hash of normalized task text. */
-  taskId: string;
-  /** Raw task text (first line). */
-  text: string;
-  /** "Done when" condition, if present. */
-  doneWhen: string | null;
-  /** "Why" context, if present. */
-  why: string | null;
-  /** Project name (directory name under projects/). */
-  project: string;
-  /** Task priority (high > medium > low). */
-  priority: "high" | "medium" | "low";
-  /** Whether the task is tagged [fleet-eligible]. */
-  fleetEligible: boolean;
-  /** Whether the task is tagged [requires-frontier]. */
-  requiresOpus: boolean;
-  /** Whether the task is tagged [zero-resource]. */
-  zeroResource: boolean;
-  /** Skill type from [skill: ...] tag (ADR 0062). Null if no explicit tag. */
-  skillType: SkillType | null;
-}
-
-/** Skill types for task routing (ADR 0062). */
-export type SkillType =
-  | "record"
-  | "persist"
-  | "govern"
-  | "execute"
-  | "diagnose"
-  | "analyze"
-  | "orient"
-  | "multi";
-
-/** Worker roles for skill-typed prompt routing (ADR 0062). */
-export type WorkerRole = "knowledge" | "implementation" | "default";
-
-/** Result from a completed fleet worker session. */
-export interface FleetWorkerResult {
-  taskId: string;
-  project: string;
-  sessionId: string;
-  ok: boolean;
-  durationMs: number;
-  error?: string;
-  /** Cost in USD (0 for opencode/local backends). */
-  costUsd?: number;
-  /** Number of LLM turns in the session. */
-  numTurns?: number;
-  /** Whether the session timed out. */
-  timedOut?: boolean;
-  /** Internal runtime route used (always opencode_local for fleet workers currently). */
-  runtime?: RuntimeRoute;
-  /** Per-model token usage and cost breakdown. */
-  modelUsage?: Record<string, ModelUsageStats>;
-  /** Per-tool invocation counts. */
-  toolCounts?: Record<string, number>;
-  /** Number of assistant turns consumed by /orient (should be null for fleet — no orient). */
-  orientTurns?: number;
-  /** Git HEAD commit before the session started. */
-  headBefore?: string | null;
-  /** Git HEAD commit after the session completed (after auto-commit and rebase-push). */
-  headAfter?: string | null;
-  /** Post-session verification metrics (compact format for SessionMetrics). */
-  verification?: import("./metrics.js").VerificationMetrics | null;
-  /** Post-session knowledge output metrics. */
-  knowledge?: import("./metrics.js").KnowledgeMetrics | null;
-  /** Cross-project metrics. */
-  crossProject?: import("./metrics.js").CrossProjectMetrics | null;
-  /** Quality audit metrics. */
-  qualityAudit?: import("./metrics.js").QualityAuditMetrics | null;
-  /** Whether this was an idle exploration session (ADR 0048). */
-  isIdle?: boolean;
-  /** Type of idle exploration (e.g., "horizon-scan", "self-audit"). */
-  explorationType?: string;
-  /** Fleet task supply at time of session (for starvation tracking). */
-  fleetTaskSupply?: number;
-  /** Skill type from task [skill: ...] tag. Null if task had no skill tag. */
-  skillType?: SkillType | null;
-  workerRole?: WorkerRole | null;
-  pushQueueResult?: "queued-success" | "queued-rebase-failed" | "direct-push" | "no-push-needed";
-  isRateLimited?: boolean;
-  isRecycled?: boolean;
-  recycledFrom?: string;
 }

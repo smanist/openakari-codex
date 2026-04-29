@@ -109,60 +109,19 @@ export interface SessionMetrics {
   injectedRole?: string | null;
   crossProject: CrossProjectMetrics | null;
   qualityAudit: QualityAuditMetrics | null;
-  skillType?: import("./types.js").SkillType | null;
-  workerRole?: import("./types.js").WorkerRole | null;
   isIdle?: boolean;
   explorationType?: string;
-  pushQueueResult?: "queued-success" | "queued-rebase-failed" | "direct-push" | "no-push-needed";
-  executionMode?: "shared" | "isolated-module";
-  taskRunId?: string;
-  reviewRounds?: number;
-  integrationStatus?: "integrated" | "manual" | "conflict" | "review_failed";
-  isRecycled?: boolean;
-  recycledFrom?: string;
 }
 
 const RUNTIME_ROUTES = new Set<RuntimeRoute>([
   "codex_cli",
   "openai_fallback",
-  "opencode_local",
 ]);
 
 /** Generate a unique runId for session metrics. Uses cryptographic random bytes
  *  to avoid the race condition where concurrent executions read the same runCount. */
 export function generateRunId(jobId: string): string {
   return `${jobId}-${randomBytes(4).toString("hex")}`;
-}
-
-/** Convert a FleetWorkerResult into a SessionMetrics record for JSONL storage. */
-export function fleetResultToMetrics(fr: import("./types.js").FleetWorkerResult): SessionMetrics {
-  return {
-    timestamp: new Date().toISOString(),
-    jobName: `fleet-worker:${fr.project}`,
-    runId: fr.sessionId,
-    triggerSource: "fleet",
-    runtime: fr.runtime ?? "opencode_local",
-    durationMs: fr.durationMs,
-    costUsd: fr.costUsd ?? null,
-    numTurns: fr.numTurns ?? null,
-    timedOut: fr.timedOut ?? false,
-    ok: fr.ok,
-    error: fr.error,
-    verification: fr.verification ?? null,
-    knowledge: fr.knowledge ?? null,
-    budgetGate: null,
-    modelUsage: fr.modelUsage ?? null,
-    toolCounts: fr.toolCounts ?? null,
-    orientTurns: fr.orientTurns ?? null,
-    crossProject: fr.crossProject ?? null,
-    qualityAudit: fr.qualityAudit ?? null,
-    skillType: fr.skillType ?? null,
-    workerRole: fr.workerRole ?? null,
-    pushQueueResult: fr.pushQueueResult,
-    executionMode: "shared",
-    ...(fr.isIdle ? { isIdle: true, explorationType: fr.explorationType } : {}),
-    ...(fr.isRecycled ? { isRecycled: true, recycledFrom: fr.recycledFrom } : {}),
-  };
 }
 
 function normalizeRuntime(raw: unknown): RuntimeRoute {

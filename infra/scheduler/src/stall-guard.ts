@@ -74,7 +74,7 @@ export class StallGuard {
  *
  * - Claude SDK: `type: "assistant"` with `tool_use` content blocks named Bash/Shell/bash
  * - Cursor: `type: "tool_use_summary"` with summary like `Shell \`...\``
- * - opencode: `type: "tool_use_summary"` with summary like `bash \`...\``
+ * - runtime: `type: "tool_use_summary"` with summary like `bash \`...\``
  *
  * Returns concatenated commands if shell tool calls are found, or null.
  */

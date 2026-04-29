@@ -10,6 +10,7 @@
     "build": "npx tsc",
     "start": "node dist/cli.js",
     "test": "npx vitest run",
+    "test:slack-reference": "npx tsc --noEmit --target ES2022 --module Node16 --moduleResolution Node16 --strict false --esModuleInterop --skipLibCheck reference-implementations/slack/slack.ts reference-implementations/slack/living-message.ts reference-implementations/slack/slack-files.ts",
     "test:watch": "npx vitest"
   },
   "dependencies": {

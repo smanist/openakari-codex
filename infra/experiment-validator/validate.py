@@ -1,7 +1,6 @@
 """Validate structured work records (experiments, implementations, bugfixes, analyses).
 
 Checks EXPERIMENT.md frontmatter, type-specific required sections, file references, and CSV integrity.
-See decisions/0012-task-system.md for the type system design.
 """
 
 import csv
@@ -20,7 +19,7 @@ VALID_STATUSES = {"completed", "running", "planned", "failed", "abandoned"}
 VALID_TYPES = {"experiment", "implementation", "bugfix", "analysis"}
 VALID_CONSUMES_RESOURCES = {"true", "false"}
 
-# Type → status → required sections. See decisions/0012-task-system.md.
+# Type -> status -> required sections.
 SECTIONS_BY_TYPE_STATUS: dict[str, dict[str, set[str]]] = {
     "experiment": {
         "planned": {"Design", "Config"},
@@ -201,7 +200,7 @@ def validate_experiment(exp_dir: Path, root: Path | None = None) -> list[Issue]:
         cr_bool = cr_raw == "true"
         # Only experiment type has a hard constraint (must be true).
         # analysis, implementation, and bugfix allow either value — determined by
-        # the resource-signal checklist (see decisions/0012-task-system.md).
+        # the lightweight resource-signal checklist.
         if task_type == "experiment" and not cr_bool:
             issues.append(Issue("error", "type 'experiment' must have consumes_resources: true"))
 

@@ -135,27 +135,6 @@ export function renderOperationalMarkdown(data: ReportData): { content: string; 
     }
   }
 
-  // Fleet efficiency section
-  if (e.fleet) {
-    const f = e.fleet;
-    lines.push(
-      `## Fleet Efficiency`,
-      ``,
-      `Fleet workers (GLM-5 on opencode) use $0 compute. Metrics below measure execution quality.`,
-      ``,
-      `| Metric | Value |`,
-      `|--------|-------|`,
-      `| Total fleet sessions | ${f.totalSessions} |`,
-      `| Task completion rate | ${(f.taskCompletionRate * 100).toFixed(1)}% |`,
-      `| Verification pass rate | ${(f.verificationPassRate * 100).toFixed(1)}% |`,
-      `| Log entry rate | ${(f.logEntryRate * 100).toFixed(1)}% |`,
-      `| Knowledge production rate | ${(f.knowledgeProductionRate * 100).toFixed(1)}% |`,
-      `| Avg commits/session | ${f.avgCommitsPerSession.toFixed(1)} |`,
-      `| Avg files changed | ${f.avgFilesChanged.toFixed(1)} |`,
-      ``,
-    );
-  }
-
   return { content: lines.join("\n"), charts };
 }
 

@@ -172,7 +172,7 @@ class TestModelBackendProvenance:
             "type: experiment\nconsumes_resources: true"
         )
         body = (
-            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via CF Gateway\nTest.\n\n"
+            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via local runner\nTest.\n\n"
             "## Results\nNone.\n\n## Findings\nTest.\n\n## Reproducibility\nTest.\n"
         )
         exp_dir = _make_experiment(tmp_path, fm, body)
@@ -187,7 +187,7 @@ class TestModelBackendProvenance:
             "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash"
         )
         body = (
-            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via CF Gateway\nTest.\n\n"
+            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via local runner\nTest.\n\n"
             "## Results\nNone.\n\n## Findings\nTest.\n\n## Reproducibility\nTest.\n"
         )
         exp_dir = _make_experiment(tmp_path, fm, body)
@@ -199,10 +199,10 @@ class TestModelBackendProvenance:
         """Completed experiment with model and backend in frontmatter produces no provenance warning."""
         fm = (
             "id: test-exp\nstatus: completed\ndate: 2026-02-27\nproject: test\n"
-            "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash\nbackend: cf-gateway"
+            "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash\nbackend: local-runner"
         )
         body = (
-            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via CF Gateway\nTest.\n\n"
+            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via local runner\nTest.\n\n"
             "## Results\nNone.\n\n## Findings\nTest.\n\n## Reproducibility\nTest.\n"
         )
         exp_dir = _make_experiment(tmp_path, fm, body)
@@ -238,7 +238,7 @@ class TestModelBackendProvenance:
         """Completed resource-consuming record without 'Model:' in Config section gets a warning."""
         fm = (
             "id: test-exp\nstatus: completed\ndate: 2026-02-27\nproject: test\n"
-            "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash\nbackend: cf-gateway"
+            "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash\nbackend: local-runner"
         )
         body = (
             "\n## Design\nTest.\n\n## Config\nSome params but no model line.\n\n"
@@ -253,10 +253,10 @@ class TestModelBackendProvenance:
         """Config section with 'Model:' line produces no section warning."""
         fm = (
             "id: test-exp\nstatus: completed\ndate: 2026-02-27\nproject: test\n"
-            "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash\nbackend: cf-gateway"
+            "type: experiment\nconsumes_resources: true\nmodel: gemini-3-flash\nbackend: local-runner"
         )
         body = (
-            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via CF Gateway\nSome params.\n\n"
+            "\n## Design\nTest.\n\n## Config\nModel: gemini-3-flash via local runner\nSome params.\n\n"
             "## Results\nNone.\n\n## Findings\nTest.\n\n## Reproducibility\nTest.\n"
         )
         exp_dir = _make_experiment(tmp_path, fm, body)

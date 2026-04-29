@@ -11,7 +11,6 @@
 import { App, LogLevel } from "@slack/bolt";
 
 import { spawnAgent, AGENT_PROFILES } from "./agent.js";
-import { buildProgressHandler } from "./event-agents.js";
 import { getPendingApprovals, type ApprovalItem } from "./notify.js";
 import type { ExecutionResult } from "./executor.js";
 import type { Job } from "./types.js";
@@ -220,13 +219,17 @@ function registerDmHandler(appInstance: App): void {
     };
 
     try {
-      const { handler, flusher } = buildProgressHandler({
-        onProgress: async (text) => {
-          await rememberPosted(text);
-        },
-        label: "slack-dm",
-        securityCheck: false,
-      });
+      const flusher = { flush: async () => {} };
+      const handler = async (msg: { type?: string; message?: { content?: unknown }; result?: string }) => {
+        if (msg.type !== "assistant") return;
+        const content = Array.isArray(msg.message?.content) ? msg.message.content : [];
+        const text = content
+          .map((part) => (typeof part === "object" && part && "text" in part ? String((part as { text?: unknown }).text ?? "") : ""))
+          .filter(Boolean)
+          .join("\n")
+          .trim();
+        if (text) await rememberPosted(text);
+      };
 
       const { result } = spawnAgent({
         profile: AGENT_PROFILES.chat,

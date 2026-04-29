@@ -1,28 +1,16 @@
-# Schema: log entry
+# Log Entry Schema
 
-Log entries typically live in a project `README.md` under a `## Log` section.
+Project README logs use reverse chronological entries:
 
-## Minimal format
-
-```md
+```markdown
 ### YYYY-MM-DD (Short title)
 
-<1–5 paragraph narrative>
+What changed and why.
 
 Verification:
-- `<command>` → `<key output>`
+- `command`
+  - Important output summary
 
-Session-type: autonomous
-Duration: <minutes>
-Task-selected: <task text or "none">
-Task-completed: yes | partial | no
-Approvals-created: <count>
-Files-changed: <count>
-Commits: <count>
-Compound-actions: <count> or "none"
-Resources-consumed: <resource: amount, ...> or "none"
-Budget-remaining: <resource: remaining/limit, ...> or "n/a"
+Files:
+- `path/to/file`
 ```
-
-If there was no verification, omit the Verification section.
-

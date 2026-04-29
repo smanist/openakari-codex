@@ -1,33 +1,23 @@
-# Schema: budget.yaml and ledger.yaml
+# Budget And Ledger Schema
 
-Budgets live at `projects/<project>/budget.yaml`.
-
-## budget.yaml
+`budget.yaml`:
 
 ```yaml
 resources:
-  <resource_name>:
-    limit: <number>
-    unit: <string>
-deadline: <ISO-8601 timestamp>
+  llm_api_calls:
+    limit: 5000
+    unit: calls
+deadline: 2026-06-01T00:00:00Z
 ```
 
-Ledgers live at `projects/<project>/ledger.yaml`.
-
-## ledger.yaml
+`ledger.yaml`:
 
 ```yaml
 entries:
-  - date: YYYY-MM-DD
-    resource: <resource_name>
-    amount: <number>
-    unit: <string>
-    description: <string>
+  - date: 2026-04-29
+    resource: llm_api_calls
+    amount: 100
+    note: initial experiment
 ```
 
-If no resources have been consumed yet, use:
-
-```yaml
-entries: []
-```
-
+Reports read these files only. They do not audit external providers.

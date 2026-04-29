@@ -3,11 +3,7 @@ entries:
     module: akari
     path: modules/akari
     type: local-scratch
-  - project: dymad_dev
-    module: dymad_dev
-    path: modules/dymad_dev
-    type: submodule
-  - project: smoothing
-    module: smoothing
-    path: modules/smoothing
+  - project: my-research-project
+    module: my-research-project
+    path: modules/my-research-project
     type: local-scratch

@@ -4,7 +4,6 @@
 
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
-import { OPENCODE_MODEL } from "./backend.js";
 
 interface PersistedModelPreference {
   model?: string;
@@ -91,8 +90,7 @@ function loadLegacyBackendPreference(): string | null | undefined {
     const data = JSON.parse(raw) as PersistedLegacyBackendPreference;
     const backend = typeof data.backend === "string" ? data.backend.trim() : "";
     if (!backend) return null;
-    if (backend === "opencode") return OPENCODE_MODEL;
-    // Claude/Cursor/Codex/OpenAI/auto all migrate to default model-driven routing.
+    // Legacy backend names now migrate to default model-driven routing.
     return null;
   } catch {
     return null;

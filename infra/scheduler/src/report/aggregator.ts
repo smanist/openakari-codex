@@ -38,7 +38,7 @@ export async function gatherReportData(
     const decisionFiles = await readdir(join(repoDir, "decisions"));
     knowledge.decisionRecords = decisionFiles.filter((f) => f.match(/^\d{4}-.+\.md$/)).length;
   } catch {
-    // no decisions/ dir
+    // no historical decision directory
   }
 
   return {

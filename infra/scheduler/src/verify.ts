@@ -2539,7 +2539,6 @@ export function checkModelSelectionRationale(
     /\bfrom\s+anthropic\b/,
     /\bimport\s+google\.\w*ai\b/,
     /\bfrom\s+google\b.*\bai\b/,
-    /gateway\.ai\.cloudflare\.com/,
     /\bopenai\.OpenAI\b/,
     /\bAnthropic\b\s*\(/,
     /\bgenai\b.*\bGenerativeModel\b/,
