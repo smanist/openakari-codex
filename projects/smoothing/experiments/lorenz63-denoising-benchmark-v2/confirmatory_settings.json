@@ -1,0 +1,42 @@
+[
+  {
+    "method": "cubic_smoothing_spline",
+    "family": "cubic_smoothing_spline",
+    "setting_id": "spline|lambda_rel=1",
+    "lambda_rel": 1.0
+  },
+  {
+    "method": "cubic_smoothing_spline",
+    "family": "cubic_smoothing_spline",
+    "setting_id": "spline|lambda_rel=0.5",
+    "lambda_rel": 0.5
+  },
+  {
+    "method": "local_linear_regression",
+    "family": "local_linear_regression",
+    "setting_id": "local_linear|type=tricube|span=11",
+    "kernel_type": "tricube",
+    "span": 11
+  },
+  {
+    "method": "local_linear_regression",
+    "family": "local_linear_regression",
+    "setting_id": "local_linear|type=gaussian|span=11",
+    "kernel_type": "gaussian",
+    "span": 11
+  },
+  {
+    "method": "normalized_kernel_regression",
+    "family": "normalized_kernel_regression",
+    "setting_id": "normalized|type=tricube|span=11",
+    "kernel_type": "tricube",
+    "span": 11
+  },
+  {
+    "method": "normalized_kernel_regression",
+    "family": "normalized_kernel_regression",
+    "setting_id": "normalized|type=gaussian|span=11",
+    "kernel_type": "gaussian",
+    "span": 11
+  }
+]

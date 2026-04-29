@@ -14,6 +14,49 @@ A human follow-up on 2026-04-28 reframed the kernel branch: the first-round resu
 
 ## Log
 
+### 2026-04-28 (Ran the confirmatory v2 Lorenz63 denoising benchmark)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]","agentId":"codex-manual-2026-04-28-confirmatory-v2-run"}'`
+  Output: `{"ok":true,"claim":{"claimId":"e2bd31d9dfda27af","taskId":"fd50f0031a28","taskText":"Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-28-confirmatory-v2-run","claimedAt":1777429905343,"expiresAt":1777432605343}}` and `200`
+
+Scope classification:
+`RESOURCE` (`consumes_resources: true`) — the selected task executes the real confirmatory CPU benchmark and writes durable experiment artifacts, but a timed benchmark of the full default confirmatory command completed in `real 14.03s`, so the run stayed below the repo's `2` minute detached-run threshold and could be executed inline.
+
+Discovery:
+- The pilot handoff already named `6` confirmatory finalists, and materializing them into [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json](./experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json) fixed the confirmatory input contract as durable project state rather than an ephemeral shell command.
+- The full confirmatory grid is only `14` settings (`4` Savitzky-Golay references, `4` frozen anchor-basis references, `6` finalists) over `64` noisy samples (`8` trajectory seeds × `2` replicate IDs × `4` noise levels), so the expected raw output size is `14 × 64 = 896` rows and the grouped summary size is `14 × 4 = 56` rows.
+- The confirmatory artifact tree is visible to git in this worktree, so the CSV, manifest, dataset snapshot, and plot bundle can be committed for later analysis sessions.
+
+Execution result:
+- Added a durable session plan in [projects/smoothing/plans/2026-04-28-confirmatory-v2-execution.md](./plans/2026-04-28-confirmatory-v2-execution.md) and a durable finalist input file in [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json](./experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json).
+- Ran the full confirmatory command inline, writing artifacts under [modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory](../../modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory).
+- Updated [projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md](./experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md) with the claim, runtime evidence, confirmatory settings provenance, and structural artifact counts.
+- Marked the selected execution task complete in [TASKS.md](./TASKS.md) and removed the stale completion blocker from the follow-on confirmatory analysis task.
+
+Verification:
+- `python - <<'PY' ... PY` reading `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json`
+  Output: `confirmatory_settings 6` and `setting_ids ['spline|lambda_rel=1', 'spline|lambda_rel=0.5', 'local_linear|type=tricube|span=11', 'local_linear|type=gaussian|span=11', 'normalized|type=tricube|span=11', 'normalized|type=gaussian|span=11']`
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep_v2.py --out-dir /tmp/lorenz63-v2-confirmatory-benchmark-$$ --stage confirmatory --confirmatory-settings-json projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json --overwrite >/tmp/lorenz63-v2-confirmatory-benchmark-$$.stdout`
+  Output: `real 14.03`, `user 13.74`, `sys 0.14`
+- `/usr/bin/time -p python modules/smoothing/run_denoising_sweep_v2.py --out-dir modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory --stage confirmatory --confirmatory-settings-json projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/confirmatory_settings.json --overwrite >/tmp/lorenz63-v2-confirmatory-run.stdout`
+  Output: `real 14.13`, `user 13.93`, `sys 0.15`
+- `python - <<'PY' ... PY` counting rows in `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/{metrics_raw.csv,summary_by_setting.csv,best_by_noise.csv,robust_settings.csv,family_comparison.csv}` and reading `run_manifest.json`
+  Output: `metrics_raw.csv 896`, `summary_by_setting.csv 56`, `best_by_noise.csv 20`, `robust_settings.csv 16`, `family_comparison.csv 20`, and `manifest_counts {'n_best_rows': 20, 'n_family_comparison_rows': 20, 'n_robust_rows': 16, 'n_rows_expected': 896, 'n_rows_written': 896, 'n_samples': 64, 'n_settings': 14, 'n_summary_rows': 56}`. The same manifest recorded the four confirmatory plots, including `derivative_rmse_vs_noise.png`, and repo-relative dataset paths under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/confirmatory/dataset/`.
+
+Compound (fast): no actions. `git diff --stat` matched the intended plan/settings/artifact/task/experiment updates, the confirmatory analysis follow-up task already existed and only needed unblocking, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree so there were no recent fleet sessions to audit locally.
+
+Session-type: autonomous
+Duration: 15
+Task-selected: Run the confirmatory v2 Lorenz63 denoising benchmark [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 19
+Commits: 1
+Compound-actions: none
+Resources-consumed: local CPU: benchmark `14.03s`, run `14.13s`
+Budget-remaining: n/a
+
 ### 2026-04-29 (Integrated isolated task `Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]`)
 
 Integrated isolated task `Analyze the v2 pilot Lorenz63 denoising sweep [requires-frontier] [skill: analyze] [zero-resource]` after 1 review round(s).
