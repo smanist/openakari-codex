@@ -85,14 +85,14 @@
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `projects/smoothing/plans/2026-04-28-design-v2-lorenz63-benchmark.md`
   Notes: Defer execution until the compact-polynomial retuning workstream has confirmed, partially confirmed, or refuted the kernel-rescue hypothesis.
 
-- [ ] Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
-  Why: The v2 design depends on normalized local-regression and smoothing-spline families plus a separate staged runner that preserves v1 reproducibility, but the human now wants compact-polynomial kernel tuning prioritized first.
+- [x] Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
+  Why: The v2 design depends on normalized local-regression and smoothing-spline families plus a separate staged runner that preserves v1 reproducibility; compact-polynomial retuning is now complete, so the implemented v2 harness is unblocked for pilot execution.
   Done when: `modules/smoothing/` includes reusable implementations for the planned v2 families, a v2 sweep runner emits pilot-stage artifacts, and regression tests cover the new family contracts without changing v1 outputs.
   Priority: medium
   Evidence: `modules/smoothing/denoise_families_v2.py`; `modules/smoothing/run_denoising_sweep_v2.py`; `modules/smoothing/test_denoise_families_v2.py`
 
 - [ ] Run the v2 pilot Lorenz63 denoising sweep [skill: execute]
-  Why: The staged design requires a family-level screen before committing more CPU to confirmatory replication, but this should wait until the compact-polynomial retuning branch has been evaluated.
+  Why: The staged design requires a family-level screen before committing more CPU to confirmatory replication, and compact-polynomial retuning has left a remaining gap to the strongest Savitzky-Golay reference.
   Done when: pilot artifacts exist under `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`, and `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md` records the pilot submission and completion state.
   Priority: medium
   Evidence: `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md`; `modules/smoothing/artifacts/lorenz63-denoising-benchmark-v2/pilot/`

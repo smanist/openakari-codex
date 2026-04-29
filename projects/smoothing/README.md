@@ -10,9 +10,31 @@ This project studies signal denoising on synthetic Lorenz63 trajectories sampled
 
 The v1 kernel smoother swept `M`, bandwidth `h`, and kernel type over Gaussian and compact-polynomial kernels of the form `k(x,x') = (1 - (x - x')^2 / h^2)^p` supported on `|x - x'| <= h`. That family is now treated as a frozen reference baseline. The planned v2 benchmark broadens the comparison to normalized local regression, local-linear regression, and cubic smoothing splines while keeping the workflow CPU-only and staged through a pilot before confirmatory replication.
 
-A human follow-up on 2026-04-28 reframed the kernel branch: the first-round result shows the tested anchor-basis kernel grid is largely not comparable to Savitzky-Golay, but the compactly supported polynomial kernel has not yet received a sufficiently dense hyperparameter search. A targeted retuning workstream should therefore hold one noise level fixed, defaulting to `alpha = 0.20`, choose a reference Savitzky-Golay filter from the v1 results, and tune anchor count, bandwidth, and polynomial degree until the compact-polynomial kernel either beats SG or the search establishes why that target is unrealistic. This compact-polynomial retuning workstream is prioritized ahead of broader v2 smoother-family execution. Final candidate algorithms should include typical denoised-trajectory plots for visual inspection, not only aggregate metrics.
+A human follow-up on 2026-04-28 reframed the kernel branch: the first-round result showed the tested anchor-basis kernel grid was largely not comparable to Savitzky-Golay, but the compactly supported polynomial kernel had not yet received a sufficiently dense hyperparameter search. The targeted retuning workstream held `alpha = 0.20`, tuned anchor count, bandwidth, and polynomial degree, and established a partial rescue: dense compact-polynomial tuning beats the weaker SG reference but still trails `savgol|w=41|p=5` by `0.027066931514427628` mean RMSE. The next benchmark step is the broader v2 smoother-family pilot. Final candidate algorithms should include typical denoised-trajectory plots for visual inspection, not only aggregate metrics.
 
 ## Log
+
+### 2026-04-29 (Resolved smoothing project merge conflicts)
+
+Resolved concurrent project/module state from the compact-polynomial retuning workstream and the v2 denoiser implementation branch.
+
+Discovery:
+- The conflict was a project-state merge, not a contradictory implementation change: compact-polynomial retuning is complete, v2 family/harness files are present, and the remaining v2 work starts at pilot execution.
+
+Execution result:
+- Kept both module entry points in [modules/smoothing/README.md](../../modules/smoothing/README.md): `run_compact_polynomial_retuning.py` and `run_denoising_sweep_v2.py`.
+- Marked the v2 implementation task complete in [TASKS.md](./TASKS.md) because the merged module files and tests exist.
+- Preserved both sets of 2026-04-28 log entries in this project README.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_compact_polynomial_retuning.py modules/smoothing/test_denoise_families_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `9 passed in 1.42s`
+- `pytest -q modules/smoothing/test_*.py`
+  Output: `18 passed in 1.69s`
+- `python -m py_compile modules/smoothing/denoise_families_v2.py modules/smoothing/run_denoising_sweep_v2.py`
+  Output: none (successful bytecode compilation)
+- `git diff --check`
+  Output: none
 
 ### 2026-04-28 (Integrated isolated task `Analyze the compact-polynomial retuning results against Savitzky-Golay [requires-frontier] [skill: analyze] [zero-resource]`)
 
@@ -28,6 +50,151 @@ Commits: 1
 Compound-actions: none
 Resources-consumed: none
 Budget-remaining: n/a
+
+### 2026-04-28 (Review fix: confirmatory loader now honors pilot selection flags)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","agentId":"codex-manual-2026-04-28-v2-denoiser-review-fix-selection-flag"}'`
+  Output: `{"ok":true,"claim":{"claimId":"2bbf194aa60f858b","taskId":"d921ed2d7c72","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-28-v2-denoiser-review-fix-selection-flag","claimedAt":1777418233638,"expiresAt":1777420933638}}` and `200`
+  Interpretation: the scheduler claim API was live in this worktree and accepted the pre-selected implementation task before this review-fix pass began.
+
+Scope classification:
+`STRUCTURAL (verifiable)` (`consumes_resources: false`) — module-local Python selection-filter correction plus regression coverage only; no experiment submission, external model calls, or long-running compute.
+
+Discovery:
+- `_load_confirmatory_settings()` accepted pilot-style `family_screen.csv` rows after the earlier schema-coercion fix, but it still ignored the staged handoff flag `selected_for_confirmatory`; converting the full pilot screen to JSON therefore reran rejected candidates in the confirmatory stage instead of only the finalists.
+
+Execution result:
+- Updated [modules/smoothing/run_denoising_sweep_v2.py](../../modules/smoothing/run_denoising_sweep_v2.py) so confirmatory-settings JSON now treats `selected_for_confirmatory` as the staged handoff filter: rows with the flag set to `false` are skipped, while explicit setting JSON without the flag still loads unchanged.
+- Updated [modules/smoothing/test_run_denoising_sweep_v2.py](../../modules/smoothing/test_run_denoising_sweep_v2.py) so the regression writes the full pilot `family_screen.csv` to JSON, proves that some rows were intentionally unselected, and verifies the confirmatory stage only carries forward the selected subset.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `3 passed in 0.99s`
+- `python -m py_compile modules/smoothing/run_denoising_sweep_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: none (successful bytecode compilation)
+- `python - <<'PY' ... PY` executing the exact full-screen handoff `family_screen.csv -> JSON -> _load_confirmatory_settings() -> run_stage(stage="confirmatory")`
+  Output: `{"confirmatory_n_settings": 8, "family_screen_rows": 9, "loaded_settings": 6, "selected_rows": 6}`
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` matched the intended loader/test/log changes, and `.scheduler/metrics/sessions.jsonl` was absent in this worktree so there were no recent fleet sessions to audit locally.
+
+Session-type: autonomous
+Task-selected: Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 2
+Compound-actions: none
+Resources-consumed: none
+
+### 2026-04-28 (Review fix: confirmatory settings JSON now accepts pilot family-screen rows)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","agentId":"codex-manual-2026-04-28-v2-denoiser-review-fix-finding-1"}'`
+  Output: `{"ok":true,"claim":{"claimId":"5c1bd0c5de38498e","taskId":"d921ed2d7c72","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-28-v2-denoiser-review-fix-finding-1","claimedAt":1777417651593,"expiresAt":1777420351593}}` and `200`
+  Interpretation: the scheduler claim API was live in this worktree and accepted the pre-selected implementation task before the review-fix edits began.
+
+Scope classification:
+`STRUCTURAL (verifiable)` (`consumes_resources: false`) — module-local Python loader hardening plus a regression test; no experiment submission, external model call, or long-running compute was required.
+
+Discovery:
+- The natural staged handoff artifact, `family_screen.csv`, carries finalist hyperparameters as CSV strings and also includes screening metadata columns such as `eligible_by_gain_rule`, `selected_for_confirmatory`, and `selection_reason`.
+- `_load_confirmatory_settings()` previously passed JSON objects straight into `V2SweepSetting(**item)`, so pilot-derived JSON could fail in two ways: unexpected screening keys raised `TypeError`, and numeric strings like `"span": "7"` or `"lambda_rel": "0.5"` would survive into confirmatory evaluation and break numeric consumers.
+
+Execution result:
+- Updated [modules/smoothing/run_denoising_sweep_v2.py](../../modules/smoothing/run_denoising_sweep_v2.py) so confirmatory-setting loading now accepts pilot-style family-screen rows directly: it ignores non-setting metadata, infers `method` from `family` when needed, restores optional integer/float/bool fields to typed values, and still supports already-typed setting JSON.
+- Added regression coverage in [modules/smoothing/test_run_denoising_sweep_v2.py](../../modules/smoothing/test_run_denoising_sweep_v2.py) that writes selected `family_screen.csv` rows to JSON and verifies the confirmatory stage can consume them without manual schema repair.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `3 passed in 0.82s`
+- `python -m py_compile modules/smoothing/run_denoising_sweep_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: none (successful bytecode compilation)
+- `python - <<'PY' ... PY` running the exact staged handoff `family_screen.csv -> JSON -> --confirmatory-settings-json`
+  Output: `{"confirmatory_n_best_rows": 4, "confirmatory_n_rows_written": 9, "confirmatory_n_settings": 9, "selected_rows": 6}`
+
+Session-type: autonomous
+Task-selected: Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Resources-consumed: none
+
+### 2026-04-28 (Closeout verification for pre-selected v2 implementation task)
+
+Task claim check:
+- `curl -s -o /tmp/smoothing-claim.json -w '%{http_code}' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"taskText":"Implement the v2 denoiser families and staged sweep harness","project":"smoothing","agentId":"manual-session"}' && cat /tmp/smoothing-claim.json`
+  Output: `200` and `{"ok":true,"claim":{"claimId":"397972b60ff87c8a","taskId":"c32ac54703f5","taskText":"Implement the v2 denoiser families and staged sweep harness","project":"smoothing","agentId":"manual-session","claimedAt":1777417262467,"expiresAt":1777419962467}}`
+  Interpretation: the scheduler claim API was reachable in this worktree and accepted the selected task before verification began.
+
+Scope classification:
+`ROUTINE` (`consumes_resources: false`) — this branch already contains the v2 implementation commits, so the selected-task pass reduced to contract verification, session logging, compound, and closeout. No experiment submission or external model/API work was required beyond the scheduler claim.
+
+Discovery:
+- `projects/smoothing/TASKS.md` already marks the selected task complete, and the branch history already contains `32c736e implement v2 denoiser families and staged harness` plus `003e5fb Fix v2 confirmatory default trajectory seeds`, so no additional feature code was missing from the dedicated worktree.
+- The task plan in `projects/smoothing/plans/2026-04-28-implement-v2-denoiser-families-and-harness.md` matches the shipped files: `modules/smoothing/denoise_families_v2.py`, `modules/smoothing/run_denoising_sweep_v2.py`, `modules/smoothing/test_denoise_families_v2.py`, and `modules/smoothing/test_run_denoising_sweep_v2.py`.
+
+Execution result:
+- No module code changes were needed in this session.
+- Verified that the existing implementation still satisfies the selected-task contract: reusable v2 denoiser families exist, the staged v2 runner remains isolated from v1, and smoke execution still writes pilot artifacts including `family_screen.csv` and the standard plot bundle.
+
+Verification:
+- `pytest -q modules/smoothing/test_denoise_families_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `5 passed in 0.90s`
+- `pytest -q modules/smoothing/test_generate_lorenz63_dataset.py modules/smoothing/test_denoise_baselines.py modules/smoothing/test_run_denoising_sweep.py`
+  Output: `9 passed in 1.11s`
+- `python -m py_compile modules/smoothing/denoise_families_v2.py modules/smoothing/run_denoising_sweep_v2.py modules/smoothing/test_denoise_families_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: none (successful bytecode compilation)
+- `python modules/smoothing/run_denoising_sweep_v2.py --out-dir /tmp/lorenz63-v2-pilot-closeout --stage pilot --trajectory-seeds 0 1 --replicate-ids 0 --noise-levels 0.05 0.10 --burn-in-steps 32 --record-steps 64 --overwrite`
+  Output: pilot manifest with `n_settings = 21`, `n_rows_written = 84`, `n_family_screen_rows = 17`, and plot files `rmse_vs_noise.png`, `relative_rmse_vs_noise.png`, and `denoising_gain_vs_noise.png` under `/tmp/lorenz63-v2-pilot-closeout/plots/`.
+
+Compound (fast): no actions. `git diff --stat HEAD~1..HEAD` showed only the intended closeout log entry, and `.scheduler/metrics/sessions.jsonl` was absent in this worktree so there were no recent fleet sessions to audit.
+
+Session-type: autonomous
+Task-selected: Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
+Task-completed: already complete on branch; verified in this session
+Approvals-created: 0
+Files-changed: 1
+Commits: 2
+Resources-consumed: none
+
+### 2026-04-28 (Review fix: confirmatory default seeds no longer reuse pilot trajectories)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","agentId":"codex-manual-2026-04-28-v2-denoiser-review-fix"}'`
+  Output: `{"ok":false,"error":"Task already claimed","claimedBy":"codex-manual-2026-04-28-v2-denoiser-harness","expiresAt":1777358792898}` and `409`
+  Interpretation: the selected task still had an active scheduler claim from the earlier v2 implementation session, so this review-fix pass proceeded in the same worktree without re-claiming it.
+
+Scope classification:
+`STRUCTURAL (verifiable)` (`consumes_resources: false`) — module-local Python default selection and regression-test updates only; no experiment execution, external model calls, or long-running compute.
+
+Discovery:
+- `modules/smoothing/run_denoising_sweep_v2.py` defaulted confirmatory `trajectory_seeds` to `tuple(range(8))`, which overlaps the pilot default seed set `DEFAULT_TRAJECTORY_SEEDS = (0, 1, 2, 3, 4)` on `5/8` confirmatory clusters.
+- The v2 experiment contract in `projects/smoothing/experiments/lorenz63-denoising-benchmark-v2/EXPERIMENT.md` requires the confirmatory stage to rerun finalists and references on the same fresh, larger `8`-seed dataset rather than mixing pilot and confirmatory rows, so the harness default needed to enforce that contract without relying on callers to override `--trajectory-seeds`.
+
+Execution result:
+- Updated [modules/smoothing/run_denoising_sweep_v2.py](../../modules/smoothing/run_denoising_sweep_v2.py) so `DEFAULT_CONFIRMATORY_TRAJECTORY_SEEDS` is now derived as the fresh disjoint range immediately after the pilot defaults, yielding `(5, 6, 7, 8, 9, 10, 11, 12)` for the current default pilot seed set.
+- Added regression coverage in [modules/smoothing/test_run_denoising_sweep_v2.py](../../modules/smoothing/test_run_denoising_sweep_v2.py) that asserts the confirmatory defaults stay `8` seeds wide, remain disjoint from the pilot defaults, and are actually used when `run_stage(stage="confirmatory")` runs without explicit `trajectory_seeds`.
+
+Verification:
+- `pytest -q modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `2 passed in 0.93s`
+- `python -m py_compile modules/smoothing/run_denoising_sweep_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: none (successful bytecode compilation)
+
+Compound (fast): no actions. The issue was a module-specific default-contract bug, and the fix plus regression coverage did not expose a reusable repo-wide convention change beyond this project log.
+
+Session-type: autonomous
+Duration: 8
+Task-selected: Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 3
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
 ### 2026-04-28 (Review fix: add missing SG variance comparison to compact-retuning analysis)
 
 Task claim check:
@@ -281,6 +448,49 @@ Task-selected: Implement dense compact-polynomial kernel retuning support [requi
 Task-completed: yes
 Approvals-created: 0
 Files-changed: 7
+Commits: 1
+Compound-actions: none
+Resources-consumed: none
+Budget-remaining: n/a
+
+### 2026-04-28 (Implementing v2 denoiser families and staged sweep harness)
+
+Task claim check:
+- `curl -s -w '\n%{http_code}\n' -X POST http://localhost:8420/api/tasks/claim -H 'Content-Type: application/json' -d '{"project":"smoothing","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","agentId":"codex-manual-2026-04-28-v2-denoiser-harness"}'`
+  Output: `{"ok":true,"claim":{"claimId":"1fa8b08cbefc6b85","taskId":"d921ed2d7c72","taskText":"Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]","project":"smoothing","agentId":"codex-manual-2026-04-28-v2-denoiser-harness","claimedAt":1777356092898,"expiresAt":1777358792898}}` and `200`
+  Interpretation: the scheduler claim API is live in this worktree and accepted the pre-selected v2 implementation task before project state changed.
+
+Scope classification:
+`STRUCTURAL (verifiable)` (`consumes_resources: false`) — module-local Python implementation plus focused regression tests; no external model calls, no GPU work, and no long-running compute are required for the implementation step itself.
+
+Discovery:
+- The v2 experiment contract requires a separate `modules/smoothing/run_denoising_sweep_v2.py` path and explicitly forbids mutating `modules/smoothing/run_denoising_sweep.py:run_sweep()`, so v1 reproducibility has to be preserved by isolation rather than by feature-flagging the existing runner.
+- The v2 schema adds `family`, `span`, `lambda_rel`, and `derivative_rmse`, but the v1 helper path only distinguishes settings through the legacy grouping fields, so the v2 runner will need its own expanded summarization key while keeping the downstream ranking semantics compatible.
+- The pilot-stage artifact contract is broader than v1's smoke path: besides the standard metric tables and plots, v2 must emit a family-level finalist screen artifact that encodes the staged carry-forward rule.
+
+Execution result:
+- Added [modules/smoothing/denoise_families_v2.py](../../modules/smoothing/denoise_families_v2.py) with reusable implementations for `normalized_kernel_regression`, `local_linear_regression`, and `cubic_smoothing_spline`, including the observable-scale spline smoothing-factor contract used by the v2 benchmark design.
+- Added [modules/smoothing/run_denoising_sweep_v2.py](../../modules/smoothing/run_denoising_sweep_v2.py) as an isolated staged harness that reuses the Lorenz63 dataset contract, computes the expanded v2 metrics/schema, writes pilot `family_screen.csv` artifacts, and preserves the v1 runner unchanged.
+- Added regression coverage in [modules/smoothing/test_denoise_families_v2.py](../../modules/smoothing/test_denoise_families_v2.py) and [modules/smoothing/test_run_denoising_sweep_v2.py](../../modules/smoothing/test_run_denoising_sweep_v2.py), updated [modules/smoothing/README.md](../../modules/smoothing/README.md) with the new entry points, and marked the selected task complete in [TASKS.md](./TASKS.md).
+
+Verification:
+- `pytest -q modules/smoothing/test_denoise_families_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `4 passed in 0.77s`
+- `pytest -q modules/smoothing/test_generate_lorenz63_dataset.py modules/smoothing/test_denoise_baselines.py modules/smoothing/test_run_denoising_sweep.py modules/smoothing/test_denoise_families_v2.py modules/smoothing/test_run_denoising_sweep_v2.py`
+  Output: `13 passed in 1.19s`
+- `python -m py_compile modules/smoothing/denoise_families_v2.py modules/smoothing/run_denoising_sweep_v2.py`
+  Output: none (successful bytecode compilation)
+- `python modules/smoothing/run_denoising_sweep_v2.py --out-dir /tmp/lorenz63-v2-pilot-smoke --stage pilot --trajectory-seeds 0 1 --replicate-ids 0 --noise-levels 0.05 0.10 --burn-in-steps 32 --record-steps 64 --overwrite`
+  Output: pilot manifest with `n_settings = 21`, `n_rows_written = 84`, `n_family_screen_rows = 17`, and three plot paths under `/tmp/lorenz63-v2-pilot-smoke/plots/`.
+
+Compound (fast): no actions. `git diff --stat` showed only the intended smoothing module/project updates, and `.scheduler/metrics/sessions.jsonl` is absent in this worktree, so the compound pass did not surface a reusable convention change, a new follow-up task, or a fleet audit issue.
+
+Session-type: autonomous
+Duration: 10
+Task-selected: Implement the v2 denoiser families and staged sweep harness [requires-frontier] [skill: execute]
+Task-completed: yes
+Approvals-created: 0
+Files-changed: 8
 Commits: 1
 Compound-actions: none
 Resources-consumed: none
